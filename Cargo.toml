@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2024"
 license = "EUPL-1.2"
 rust-version = "1.91" # MSRV
+description = "Parse, manipulate and emit EML_NL documents"
+documentation = "https://docs.rs/eml-nl"
+repository = "https://github.com/kiesraad/rust-eml-nl"
+homepage = "https://github.com/kiesraad/rust-eml-nl"
 
 [features]
 default = []
