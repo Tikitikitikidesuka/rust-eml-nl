@@ -92,9 +92,6 @@ impl EMLElement for ElectionDefinition {
 /// Election event defined in the election definition document.
 #[derive(Debug, Clone)]
 pub struct ElectionDefinitionElectionEvent {
-    /// Identifier for this election event.
-    pub id: ElectionDefinitionElectionEventIdentifier,
-
     /// Election details.
     pub election: ElectionDefinitionElection,
 }
@@ -105,40 +102,16 @@ impl EMLElement for ElectionDefinitionElectionEvent {
 
     fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         Ok(collect_struct!(elem, ElectionDefinitionElectionEvent {
-            id: ElectionDefinitionElectionEventIdentifier::EML_NAME => |elem| ElectionDefinitionElectionEventIdentifier::read_eml(elem)?,
+            id as None: ("EventIdentifier", NS_EML) => |elem| elem.skip().map(|_| ())?,
             election: ElectionDefinitionElection::EML_NAME => |elem| ElectionDefinitionElection::read_eml(elem)?,
         }))
     }
 
     fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         writer
-            .child_elem(
-                ElectionDefinitionElectionEventIdentifier::EML_NAME,
-                &self.id,
-            )?
+            .child(("EventIdentifier", NS_EML), |w| w.empty())?
             .child_elem(ElectionDefinitionElection::EML_NAME, &self.election)?
             .finish()
-    }
-}
-
-/// Event identifier for an election event, is an empty element.
-#[derive(Debug, Clone)]
-pub struct ElectionDefinitionElectionEventIdentifier;
-
-impl EMLElement for ElectionDefinitionElectionEventIdentifier {
-    const EML_NAME: QualifiedName<'_, '_> =
-        QualifiedName::from_static("EventIdentifier", Some(NS_EML));
-
-    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError>
-    where
-        Self: Sized,
-    {
-        elem.skip()?;
-        Ok(ElectionDefinitionElectionEventIdentifier)
-    }
-
-    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
-        writer.empty()
     }
 }
 

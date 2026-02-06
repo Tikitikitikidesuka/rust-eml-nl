@@ -97,6 +97,20 @@ pub enum EMLErrorKind {
     /// The ElectionDate element is used without using the kiesraad namespace
     #[error("Used ElectionDate element without using the kiesraad namespace")]
     InvalidElectionDateNamespace,
+
+    /// The RejectedVotes element with ReasonCode "blanco" is missing
+    #[error("The RejectedVotes element with ReasonCode 'blanco' is missing")]
+    MissingRejectedVotesBlank,
+
+    /// The RejectedVotes element with ReasonCode "ongeldig" is missing
+    #[error("The RejectedVotes element with ReasonCode 'ongeldig' is missing")]
+    MissingRejectedVotesInvalid,
+
+    /// A Selection is missing a selection type (i.e. Candidate, AffiliationIdentifier or ReferendumOptionIdentifier)
+    #[error(
+        "A Selection is missing a selection type (i.e. Candidate, AffiliationIdentifier or ReferendumOptionIdentifier)"
+    )]
+    MissingSelectionType,
 }
 
 impl EMLErrorKind {

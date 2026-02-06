@@ -675,7 +675,8 @@ macro_rules! collect_struct {
     // we again delegate to other rules to output specific parts of the code.
     // These parts are: @decl: declares temporary variables that
     // will hold the parsed values; @matcher: code to check for each field while
-    // reading children from the XML element; and @assign: code to assign the
+    // reading children from the XML element; @process: code to process each
+    // value before storing in the struct; and @assign: code to assign the
     // final values to the struct fields. This final part once again uses a
     // recursive approach to output the assignments one by one because of
     // limitations in macro_rules! that prevent us from directly outputting the
@@ -698,6 +699,17 @@ macro_rules! collect_struct {
         ] $($tail)*)
     };
 
+    // accumulate for a parse-only row (not stored in struct)
+    ( @expand [$root:expr] [$ty:ident] [$($items:tt ; )*]
+        $field:ident as None: $namespaced_name:expr => |$var:ident| $map:expr ,
+        $($tail:tt)*
+    ) => {
+        collect_struct!(@expand [$root] [$ty] [
+            $($items ; )*
+            (@parse_only [$field] [$namespaced_name] [$var] [$map]) ;
+        ] $($tail)*)
+    };
+
     // accumulate, for an option row
     ( @expand [$root:expr] [$ty:ident] [$($items:tt ; )*]
         $field:ident as Option: $namespaced_name:expr => |$var:ident| $map:expr ,
@@ -709,7 +721,18 @@ macro_rules! collect_struct {
         ] $($tail)*)
     };
 
-        // accumulate, for a vector row
+    // accumulate, for a row that maps to Option
+    ( @expand [$root:expr] [$ty:ident] [$($items:tt ; )*]
+        $field:ident as Mapped: $namespaced_name:expr => |$var:ident| { $map:expr } else $errkind:expr,
+        $($tail:tt)*
+    ) => {
+        collect_struct!(@expand [$root] [$ty] [
+            $($items ; )*
+            (@option_mapped [$field] [$namespaced_name] [$var] [$map] [$errkind]) ;
+        ] $($tail)*)
+    };
+
+    // accumulate, for a vector row
     ( @expand [$root:expr] [$ty:ident] [$($items:tt ; )*]
         $field:ident as Vec: $namespaced_name:expr => |$var:ident| $map:expr ,
         $($tail:tt)*
@@ -758,13 +781,21 @@ macro_rules! collect_struct {
             }
         }
 
+        $( collect_struct!(@process $root, $items); )*
+
         collect_struct!(@assign $root, $ty, [], $($items ; )*)
     }};
 
     // Emit field declarations
+    (@decl (@parse_only [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {
+        let mut $field: Option<_> = None;
+    };
     (@decl (@direct [$field:ident] [$value:expr])) => {};
     (@decl (@optional [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {
-        collect_struct!(@decl (@field [$field] [$namespaced_name] [$var] [$map]));
+        let mut $field: Option<_> = None;
+    };
+    (@decl (@option_mapped [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr] [$errkind:expr])) => {
+        let mut $field: Option<_> = None;
     };
     (@decl (@field [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {
         let mut $field: Option<_> = None;
@@ -778,6 +809,9 @@ macro_rules! collect_struct {
     (@matcher $next_child:ident, $name:ident, $handled:ident, (@optional [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {
         collect_struct!(@matcher $next_child, $name, $handled, (@field [$field] [$namespaced_name] [$var] [$map]));
     };
+    (@matcher $next_child:ident, $name:ident, $handled:ident, (@parse_only [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {
+        collect_struct!(@matcher $next_child, $name, $handled, (@field [$field] [$namespaced_name] [$var] [$map]));
+    };
     (@matcher $next_child:ident, $name:ident, $handled:ident, (@field [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {
         if !$handled &&
             &$name == $crate::io::IntoQualifiedNameCow::into_qname_cow($namespaced_name).as_ref()
@@ -786,6 +820,19 @@ macro_rules! collect_struct {
             $field = Some($map);
             $var.skip()?;
             $handled = true;
+        }
+    };
+    (@matcher $next_child:ident, $name:ident, $handled:ident, (@option_mapped [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr] [$errkind:expr])) => {
+        if !$handled &&
+            &$name == $crate::io::IntoQualifiedNameCow::into_qname_cow($namespaced_name).as_ref()
+        {
+            let $var = &mut $next_child;
+            let tmp = $map;
+            if let Some(tmp) = tmp {
+                $field = Some(tmp);
+                $var.skip()?;
+                $handled = true;
+            }
         }
     };
     (@matcher $next_child:ident, $name:ident, $handled:ident, (@vec [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {
@@ -799,6 +846,22 @@ macro_rules! collect_struct {
         }
     };
 
+    // Emit pre-processing values
+    (@process $root:expr, (@parse_only [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {
+        $crate::error::EMLResultExt::with_span(
+            $field.ok_or_else(|| $crate::error::EMLErrorKind::MissingElement(
+                $crate::io::QualifiedName::from($namespaced_name).as_owned()
+            )),
+            $root.last_span()
+        )?;
+    };
+    (@process $root:expr, (@direct [$field:ident] [$value:expr])) => {};
+    (@process $root:expr, (@optional [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {};
+    (@process $root:expr, (@option_mapped [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr] [$errkind:expr])) => {};
+    (@process $root:expr, (@field [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {};
+    (@process $root:expr, (@vec [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {};
+
+    // Start emitting field assignments
     (@build_struct $root:expr, $ty:ident, $($items:tt ; )* ) => {
         $ty {
             collect_struct!(@assign $root, $($items ; )*)
@@ -810,6 +873,11 @@ macro_rules! collect_struct {
         collect_struct!(@assign $root, $ty, [
             $($out)*
             $field: $value,
+        ], $($tail)*)
+    };
+    (@assign $root:expr, $ty:ident, [$($out:tt)*], (@parse_only [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr]) ; $($tail:tt)*) => {
+        collect_struct!(@assign $root, $ty, [
+            $($out)*
         ], $($tail)*)
     };
     (@assign $root:expr, $ty:ident, [$($out:tt)*], (@optional [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr]) ; $($tail:tt)*) => {
@@ -831,6 +899,15 @@ macro_rules! collect_struct {
                 $field.ok_or_else(|| $crate::error::EMLErrorKind::MissingElement(
                     $crate::io::QualifiedName::from($namespaced_name).as_owned()
                 )),
+                $root.last_span()
+            )?,
+        ], $($tail)*)
+    };
+    (@assign $root:expr, $ty:ident, [$($out:tt)*], (@option_mapped [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr] [$errkind:expr]) ; $($tail:tt)*) => {
+        collect_struct!(@assign $root, $ty, [
+            $($out)*
+            $field: $crate::error::EMLResultExt::with_span(
+                $field.ok_or_else(|| $errkind),
                 $root.last_span()
             )?,
         ], $($tail)*)

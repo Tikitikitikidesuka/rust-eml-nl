@@ -114,14 +114,9 @@ impl EMLElement for ListData {
         } else {
             writer
                 .child(("Contests", NS_KR), |writer| {
-                    let mut writer = writer.content()?;
-                    for contest in &self.contests {
-                        writer = writer.child(ListDataContest::EML_NAME, |writer| {
-                            contest.write_eml(writer)
-                        })?;
-                    }
-
-                    writer.finish()
+                    writer
+                        .child_elems(ListDataContest::EML_NAME, &self.contests)?
+                        .finish()
                 })?
                 .finish()
         }

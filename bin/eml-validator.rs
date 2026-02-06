@@ -43,6 +43,7 @@ async fn main() -> anyhow::Result<()> {
                 .with_default_directive(LevelFilter::INFO.into())
                 .from_env_lossy(),
         )
+        .with_writer(std::io::stderr)
         .init();
 
     let parsing_mode = if args.strict {

@@ -4,14 +4,18 @@ use crate::{
     EML_SCHEMA_VERSION, EMLError, EMLErrorKind, EMLResultExt as _, NS_EML,
     documents::{
         candidate_lists::{CandidateLists, EML_CANDIDATE_LISTS_ID},
+        election_count::{CountType, ElectionCount},
         election_definition::{EML_ELECTION_DEFINITION_ID, ElectionDefinition},
+        election_result::{EML_ELECTION_RESULT_ID, ElectionResult},
         polling_stations::{EML_POLLING_STATIONS_ID, PollingStations},
     },
     io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName},
 };
 
 pub mod candidate_lists;
+pub mod election_count;
 pub mod election_definition;
+pub mod election_result;
 pub mod polling_stations;
 
 /// Generic EML document that can represent any of the supported EML variants.
@@ -26,6 +30,10 @@ pub enum EML {
     PollingStations(Box<PollingStations>),
     /// Representing a `230b` document, containing a candidate list.
     CandidateLists(Box<CandidateLists>),
+    /// Representing a `510a`, `510b`, `510c` or `510d` document, containing a count.
+    ElectionCount(Box<ElectionCount>),
+    /// Representing a `520` document, containing the election result.
+    ElectionResult(Box<ElectionResult>),
 }
 
 impl EML {
@@ -35,6 +43,8 @@ impl EML {
             EML::ElectionDefinition(_) => EML_ELECTION_DEFINITION_ID,
             EML::PollingStations(_) => EML_POLLING_STATIONS_ID,
             EML::CandidateLists(_) => EML_CANDIDATE_LISTS_ID,
+            EML::ElectionCount(c) => c.count_type.to_eml_id(),
+            EML::ElectionResult(_) => EML_ELECTION_RESULT_ID,
         }
     }
 
@@ -44,6 +54,8 @@ impl EML {
             EML::ElectionDefinition(_) => "Election Definition",
             EML::PollingStations(_) => "Polling Stations",
             EML::CandidateLists(_) => "Candidate List",
+            EML::ElectionCount(c) => c.count_type.to_friendly_name(),
+            EML::ElectionResult(_) => "Result",
         }
     }
 
@@ -100,6 +112,24 @@ impl EML {
             _ => None,
         }
     }
+
+    /// Create a generic EML document from a Count (`510a`, `510b`, `510c` or `510d`) document.
+    pub fn from_count_doc(count: ElectionCount) -> Self {
+        EML::ElectionCount(Box::new(count))
+    }
+
+    /// Check if this EML document is a Count (`510a`, `510b`, `510c` or `510d`) document.
+    pub fn is_count_doc(&self) -> bool {
+        matches!(self, EML::ElectionCount(_))
+    }
+
+    /// Get a reference to this EML document as a Count (`510a`, `510b`, `510c` or `510d`) document, if possible.
+    pub fn as_count_doc(&self) -> Option<&ElectionCount> {
+        match self {
+            EML::ElectionCount(count) => Some(count),
+            _ => None,
+        }
+    }
 }
 
 impl EMLElement for EML {
@@ -119,6 +149,12 @@ impl EMLElement for EML {
             EML_CANDIDATE_LISTS_ID => {
                 EML::CandidateLists(Box::new(CandidateLists::read_eml(elem)?))
             }
+            EML_ELECTION_RESULT_ID => {
+                EML::ElectionResult(Box::new(ElectionResult::read_eml(elem)?))
+            }
+            id if CountType::is_valid_eml_id(id) => {
+                EML::ElectionCount(Box::new(ElectionCount::read_eml(elem)?))
+            }
             _ => {
                 return Err(EMLErrorKind::UnknownDocumentType(document_id.to_string()))
                     .with_span(elem.span());
@@ -131,6 +167,8 @@ impl EMLElement for EML {
             EML::ElectionDefinition(ed) => ed.write_eml(writer),
             EML::PollingStations(ps) => ps.write_eml(writer),
             EML::CandidateLists(cl) => cl.write_eml(writer),
+            EML::ElectionCount(c) => c.write_eml(writer),
+            EML::ElectionResult(r) => r.write_eml(writer),
         }
     }
 }
@@ -176,6 +214,12 @@ mod tests {
             .ok()
             .expect("Failed to parse EML document");
         assert!(matches!(eml, EML::PollingStations(_)));
+
+        let doc = include_str!("../../test-emls/count/deserialize_eml510b_test.eml.xml");
+        let eml = EML::parse_eml(doc, EMLParsingMode::Strict)
+            .ok()
+            .expect("Failed to parse EML document");
+        assert!(matches!(eml, EML::ElectionCount(_)));
     }
 
     #[test]

@@ -194,6 +194,14 @@ impl<'a> EMLElementWriter<'a> {
         self.content()?.child_elem_option(name, value)
     }
 
+    pub fn child_elems<'b, 'c>(
+        self,
+        name: impl Into<QualifiedName<'b, 'c>>,
+        children: &[impl EMLWriteElement],
+    ) -> Result<EMLElementContentWriter<'a>, EMLError> {
+        self.content()?.child_elems(name, children)
+    }
+
     pub fn text(self, text: &str) -> Result<EMLElementContentWriter<'a>, EMLError> {
         self.content()?.text(text)
     }
@@ -253,6 +261,18 @@ impl<'a> EMLElementContentWriter<'a> {
         self.child_option(name, value, |writer, value| {
             write_eml_element(value)(writer)
         })
+    }
+
+    pub fn child_elems<'b, 'c>(
+        mut self,
+        name: impl Into<QualifiedName<'b, 'c>>,
+        children: &[impl EMLWriteElement],
+    ) -> Result<EMLElementContentWriter<'a>, EMLError> {
+        let name = name.into();
+        for child in children {
+            self = self.child_elem(name.clone(), child)?;
+        }
+        Ok(self)
     }
 
     pub fn text(self, text: &str) -> Result<Self, EMLError> {

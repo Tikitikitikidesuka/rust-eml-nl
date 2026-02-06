@@ -14,6 +14,17 @@ pub struct LocalityName {
     pub code: Option<String>,
 }
 
+impl LocalityName {
+    /// Creates a new `LocalityName` with the given name and no type or code.
+    pub fn new(name: impl Into<String>) -> Self {
+        LocalityName {
+            name: name.into(),
+            locality_type: None,
+            code: None,
+        }
+    }
+}
+
 impl EMLElement for LocalityName {
     const EML_NAME: QualifiedName<'_, '_> =
         QualifiedName::from_static("LocalityName", Some(NS_XAL));

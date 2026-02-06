@@ -6,8 +6,8 @@ use crate::{
     EML_SCHEMA_VERSION, EMLError, NS_EML, NS_KR, NS_XAL,
     common::{
         AffiliationIdentifier, CandidateIdentifier, CanonicalizationMethod, ContestIdentifier,
-        CreationDateTime, ElectionDomain, IssueDate, ListData, ManagingAuthority,
-        PersonNameStructure, TransactionId,
+        CountryNameCode, CreationDateTime, ElectionDomain, IssueDate, ListData, LocalityName,
+        ManagingAuthority, PersonNameStructure, TransactionId,
     },
     documents::accepted_root,
     error::{EMLErrorKind, EMLResultExt},
@@ -84,9 +84,7 @@ impl EMLElement for CandidateLists {
             //     self.canonicalization_method.as_ref(),
             // )?
             .child_elem(CandidateListsCandidateList::EML_NAME, &self.candidate_list)?
-            .finish()?;
-
-        Ok(())
+            .finish()
     }
 }
 
@@ -247,11 +245,10 @@ impl EMLElement for CandidateListsContest {
     }
 
     fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
-        let mut writer = writer.child_elem(ContestIdentifier::EML_NAME, &self.identifier)?;
-        for affiliation in &self.affiliations {
-            writer = writer.child_elem(CandidateListsAffiliation::EML_NAME, affiliation)?;
-        }
-        writer.finish()
+        writer
+            .child_elem(ContestIdentifier::EML_NAME, &self.identifier)?
+            .child_elems(CandidateListsAffiliation::EML_NAME, &self.affiliations)?
+            .finish()
     }
 }
 
@@ -284,17 +281,14 @@ impl EMLElement for CandidateListsAffiliation {
     }
 
     fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
-        let mut writer = writer
+        writer
             .child_elem(AffiliationIdentifier::EML_NAME, &self.identifier)?
             .child(("Type", NS_EML), |elem| {
                 elem.text(self.affiliation_type.raw().as_ref())?.finish()
             })?
-            .child_elem(ListData::EML_NAME, &self.list_data)?;
-
-        for candidate in &self.candidates {
-            writer = writer.child_elem(CandidateListsCandidate::EML_NAME, candidate)?;
-        }
-        writer.finish()
+            .child_elem(ListData::EML_NAME, &self.list_data)?
+            .child_elems(CandidateListsCandidate::EML_NAME, &self.candidates)?
+            .finish()
     }
 }
 
@@ -314,19 +308,21 @@ pub struct CandidateListsCandidate {
     pub gender: Option<StringValue<GenderType>>,
 
     /// The qualifying address of the candidate.
-    pub qualifying_address: QualifyingAddress,
+    pub qualifying_address: Option<QualifyingAddress>,
 }
 
 impl EMLElement for CandidateListsCandidate {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("Candidate", Some(NS_EML));
 
     fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
+        // TODO: parse Contact, Agent, kr:DateOfBirthAnnex and kr:NationalIdentificationNumber when present
+
         Ok(collect_struct!(elem, CandidateListsCandidate {
             identifier: CandidateIdentifier::EML_NAME => |elem| CandidateIdentifier::read_eml(elem)?,
             full_name: ("CandidateFullName", NS_EML) => |elem| PersonNameStructure::read_eml_element(elem)?,
             date_of_birth as Option: ("DateOfBirth", NS_EML) => |elem| elem.string_value()?,
             gender as Option: ("Gender", NS_EML) => |elem| elem.string_value()?,
-            qualifying_address: QualifyingAddress::EML_NAME => |elem| QualifyingAddress::read_eml(elem)?,
+            qualifying_address as Option: QualifyingAddress::EML_NAME => |elem| QualifyingAddress::read_eml(elem)?,
         }))
     }
 
@@ -345,7 +341,10 @@ impl EMLElement for CandidateListsCandidate {
             .child_option(("Gender", NS_EML), self.gender.as_ref(), |elem, value| {
                 elem.text(value.raw().as_ref())?.finish()
             })?
-            .child_elem(QualifyingAddress::EML_NAME, &self.qualifying_address)?
+            .child_elem_option(
+                QualifyingAddress::EML_NAME,
+                self.qualifying_address.as_ref(),
+            )?
             .finish()
     }
 }
@@ -516,49 +515,6 @@ impl EMLElement for AddressLine {
     }
 }
 
-/// The locality name.
-#[derive(Debug, Clone)]
-pub struct LocalityName {
-    /// The locality name.
-    pub value: String,
-    /// The Type attribute, if present.
-    pub locality_name_type: Option<String>,
-    /// The Code attribute, if present.
-    pub code: Option<String>,
-}
-
-impl LocalityName {
-    /// Create a new LocalityName.
-    pub fn new(value: impl Into<String>) -> Self {
-        LocalityName {
-            value: value.into(),
-            locality_name_type: None,
-            code: None,
-        }
-    }
-}
-
-impl EMLElement for LocalityName {
-    const EML_NAME: QualifiedName<'_, '_> =
-        QualifiedName::from_static("LocalityName", Some(NS_XAL));
-
-    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
-        Ok(LocalityName {
-            value: elem.text_without_children()?,
-            locality_name_type: elem.attribute_value("Type")?.map(Cow::into_owned),
-            code: elem.attribute_value("Code")?.map(Cow::into_owned),
-        })
-    }
-
-    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
-        writer
-            .attr_opt("Type", self.locality_name_type.as_ref())?
-            .attr_opt("Code", self.code.as_ref())?
-            .text(self.value.as_ref())?
-            .finish()
-    }
-}
-
 /// Postal code information.
 #[derive(Debug, Clone)]
 pub struct PostalCode {
@@ -670,49 +626,6 @@ impl EMLElement for QualifyingAddressCountry {
         writer
             .child_elem_option(CountryNameCode::EML_NAME, self.country_name_code.as_ref())?
             .child_elem(QualifyingAddressLocality::EML_NAME, &self.locality)?
-            .finish()
-    }
-}
-
-/// Country name code information.
-#[derive(Debug, Clone)]
-pub struct CountryNameCode {
-    /// The country name code value.
-    pub value: String,
-    /// The Scheme attribute, if present.
-    pub scheme: Option<String>,
-    /// The Code attribute, if present.
-    pub code: Option<String>,
-}
-
-impl CountryNameCode {
-    /// Create a new CountryNameCode.
-    pub fn new(value: impl Into<String>) -> Self {
-        CountryNameCode {
-            value: value.into(),
-            scheme: None,
-            code: None,
-        }
-    }
-}
-
-impl EMLElement for CountryNameCode {
-    const EML_NAME: QualifiedName<'_, '_> =
-        QualifiedName::from_static("CountryNameCode", Some(NS_XAL));
-
-    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
-        Ok(CountryNameCode {
-            value: elem.text_without_children()?,
-            scheme: elem.attribute_value("Scheme")?.map(Cow::into_owned),
-            code: elem.attribute_value("Code")?.map(Cow::into_owned),
-        })
-    }
-
-    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
-        writer
-            .attr_opt("Scheme", self.scheme.as_ref())?
-            .attr_opt("Code", self.code.as_ref())?
-            .text(self.value.as_ref())?
             .finish()
     }
 }
