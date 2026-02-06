@@ -326,14 +326,14 @@ impl EMLElement for ElectionResultSelection {
 
             match name {
                 n if n == CandidateSelection::EML_NAME => {
-                    selection_type = Some(ElectionResultSelectionType::Candidate(
+                    selection_type = Some(ElectionResultSelectionType::Candidate(Box::new(
                         CandidateSelection::read_eml(&mut child)?,
-                    ));
+                    )));
                 }
                 n if n == AffiliationSelection::EML_NAME => {
-                    selection_type = Some(ElectionResultSelectionType::Affiliation(
+                    selection_type = Some(ElectionResultSelectionType::Affiliation(Box::new(
                         AffiliationSelection::read_eml(&mut child)?,
-                    ));
+                    )));
                 }
                 n if n == VOTES_EML_NAME => {
                     votes = Some(child.string_value()?);
@@ -372,11 +372,12 @@ impl EMLElement for ElectionResultSelection {
     fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         let writer = match &self.selection_type {
             ElectionResultSelectionType::Candidate(candidate_selection) => {
-                writer.child_elem(CandidateSelection::EML_NAME, candidate_selection)?
+                writer.child_elem(CandidateSelection::EML_NAME, candidate_selection.as_ref())?
             }
-            ElectionResultSelectionType::Affiliation(affiliation_selection) => {
-                writer.child_elem(AffiliationSelection::EML_NAME, affiliation_selection)?
-            }
+            ElectionResultSelectionType::Affiliation(affiliation_selection) => writer.child_elem(
+                AffiliationSelection::EML_NAME,
+                affiliation_selection.as_ref(),
+            )?,
         };
         writer
             .child_option(VOTES_EML_NAME, self.votes.as_ref(), |elem, value| {
@@ -396,9 +397,9 @@ impl EMLElement for ElectionResultSelection {
 #[derive(Debug, Clone)]
 pub enum ElectionResultSelectionType {
     /// Selection of a candidate.
-    Candidate(CandidateSelection),
+    Candidate(Box<CandidateSelection>),
     /// Selection of an affiliation.
-    Affiliation(AffiliationSelection),
+    Affiliation(Box<AffiliationSelection>),
 }
 
 /// Selection of a candidate.

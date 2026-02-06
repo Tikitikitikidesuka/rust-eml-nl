@@ -856,19 +856,19 @@ impl EMLElement for ElectionCountSelection {
 
             match name {
                 n if n == CandidateSelection::EML_NAME => {
-                    selection_type = Some(ElectionCountSelectionType::Candidate(
+                    selection_type = Some(ElectionCountSelectionType::Candidate(Box::new(
                         CandidateSelection::read_eml(&mut child)?,
-                    ));
+                    )));
                 }
                 n if n == AffiliationSelection::EML_NAME => {
-                    selection_type = Some(ElectionCountSelectionType::Affiliation(
+                    selection_type = Some(ElectionCountSelectionType::Affiliation(Box::new(
                         AffiliationSelection::read_eml(&mut child)?,
-                    ));
+                    )));
                 }
                 n if n == ReferendumOptionSelection::EML_NAME => {
-                    selection_type = Some(ElectionCountSelectionType::ReferendumOption(
+                    selection_type = Some(ElectionCountSelectionType::ReferendumOption(Box::new(
                         ReferendumOptionSelection::read_eml(&mut child)?,
-                    ));
+                    )));
                 }
                 n if n == VALID_VOTES_EML_NAME => {
                     valid_votes = Some(child.string_value()?);
@@ -904,15 +904,16 @@ impl EMLElement for ElectionCountSelection {
             .attr_opt("Category", self.category.as_deref())?;
         let writer = match &self.selection_type {
             ElectionCountSelectionType::Candidate(candidate_selection) => {
-                writer.child_elem(CandidateSelection::EML_NAME, candidate_selection)?
+                writer.child_elem(CandidateSelection::EML_NAME, candidate_selection.as_ref())?
             }
-            ElectionCountSelectionType::Affiliation(affiliation_selection) => {
-                writer.child_elem(AffiliationSelection::EML_NAME, affiliation_selection)?
-            }
+            ElectionCountSelectionType::Affiliation(affiliation_selection) => writer.child_elem(
+                AffiliationSelection::EML_NAME,
+                affiliation_selection.as_ref(),
+            )?,
             ElectionCountSelectionType::ReferendumOption(referendum_option_selection) => writer
                 .child_elem(
                     ReferendumOptionSelection::EML_NAME,
-                    referendum_option_selection,
+                    referendum_option_selection.as_ref(),
                 )?,
         };
         writer
@@ -927,11 +928,11 @@ impl EMLElement for ElectionCountSelection {
 #[derive(Debug, Clone)]
 pub enum ElectionCountSelectionType {
     /// Selection of a candidate.
-    Candidate(CandidateSelection),
+    Candidate(Box<CandidateSelection>),
     /// Selection of an affiliation.
-    Affiliation(AffiliationSelection),
+    Affiliation(Box<AffiliationSelection>),
     /// Selection of a referendum option.
-    ReferendumOption(ReferendumOptionSelection),
+    ReferendumOption(Box<ReferendumOptionSelection>),
 }
 
 /// Selection of a candidate.
