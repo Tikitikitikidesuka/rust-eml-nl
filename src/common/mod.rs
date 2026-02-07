@@ -1,6 +1,5 @@
 //! Element definitions common to multiple EML_NL document variants.
 
-mod affiliation_identifier;
 mod candidate_identifier;
 mod canonicalization_method;
 mod contest_identifier;
@@ -18,7 +17,6 @@ mod postal_code;
 mod reporting_unit_identifier;
 mod transaction_id;
 
-pub use affiliation_identifier::*;
 pub use candidate_identifier::*;
 pub use canonicalization_method::*;
 pub use contest_identifier::*;

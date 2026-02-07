@@ -30,6 +30,7 @@ pub trait EMLRead {
 }
 
 /// The result of reading an EML document, which may include non-fatal errors.
+#[must_use]
 pub enum EMLReadResult<T> {
     /// The document was parsed successfully, with optional non-fatal errors.
     Ok(T, Vec<EMLError>),
@@ -57,6 +58,16 @@ impl<T> EMLReadResult<T> {
     /// the list of non-fatal errors if successful, or the error(s) if not.
     pub fn ok_with_errors(self) -> Result<(T, Vec<EMLError>), EMLError> {
         self.into()
+    }
+
+    /// Unwraps the value if successful, or panics if not.
+    pub fn unwrap(self) -> T {
+        self.ok().unwrap()
+    }
+
+    /// Unwraps the value if successful, or panics with the given message if not.
+    pub fn expect(self, msg: &str) -> T {
+        self.ok().expect(msg)
     }
 }
 

@@ -455,3 +455,37 @@ pub(crate) fn write_eml_element(
 ) -> impl FnOnce(EMLElementWriter) -> Result<(), EMLError> {
     |writer| element.write_eml_element(writer)
 }
+
+#[cfg(test)]
+pub(crate) fn test_write_eml_element<T: crate::io::EMLElement>(
+    element: &T,
+    namespaces: &[&str],
+) -> Result<String, EMLError> {
+    let mut namespace_definitions = HashMap::new();
+    let mut default_namespace_uri = Some(None);
+    for ns in namespaces {
+        match *ns {
+            NS_EML => {
+                default_namespace_uri = Some(Some(NS_EML));
+            }
+            NS_KR => {
+                namespace_definitions.insert("kr", NS_KR);
+            }
+            NS_XAL => {
+                namespace_definitions.insert("xal", NS_XAL);
+            }
+            NS_XNL => {
+                namespace_definitions.insert("xnl", NS_XNL);
+            }
+            _ => {}
+        }
+    }
+
+    element.write_root_str(
+        Some(T::EML_NAME),
+        default_namespace_uri,
+        Some(namespace_definitions),
+        true,
+        false,
+    )
+}

@@ -5,9 +5,9 @@ use std::borrow::Cow;
 use crate::{
     EML_SCHEMA_VERSION, EMLError, NS_EML, NS_KR, NS_XAL,
     common::{
-        AffiliationIdentifier, CandidateIdentifier, CanonicalizationMethod, ContestIdentifier,
-        CountryNameCode, CreationDateTime, ElectionDomain, IssueDate, ListData, LocalityName,
-        ManagingAuthority, PersonNameStructure, TransactionId,
+        CandidateIdentifier, CanonicalizationMethod, ContestIdentifier, CountryNameCode,
+        CreationDateTime, ElectionDomain, IssueDate, ListData, LocalityName, ManagingAuthority,
+        PersonNameStructure, TransactionId,
     },
     documents::accepted_root,
     error::{EMLErrorKind, EMLResultExt},
@@ -16,8 +16,8 @@ use crate::{
         collect_struct, write_eml_element,
     },
     utils::{
-        AffiliationType, ElectionCategory, ElectionIdType, ElectionSubcategory, GenderType,
-        StringValue, XsDate, XsDateOrDateTime,
+        AffiliationIdType, AffiliationType, ElectionCategory, ElectionIdType, ElectionSubcategory,
+        GenderType, StringValue, XsDate, XsDateOrDateTime,
     },
 };
 
@@ -289,6 +289,54 @@ impl EMLElement for CandidateListsAffiliation {
             .child_elem(ListData::EML_NAME, &self.list_data)?
             .child_elems(CandidateListsCandidate::EML_NAME, &self.candidates)?
             .finish()
+    }
+}
+
+/// An affiliation identifier consisting of an id and a registered name.
+#[derive(Debug, Clone)]
+pub struct AffiliationIdentifier {
+    /// The affiliation id.
+    pub id: StringValue<AffiliationIdType>,
+    /// The registered name of the affiliation.
+    pub registered_name: Option<String>,
+}
+
+impl AffiliationIdentifier {
+    /// Create a new AffiliationIdentifier.
+    pub fn new(id: AffiliationIdType, registered_name: Option<impl Into<String>>) -> Self {
+        Self {
+            id: StringValue::Parsed(id),
+            registered_name: registered_name.map(|name| name.into()),
+        }
+    }
+}
+
+impl EMLElement for AffiliationIdentifier {
+    const EML_NAME: crate::io::QualifiedName<'_, '_> =
+        crate::io::QualifiedName::from_static("AffiliationIdentifier", Some(crate::NS_EML));
+
+    fn read_eml(elem: &mut crate::io::EMLElementReader<'_, '_>) -> Result<Self, crate::EMLError> {
+        Ok(collect_struct!(
+            elem,
+            AffiliationIdentifier {
+                id: elem.string_value_attr("Id", None)?,
+                registered_name: ("RegisteredName", NS_EML) => |elem| elem.text_without_children_opt()?,
+            }
+        ))
+    }
+
+    fn write_eml(&self, writer: crate::io::EMLElementWriter) -> Result<(), crate::EMLError> {
+        writer
+            .attr("Id", self.id.raw().as_ref())?
+            .child(("RegisteredName", NS_EML), |w| {
+                if let Some(name) = &self.registered_name {
+                    w.text(name)?.finish()
+                } else {
+                    w.empty()
+                }
+            })?
+            .finish()?;
+        Ok(())
     }
 }
 
@@ -627,5 +675,61 @@ impl EMLElement for QualifyingAddressCountry {
             .child_elem_option(CountryNameCode::EML_NAME, self.country_name_code.as_ref())?
             .child_elem(QualifyingAddressLocality::EML_NAME, &self.locality)?
             .finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::io::{EMLParsingMode, EMLRead as _, test_write_eml_element, test_xml_fragment};
+
+    use super::*;
+
+    #[test]
+    fn test_affiliation_identifier() {
+        let xml = test_xml_fragment(
+            r#"
+            <AffiliationIdentifier xmlns="urn:oasis:names:tc:evs:schema:eml" Id="1">
+                <RegisteredName>Affiliation 1</RegisteredName>
+            </AffiliationIdentifier>
+            "#,
+        );
+
+        let affiliation_identifier = AffiliationIdentifier::parse_eml(&xml, EMLParsingMode::Strict)
+            .ok()
+            .unwrap();
+        assert_eq!(
+            affiliation_identifier.id,
+            StringValue::Parsed(AffiliationIdType::new("1").unwrap())
+        );
+        assert_eq!(
+            affiliation_identifier.registered_name,
+            Some("Affiliation 1".to_string())
+        );
+
+        let xml_output = test_write_eml_element(&affiliation_identifier, &[NS_EML]).unwrap();
+        assert_eq!(xml_output, xml);
+    }
+
+    #[test]
+    fn test_empty_affiliation_identifier() {
+        let xml = test_xml_fragment(
+            r#"
+                <AffiliationIdentifier xmlns="urn:oasis:names:tc:evs:schema:eml" Id="2">
+                    <RegisteredName/>
+                </AffiliationIdentifier>
+            "#,
+        );
+
+        let affiliation_identifier = AffiliationIdentifier::parse_eml(&xml, EMLParsingMode::Strict)
+            .ok()
+            .unwrap();
+        assert_eq!(
+            affiliation_identifier.id,
+            StringValue::Parsed(AffiliationIdType::new("2").unwrap())
+        );
+        assert_eq!(affiliation_identifier.registered_name, None);
+
+        let xml_output = test_write_eml_element(&affiliation_identifier, &[NS_EML]).unwrap();
+        assert_eq!(xml_output, xml);
     }
 }

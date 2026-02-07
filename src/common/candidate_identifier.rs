@@ -74,3 +74,59 @@ impl EMLElement for CandidateIdentifier {
             .empty()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::io::{EMLParsingMode, EMLRead as _, test_write_eml_element, test_xml_fragment};
+
+    use super::*;
+
+    #[test]
+    fn test_simple_candidate_identifier() {
+        let xml = test_xml_fragment(
+            r#"
+            <CandidateIdentifier xmlns="urn:oasis:names:tc:evs:schema:eml" Id="1"/>
+            "#,
+        );
+        let can_id = CandidateIdentifier::parse_eml(&xml, EMLParsingMode::Strict).unwrap();
+        assert_eq!(
+            can_id.id,
+            StringValue::Parsed(CandidateIdType::new("1").unwrap())
+        );
+        assert_eq!(can_id.display_order, None);
+        assert_eq!(can_id.short_code, None);
+        assert_eq!(can_id.expected_confirmation_reference, None);
+
+        let xml_output = test_write_eml_element(&can_id, &[NS_EML]).unwrap();
+        assert_eq!(xml_output, xml);
+    }
+
+    #[test]
+    fn test_all_attributes_candidate_identifier() {
+        let xml = test_xml_fragment(
+            r#"
+            <CandidateIdentifier xmlns="urn:oasis:names:tc:evs:schema:eml" Id="2254" DisplayOrder="2" ShortCode="1234" ExpectedConfirmationReference="Ref123"/>
+            "#,
+        );
+        let can_id = CandidateIdentifier::parse_eml(&xml, EMLParsingMode::Strict).unwrap();
+        assert_eq!(
+            can_id.id,
+            StringValue::Parsed(CandidateIdType::new("2254").unwrap())
+        );
+        assert_eq!(
+            can_id.display_order,
+            Some(StringValue::Parsed(NonZeroU64::new(2).unwrap()))
+        );
+        assert_eq!(
+            can_id.short_code,
+            Some(StringValue::Parsed(NameShortCodeType::new("1234").unwrap()))
+        );
+        assert_eq!(
+            can_id.expected_confirmation_reference,
+            Some("Ref123".to_string())
+        );
+
+        let xml_output = test_write_eml_element(&can_id, &[NS_EML]).unwrap();
+        assert_eq!(xml_output, xml);
+    }
+}

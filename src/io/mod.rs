@@ -37,3 +37,32 @@ where
         T::read_eml(elem)
     }
 }
+
+#[cfg(test)]
+pub(crate) fn test_xml_fragment(input: &str) -> String {
+    let mut data_lines = input
+        .split('\n')
+        .skip_while(|l| l.trim().is_empty())
+        .peekable();
+    let indent = data_lines
+        .peek()
+        .map(|v| v.chars().take_while(|c| c.is_ascii_whitespace()).count())
+        .unwrap_or(0);
+    data_lines
+        .map(|line| {
+            let cut = line
+                .char_indices()
+                .take_while(|&(_, c)| c.is_ascii_whitespace())
+                .take(indent)
+                .last()
+                .map(|(i, c)| i + c.len_utf8())
+                .unwrap_or(0);
+
+            let mut line = line[cut..].to_owned();
+            line.push('\n');
+            line
+        })
+        .collect::<String>()
+        .trim_end()
+        .to_owned()
+}
