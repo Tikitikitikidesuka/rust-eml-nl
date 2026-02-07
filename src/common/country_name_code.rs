@@ -25,6 +25,18 @@ impl CountryNameCode {
             code: None,
         }
     }
+
+    /// Set the Scheme attribute.
+    pub fn with_scheme(mut self, scheme: impl Into<String>) -> Self {
+        self.scheme = Some(scheme.into());
+        self
+    }
+
+    /// Set the Code attribute.
+    pub fn with_code(mut self, code: impl Into<String>) -> Self {
+        self.code = Some(code.into());
+        self
+    }
 }
 
 impl EMLElement for CountryNameCode {
@@ -45,5 +57,36 @@ impl EMLElement for CountryNameCode {
             .attr_opt("Code", self.code.as_ref())?
             .text(self.value.as_ref())?
             .finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::io::{EMLParsingMode, EMLRead, test_write_eml_element, test_xml_fragment};
+
+    use super::*;
+
+    #[test]
+    fn test_country_name_code_construction() {
+        let cnc = CountryNameCode::new("Netherlands")
+            .with_scheme("ISO3166")
+            .with_code("NL");
+        assert_eq!(cnc.value, "Netherlands");
+        assert_eq!(cnc.scheme.as_deref(), Some("ISO3166"));
+        assert_eq!(cnc.code.as_deref(), Some("NL"));
+    }
+
+    #[test]
+    fn test_country_name_code_parsing() {
+        let xml = test_xml_fragment(
+            r#"<xal:CountryNameCode xmlns:xal="urn:oasis:names:tc:ciq:xsdschema:xAL:2.0" Scheme="ISO3166" Code="NL">Netherlands</xal:CountryNameCode>"#,
+        );
+        let cnc = CountryNameCode::parse_eml(&xml, EMLParsingMode::Strict).unwrap();
+        assert_eq!(cnc.value, "Netherlands");
+        assert_eq!(cnc.scheme.as_deref(), Some("ISO3166"));
+        assert_eq!(cnc.code.as_deref(), Some("NL"));
+
+        let xml_output = test_write_eml_element(&cnc, &[NS_XAL]).unwrap();
+        assert_eq!(xml_output, xml);
     }
 }

@@ -43,3 +43,35 @@ impl EMLElement for CreationDateTime {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr as _;
+
+    use crate::io::{EMLParsingMode, EMLRead, test_write_eml_element, test_xml_fragment};
+
+    use super::*;
+
+    #[test]
+    fn test_creation_date_time_construction() {
+        let dt = XsDateTime::from_str("2024-06-01T12:34:56+00:00").unwrap();
+        let cdt = CreationDateTime::new(dt);
+        assert_eq!(cdt.raw(), "2024-06-01T12:34:56+00:00");
+        assert_eq!(
+            cdt.value().unwrap().datetime_utc().to_rfc3339(),
+            "2024-06-01T12:34:56+00:00"
+        );
+    }
+
+    #[test]
+    fn test_creation_date_time_parsing() {
+        let xml = test_xml_fragment(
+            r#"<kr:CreationDateTime xmlns:kr="http://www.kiesraad.nl/extensions">2024-06-01T12:34:56+00:00</kr:CreationDateTime>"#,
+        );
+        let cdt = CreationDateTime::parse_eml(&xml, EMLParsingMode::Strict).unwrap();
+        assert_eq!(cdt.raw(), "2024-06-01T12:34:56+00:00");
+
+        let xml_output = test_write_eml_element(&cdt, &[NS_KR]).unwrap();
+        assert_eq!(xml_output, xml);
+    }
+}
