@@ -11,6 +11,41 @@ pub struct ContestIdentifier {
     pub id: StringValue<ContestIdType>,
 }
 
+impl ContestIdentifier {
+    /// Create a new `ContestIdentifier`.
+    pub fn new(id: ContestIdType) -> Self {
+        ContestIdentifier {
+            id: StringValue::Parsed(id),
+        }
+    }
+
+    /// Check if the contest identifier is of type 'geen'.
+    pub fn is_geen(&self) -> bool {
+        match &self.id {
+            StringValue::Parsed(id) => id.is_geen(),
+            StringValue::Raw(s) => s == "geen",
+        }
+    }
+
+    /// Check if the contest identifier is of type 'alle'.
+    pub fn is_alle(&self) -> bool {
+        match &self.id {
+            StringValue::Parsed(id) => id.is_alle(),
+            StringValue::Raw(s) => s == "alle",
+        }
+    }
+
+    /// Create a new `ContestIdentifier` with 'geen' type.
+    pub fn geen() -> Self {
+        ContestIdentifier::new(ContestIdType::geen())
+    }
+
+    /// Create a new `ContestIdentifier` with 'alle' type.
+    pub fn alle() -> Self {
+        ContestIdentifier::new(ContestIdType::alle())
+    }
+}
+
 impl EMLElement for ContestIdentifier {
     const EML_NAME: QualifiedName<'_, '_> =
         QualifiedName::from_static("ContestIdentifier", Some(NS_EML));
@@ -58,5 +93,61 @@ impl EMLElement for ContestIdentifierGeen {
 
     fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         writer.attr("Id", self.id.raw().as_ref())?.empty()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::io::{EMLParsingMode, EMLRead, test_write_eml_element, test_xml_fragment};
+
+    use super::*;
+
+    #[test]
+    fn test_contest_identifier_construction() {
+        let contest_id = ContestIdentifier::new(ContestIdType::new("1234").unwrap());
+        assert_eq!(contest_id.id.raw(), "1234");
+        assert_eq!(contest_id.is_geen(), false);
+        assert_eq!(contest_id.is_alle(), false);
+
+        let contest_id_geen = ContestIdentifier::geen();
+        assert_eq!(contest_id_geen.id.raw(), "geen");
+        assert_eq!(contest_id_geen.is_geen(), true);
+        assert_eq!(contest_id_geen.is_alle(), false);
+
+        let contest_id_alle = ContestIdentifier::alle();
+        assert_eq!(contest_id_alle.id.raw(), "alle");
+        assert_eq!(contest_id_alle.is_geen(), false);
+        assert_eq!(contest_id_alle.is_alle(), true);
+    }
+
+    #[test]
+    fn test_contest_identifier_parsing() {
+        let xml = test_xml_fragment(
+            r#"<ContestIdentifier xmlns="urn:oasis:names:tc:evs:schema:eml" Id="1234"/>"#,
+        );
+        let contest_id = ContestIdentifier::parse_eml(&xml, EMLParsingMode::Strict).unwrap();
+        assert_eq!(contest_id.id.raw(), "1234");
+
+        let xml_output = test_write_eml_element(&contest_id, &[NS_EML]).unwrap();
+        assert_eq!(xml_output, xml);
+    }
+
+    #[test]
+    fn test_contest_identifier_geen_construction() {
+        let contest_id_geen = ContestIdentifierGeen::new();
+        assert_eq!(contest_id_geen.id.raw(), "geen");
+    }
+
+    #[test]
+    fn test_contest_identifier_geen_parsing() {
+        let xml = test_xml_fragment(
+            r#"<ContestIdentifier xmlns="urn:oasis:names:tc:evs:schema:eml" Id="geen"/>"#,
+        );
+        let contest_id_geen =
+            ContestIdentifierGeen::parse_eml(&xml, EMLParsingMode::Strict).unwrap();
+        assert_eq!(contest_id_geen.id.raw(), "geen");
+
+        let xml_output = test_write_eml_element(&contest_id_geen, &[NS_EML]).unwrap();
+        assert_eq!(xml_output, xml);
     }
 }

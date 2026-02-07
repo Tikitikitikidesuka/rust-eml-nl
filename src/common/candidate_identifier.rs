@@ -21,13 +21,31 @@ pub struct CandidateIdentifier {
 
 impl CandidateIdentifier {
     /// Create a new CandidateIdentifier.
-    pub fn new(id: StringValue<CandidateIdType>) -> Self {
+    pub fn new(id: CandidateIdType) -> Self {
         CandidateIdentifier {
-            id,
+            id: StringValue::Parsed(id),
             display_order: None,
             short_code: None,
             expected_confirmation_reference: None,
         }
+    }
+
+    /// Set the display order of the candidate.
+    pub fn with_display_order(mut self, display_order: NonZeroU64) -> Self {
+        self.display_order = Some(StringValue::Parsed(display_order));
+        self
+    }
+
+    /// Set the short code of the candidate.
+    pub fn with_short_code(mut self, short_code: NameShortCodeType) -> Self {
+        self.short_code = Some(StringValue::Parsed(short_code));
+        self
+    }
+
+    /// Set the expected confirmation reference of the candidate.
+    pub fn with_expected_confirmation_reference(mut self, reference: impl Into<String>) -> Self {
+        self.expected_confirmation_reference = Some(reference.into());
+        self
     }
 }
 
@@ -128,5 +146,29 @@ mod tests {
 
         let xml_output = test_write_eml_element(&can_id, &[NS_EML]).unwrap();
         assert_eq!(xml_output, xml);
+    }
+
+    #[test]
+    fn test_candidate_identifier_construction() {
+        let can_id = CandidateIdentifier::new(CandidateIdType::new("5678").unwrap())
+            .with_display_order(NonZeroU64::new(3).unwrap())
+            .with_short_code(NameShortCodeType::new("9876").unwrap())
+            .with_expected_confirmation_reference("reference");
+        assert_eq!(
+            can_id.id,
+            StringValue::Parsed(CandidateIdType::new("5678").unwrap())
+        );
+        assert_eq!(
+            can_id.display_order,
+            Some(StringValue::Parsed(NonZeroU64::new(3).unwrap()))
+        );
+        assert_eq!(
+            can_id.short_code,
+            Some(StringValue::Parsed(NameShortCodeType::new("9876").unwrap()))
+        );
+        assert_eq!(
+            can_id.expected_confirmation_reference,
+            Some("reference".to_string())
+        );
     }
 }

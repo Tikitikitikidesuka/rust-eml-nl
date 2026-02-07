@@ -464,6 +464,8 @@ pub(crate) fn test_write_eml_element<T: crate::io::EMLElement>(
     let mut namespace_definitions = HashMap::new();
     let mut default_namespace_uri = Some(None);
     for ns in namespaces {
+        use crate::NS_DS;
+
         match *ns {
             NS_EML => {
                 default_namespace_uri = Some(Some(NS_EML));
@@ -476,6 +478,9 @@ pub(crate) fn test_write_eml_element<T: crate::io::EMLElement>(
             }
             NS_XNL => {
                 namespace_definitions.insert("xnl", NS_XNL);
+            }
+            NS_DS => {
+                namespace_definitions.insert("ds", NS_DS);
             }
             _ => {}
         }
