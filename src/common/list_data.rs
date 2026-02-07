@@ -53,6 +53,29 @@ impl ListData {
             })
             .unwrap_or_default()
     }
+
+    /// Set the publication language for this list.
+    pub fn with_publication_language(mut self, language: PublicationLanguageType) -> Self {
+        self.publication_language = Some(StringValue::Parsed(language));
+        self
+    }
+
+    /// Set the set this list belongs to, if it is of type
+    /// [`AffiliationType::SetOfEqualLists`](crate::utils::AffiliationType::SetOfEqualLists).
+    pub fn with_belongs_to_set(mut self, set_id: NonZeroU64) -> Self {
+        self.belongs_to_set = Some(StringValue::Parsed(set_id));
+        self
+    }
+
+    /// Set the combination this list belongs to, if it is of type
+    /// [`AffiliationType::GroupOfLists`](crate::utils::AffiliationType::GroupOfLists).
+    pub fn with_belongs_to_combination(
+        mut self,
+        combination_id: ListDataBelongsToCombinationType,
+    ) -> Self {
+        self.belongs_to_combination = Some(StringValue::Parsed(combination_id));
+        self
+    }
 }
 
 impl EMLElement for ListData {
@@ -133,6 +156,19 @@ pub struct ListDataContest {
     pub name: Option<String>,
 }
 
+impl ListDataContest {
+    /// Create a new `ListDataContest` with the given ID and no name.
+    pub fn new(id: StringValue<ContestIdType>) -> Self {
+        ListDataContest { id, name: None }
+    }
+
+    /// Set the name of the contest.
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+}
+
 impl EMLElement for ListDataContest {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("Contest", Some(NS_KR));
 
@@ -190,5 +226,29 @@ impl StringValueData for ListDataBelongsToCombinationType {
 
     fn to_raw_value(&self) -> String {
         self.0.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_list_data_construction() {
+        let list_data = ListData::new(true)
+            .with_publication_language(PublicationLanguageType::Frisian)
+            .with_belongs_to_set(NonZeroU64::new(1).unwrap())
+            .with_belongs_to_combination(ListDataBelongsToCombinationType("A".to_string()));
+
+        assert_eq!(list_data.publish_gender.raw(), "true");
+        assert_eq!(
+            list_data.get_publication_language(),
+            PublicationLanguageType::Frisian
+        );
+        assert_eq!(list_data.belongs_to_set.as_ref().unwrap().raw(), "1");
+        assert_eq!(
+            list_data.belongs_to_combination.as_ref().unwrap().raw(),
+            "A"
+        );
     }
 }

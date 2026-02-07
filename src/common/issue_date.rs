@@ -42,3 +42,36 @@ impl EMLElement for IssueDate {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr as _;
+
+    use crate::{
+        io::{EMLParsingMode, EMLRead, test_write_eml_element, test_xml_fragment},
+        utils::XsDateTime,
+    };
+
+    use super::*;
+
+    #[test]
+    fn test_issue_date_construction() {
+        let dt =
+            XsDateOrDateTime::DateTime(XsDateTime::from_str("2024-06-01T12:34:56+00:00").unwrap());
+        let id = IssueDate::new(dt.clone());
+        assert_eq!(id.raw(), "2024-06-01T12:34:56+00:00");
+        assert_eq!(id.value().unwrap(), dt);
+    }
+
+    #[test]
+    fn test_issue_date_parsing() {
+        let xml = test_xml_fragment(
+            r#"<IssueDate xmlns="urn:oasis:names:tc:evs:schema:eml">2024-06-01</IssueDate>"#,
+        );
+        let id = IssueDate::parse_eml(&xml, EMLParsingMode::Strict).unwrap();
+        assert_eq!(id.raw(), "2024-06-01");
+
+        let xml_output = test_write_eml_element(&id, &[NS_EML]).unwrap();
+        assert_eq!(xml_output, xml);
+    }
+}
