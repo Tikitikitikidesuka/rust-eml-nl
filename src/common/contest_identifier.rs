@@ -106,18 +106,18 @@ mod tests {
     fn test_contest_identifier_construction() {
         let contest_id = ContestIdentifier::new(ContestIdType::new("1234").unwrap());
         assert_eq!(contest_id.id.raw(), "1234");
-        assert_eq!(contest_id.is_geen(), false);
-        assert_eq!(contest_id.is_alle(), false);
+        assert!(!contest_id.is_geen());
+        assert!(!contest_id.is_alle());
 
         let contest_id_geen = ContestIdentifier::geen();
         assert_eq!(contest_id_geen.id.raw(), "geen");
-        assert_eq!(contest_id_geen.is_geen(), true);
-        assert_eq!(contest_id_geen.is_alle(), false);
+        assert!(contest_id_geen.is_geen());
+        assert!(!contest_id_geen.is_alle());
 
         let contest_id_alle = ContestIdentifier::alle();
         assert_eq!(contest_id_alle.id.raw(), "alle");
-        assert_eq!(contest_id_alle.is_geen(), false);
-        assert_eq!(contest_id_alle.is_alle(), true);
+        assert!(!contest_id_alle.is_geen());
+        assert!(contest_id_alle.is_alle());
     }
 
     #[test]
