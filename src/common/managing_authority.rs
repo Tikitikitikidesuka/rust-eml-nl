@@ -15,6 +15,23 @@ pub struct ManagingAuthority {
     pub created_by_authority: Option<CreatedByAuthority>,
 }
 
+impl ManagingAuthority {
+    /// Creates a new `ManagingAuthority` with the given identifier and default values for the other fields.
+    pub fn new(authority_identifier: AuthorityIdentifier) -> Self {
+        ManagingAuthority {
+            authority_identifier,
+            authority_address: AuthorityAddress {},
+            created_by_authority: None,
+        }
+    }
+
+    /// Sets the authority that created this authority and returns the modified `ManagingAuthority`.
+    pub fn with_created_by_authority(mut self, created_by_authority: CreatedByAuthority) -> Self {
+        self.created_by_authority = Some(created_by_authority);
+        self
+    }
+}
+
 impl EMLElement for ManagingAuthority {
     const EML_NAME: QualifiedName<'_, '_> =
         QualifiedName::from_static("ManagingAuthority", Some(NS_EML));
@@ -50,6 +67,22 @@ pub struct AuthorityIdentifier {
     pub name: Option<String>,
 }
 
+impl AuthorityIdentifier {
+    /// Creates a new `AuthorityIdentifier` with the given ID and no name.
+    pub fn new(id: XSBType) -> Self {
+        AuthorityIdentifier {
+            id: StringValue::from_value(id),
+            name: None,
+        }
+    }
+
+    /// Sets the name of the managing authority and returns the modified `AuthorityIdentifier`.
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+}
+
 impl EMLElement for AuthorityIdentifier {
     const EML_NAME: QualifiedName<'_, '_> =
         QualifiedName::from_static("AuthorityIdentifier", Some(NS_EML));
@@ -76,7 +109,7 @@ impl EMLElement for AuthorityIdentifier {
 }
 
 /// Address of a managing authority.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthorityAddress {}
 
 impl EMLElement for AuthorityAddress {
@@ -99,6 +132,22 @@ pub struct CreatedByAuthority {
     pub id: StringValue<XSBType>,
     /// Name of the managing authority
     pub name: Option<String>,
+}
+
+impl CreatedByAuthority {
+    /// Creates a new `CreatedByAuthority` with the given ID and no name.
+    pub fn new(id: XSBType) -> Self {
+        CreatedByAuthority {
+            id: StringValue::from_value(id),
+            name: None,
+        }
+    }
+
+    /// Sets the name of the managing authority and returns the modified `CreatedByAuthority`.
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
 }
 
 impl EMLElement for CreatedByAuthority {
@@ -124,5 +173,49 @@ impl EMLElement for CreatedByAuthority {
             writer.empty()?;
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::io::{EMLParsingMode, EMLRead, test_write_eml_element, test_xml_fragment};
+
+    use super::*;
+
+    #[test]
+    fn test_managing_authority_construction() {
+        let id = AuthorityIdentifier::new(XSBType::new("1234").unwrap()).with_name("Authority 1");
+        let created_by =
+            CreatedByAuthority::new(XSBType::new("4321").unwrap()).with_name("Creator Authority");
+        let m = ManagingAuthority::new(id).with_created_by_authority(created_by);
+        assert_eq!(m.authority_identifier.id.raw(), "1234");
+        assert_eq!(m.authority_identifier.name.as_deref(), Some("Authority 1"));
+        assert_eq!(m.authority_address, AuthorityAddress {});
+        let cba = m.created_by_authority.as_ref().unwrap();
+        assert_eq!(cba.id.raw(), "4321");
+        assert_eq!(cba.name.as_deref(), Some("Creator Authority"));
+    }
+
+    #[test]
+    fn test_managing_authority_parsing() {
+        let xml = test_xml_fragment(
+            r#"
+            <ManagingAuthority xmlns="urn:oasis:names:tc:evs:schema:eml" xmlns:kr="http://www.kiesraad.nl/extensions">
+                <AuthorityIdentifier Id="1234">Authority 1</AuthorityIdentifier>
+                <AuthorityAddress/>
+                <kr:CreatedByAuthority Id="4321">Creator Authority</kr:CreatedByAuthority>
+            </ManagingAuthority>
+            "#,
+        );
+        let ma = ManagingAuthority::parse_eml(&xml, EMLParsingMode::Strict).unwrap();
+        assert_eq!(ma.authority_identifier.id.raw(), "1234");
+        assert_eq!(ma.authority_identifier.name.as_deref(), Some("Authority 1"));
+        assert_eq!(ma.authority_address, AuthorityAddress {});
+        let cba = ma.created_by_authority.as_ref().unwrap();
+        assert_eq!(cba.id.raw(), "4321");
+        assert_eq!(cba.name.as_deref(), Some("Creator Authority"));
+
+        let xml_output = test_write_eml_element(&ma, &[NS_EML, NS_KR]).unwrap();
+        assert_eq!(xml_output, xml);
     }
 }

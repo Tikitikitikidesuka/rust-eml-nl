@@ -308,4 +308,22 @@ mod tests {
         let xml_output = test_write_eml_element(&list_data, &[NS_KR]).unwrap();
         assert_eq!(xml_output, xml);
     }
+
+    #[test]
+    fn test_list_data_simple_parsing() {
+        let xml = test_xml_fragment(
+            r#"<kr:ListData xmlns:kr="http://www.kiesraad.nl/extensions" PublishGender="false"/>"#,
+        );
+
+        let list_data = ListData::parse_eml(&xml, crate::io::EMLParsingMode::Strict).unwrap();
+
+        assert!(!list_data.publish_gender.value().unwrap().into_owned());
+        assert_eq!(
+            list_data.get_publication_language(),
+            PublicationLanguageType::Dutch
+        );
+
+        let xml_output = test_write_eml_element(&list_data, &[NS_KR]).unwrap();
+        assert_eq!(xml_output, xml);
+    }
 }
