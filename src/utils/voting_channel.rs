@@ -49,3 +49,32 @@ impl StringValueData for VotingChannelType {
         self.to_str_value().to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_voting_channel_types() {
+        let valid_channels = ["polling", "postal"];
+        for channel in valid_channels {
+            assert!(
+                VotingChannelType::from_str_value(channel).is_some(),
+                "VotingChannelType should accept valid channel: {}",
+                channel
+            );
+        }
+    }
+
+    #[test]
+    fn test_invalid_voting_channel_types() {
+        let invalid_channels = ["", "test", "abc"];
+        for channel in invalid_channels {
+            assert!(
+                VotingChannelType::from_str_value(channel).is_none(),
+                "VotingChannelType should reject invalid channel: {}",
+                channel
+            );
+        }
+    }
+}

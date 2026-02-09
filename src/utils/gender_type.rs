@@ -53,3 +53,32 @@ impl StringValueData for GenderType {
         self.to_str_value().to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_gender_types() {
+        let valid_genders = ["male", "female", "unknown"];
+        for gender in valid_genders {
+            assert!(
+                GenderType::from_str_value(gender).is_some(),
+                "GenderType should accept valid gender: {}",
+                gender
+            );
+        }
+    }
+
+    #[test]
+    fn test_invalid_gender_types() {
+        let invalid_genders = ["", "test", "abc"];
+        for gender in invalid_genders {
+            assert!(
+                GenderType::from_str_value(gender).is_none(),
+                "GenderType should reject invalid gender: {}",
+                gender
+            );
+        }
+    }
+}

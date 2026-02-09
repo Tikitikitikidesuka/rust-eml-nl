@@ -59,4 +59,28 @@ mod tests {
     fn test_election_domain_id_regex_compiles() {
         LazyLock::force(&ELECTION_DOMAIN_ID_RE);
     }
+
+    #[test]
+    fn test_valid_election_domain_ids() {
+        let valid_ids = ["1", "12", "1234"];
+        for id in valid_ids {
+            assert!(
+                ElectionDomainIdType::new(id).is_ok(),
+                "ElectionDomainIdType should accept valid id: {}",
+                id
+            );
+        }
+    }
+
+    #[test]
+    fn test_invalid_election_domain_ids() {
+        let invalid_ids = ["", "34", "123", "12345", "abc"];
+        for id in invalid_ids {
+            assert!(
+                ElectionDomainIdType::new(id).is_err(),
+                "ElectionDomainIdType should reject invalid id: {}",
+                id
+            );
+        }
+    }
 }

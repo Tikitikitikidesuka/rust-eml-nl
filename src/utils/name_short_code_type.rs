@@ -6,9 +6,8 @@ use thiserror::Error;
 use crate::utils::StringValueData;
 
 /// Regular expression for validating NameShortCodeType values.
-static NAME_SHORT_CODE_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^([1-9]\d*)?$").expect("Failed to compile Name Short Code regex")
-});
+static NAME_SHORT_CODE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^([1-9]\d*)$").expect("Failed to compile Name Short Code regex"));
 
 /// A string of type NameShortCodeType as defined in the EML_NL specification
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -59,5 +58,29 @@ mod tests {
     #[test]
     fn test_name_short_code_regex_compiles() {
         LazyLock::force(&NAME_SHORT_CODE_RE);
+    }
+
+    #[test]
+    fn test_valid_name_short_codes() {
+        let valid_codes = ["1", "12345", "123456789012345"];
+        for code in valid_codes {
+            assert!(
+                NameShortCodeType::new(code).is_ok(),
+                "NameShortCodeType should accept valid code: {}",
+                code
+            );
+        }
+    }
+
+    #[test]
+    fn test_invalid_name_short_codes() {
+        let invalid_codes = ["", "0", "012345", "abc", "123abc"];
+        for code in invalid_codes {
+            assert!(
+                NameShortCodeType::new(code).is_err(),
+                "NameShortCodeType should reject invalid code: {}",
+                code
+            );
+        }
     }
 }

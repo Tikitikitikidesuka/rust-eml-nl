@@ -59,4 +59,43 @@ mod tests {
     fn test_reporting_unit_identifier_id_regex_compiles() {
         LazyLock::force(&REPORTING_UNIT_IDENTIFIER_ID_RE);
     }
+
+    #[test]
+    fn test_valid_reporting_unit_identifier_ids() {
+        let valid_ids = [
+            "HSB123",
+            "HSB123::5678",
+            "5678",
+            "SB456",
+            "HSB123::SB456",
+            "HSB123::5678::SB456",
+        ];
+        for id in valid_ids {
+            assert!(
+                ReportingUnitIdentifierId::new(id).is_ok(),
+                "ReportingUnitIdentifierId should accept valid id: {}",
+                id
+            );
+        }
+    }
+
+    #[test]
+    fn test_invalid_reporting_unit_identifier_ids() {
+        let invalid_ids = [
+            "",
+            "HSB",
+            "HSB::123",
+            "HSB123::",
+            "::5678",
+            "HSB123::5678::",
+            "HSB123::5678::SB",
+        ];
+        for id in invalid_ids {
+            assert!(
+                ReportingUnitIdentifierId::new(id).is_err(),
+                "ReportingUnitIdentifierId should reject invalid id: {}",
+                id
+            );
+        }
+    }
 }

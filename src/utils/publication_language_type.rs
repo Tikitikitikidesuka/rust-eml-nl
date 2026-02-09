@@ -51,3 +51,32 @@ impl StringValueData for PublicationLanguageType {
         self.to_str_value().to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_publication_languages() {
+        let valid_languages = ["nl", "fy"];
+        for lang in valid_languages {
+            assert!(
+                PublicationLanguageType::from_str_value(lang).is_some(),
+                "PublicationLanguageType should accept valid language code: {}",
+                lang
+            );
+        }
+    }
+
+    #[test]
+    fn test_invalid_publication_languages() {
+        let invalid_languages = ["", "de", "dutch", "nederlands"];
+        for lang in invalid_languages {
+            assert!(
+                PublicationLanguageType::from_str_value(lang).is_none(),
+                "PublicationLanguageType should reject invalid language code: {}",
+                lang
+            );
+        }
+    }
+}

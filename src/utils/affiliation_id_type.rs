@@ -7,7 +7,7 @@ use crate::utils::StringValueData;
 
 /// Regular expression for validating AffiliationIdType values.
 static AFFILIATION_ID_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^([1-9]\d*)?$").expect("Failed to compile Affiliation ID regex"));
+    LazyLock::new(|| Regex::new(r"^([1-9]\d*)$").expect("Failed to compile Affiliation ID regex"));
 
 /// A string of type AffiliationIdType as defined in the EML_NL specification
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,5 +57,29 @@ mod tests {
     #[test]
     fn test_affiliation_id_regex_compiles() {
         LazyLock::force(&AFFILIATION_ID_RE);
+    }
+
+    #[test]
+    fn test_valid_affiliation_ids() {
+        let valid_ids = ["1", "12345"];
+        for id in valid_ids {
+            assert!(
+                AffiliationIdType::new(id).is_ok(),
+                "AffiliationIdType should accept valid id: {}",
+                id
+            );
+        }
+    }
+
+    #[test]
+    fn test_invalid_affiliation_ids() {
+        let invalid_ids = ["0", "0123", "abc", "", "-1"];
+        for id in invalid_ids {
+            assert!(
+                AffiliationIdType::new(id).is_err(),
+                "AffiliationIdType should reject invalid id: {}",
+                id
+            );
+        }
     }
 }

@@ -101,3 +101,23 @@ impl StringValueData for VotingMethod {
         self.to_str_value().to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_voting_method_from_str() {
+        assert_eq!(VotingMethod::from_str_value("AMS"), Some(VotingMethod::AMS));
+        assert_eq!(VotingMethod::from_str_value("FPP"), Some(VotingMethod::FPP));
+        assert_eq!(VotingMethod::from_str_value("SPV"), Some(VotingMethod::SPV));
+        assert_eq!(VotingMethod::from_str_value("UNKNOWN"), None);
+    }
+
+    #[test]
+    fn test_voting_method_to_str() {
+        assert_eq!(VotingMethod::AMS.to_str_value(), "AMS");
+        assert_eq!(VotingMethod::FPP.to_str_value(), "FPP");
+        assert_eq!(VotingMethod::SPV.to_str_value(), "SPV");
+    }
+}

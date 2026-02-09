@@ -60,7 +60,7 @@ impl StringValueData for ContestIdType {
     where
         Self: Sized,
     {
-        if CONTEST_ID_RE.is_match(s) {
+        if !s.is_empty() && CONTEST_ID_RE.is_match(s) {
             Ok(ContestIdType(s.to_string()))
         } else {
             Err(InvalidContestIdError(s.to_string()))
@@ -128,5 +128,59 @@ mod tests {
     #[test]
     fn test_contest_id_regex_compiles() {
         LazyLock::force(&CONTEST_ID_RE);
+    }
+
+    #[test]
+    fn test_valid_contest_ids() {
+        let valid_ids = [
+            "1", "12345", "geen", "alle", "III", "IV", "V", "C", "D", "MMMM", "CM",
+        ];
+        for id in valid_ids {
+            assert!(
+                ContestIdType::new(id).is_ok(),
+                "ContestIdType should accept valid id: {}",
+                id
+            );
+        }
+    }
+
+    #[test]
+    fn test_invalid_contest_ids() {
+        let invalid_ids = ["", "0", "0123", "abc", "123abc", "-1", "MMMMM", "IC"];
+        for id in invalid_ids {
+            assert!(
+                ContestIdType::new(id).is_err(),
+                "ContestIdType should reject invalid id: {}",
+                id
+            );
+        }
+    }
+
+    #[test]
+    fn test_contest_id_types() {
+        let geen = ContestIdType::geen();
+        assert_eq!(geen.value(), "geen");
+        assert!(geen.is_geen());
+        assert!(!geen.is_alle());
+
+        let alle = ContestIdType::alle();
+        assert_eq!(alle.value(), "alle");
+        assert!(!alle.is_geen());
+        assert!(alle.is_alle());
+    }
+
+    #[test]
+    fn test_contest_id_type_geen() {
+        let valid_geen = "geen";
+        let invalid_geen = "alle";
+        assert!(ContestIdTypeGeen::parse_from_str(valid_geen).is_ok());
+        assert!(ContestIdTypeGeen::parse_from_str(invalid_geen).is_err());
+    }
+
+    #[test]
+    fn test_contest_id_type_geen_to_contest_id_type() {
+        let geen = ContestIdTypeGeen::new();
+        let contest_id = geen.to_contest_id_type();
+        assert_eq!(contest_id.value(), "geen");
     }
 }

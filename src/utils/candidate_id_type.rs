@@ -7,7 +7,7 @@ use crate::utils::StringValueData;
 
 /// Regular expression for validating CandidateIdType values.
 static CANDIDATE_ID_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^([1-9]\d*)?$").expect("Failed to compile Candidate ID regex"));
+    LazyLock::new(|| Regex::new(r"^([1-9]\d*)$").expect("Failed to compile Candidate ID regex"));
 
 /// A string of type CandidateIdType as defined in the EML_NL specification
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,5 +57,29 @@ mod tests {
     #[test]
     fn test_candidate_id_regex_compiles() {
         LazyLock::force(&CANDIDATE_ID_RE);
+    }
+
+    #[test]
+    fn test_valid_candidate_ids() {
+        let valid_ids = ["1", "12345"];
+        for id in valid_ids {
+            assert!(
+                CandidateIdType::new(id).is_ok(),
+                "CandidateIdType should accept valid id: {}",
+                id
+            );
+        }
+    }
+
+    #[test]
+    fn test_invalid_candidate_ids() {
+        let invalid_ids = ["", "0", "0123", "abc", "123abc", "-1"];
+        for id in invalid_ids {
+            assert!(
+                CandidateIdType::new(id).is_err(),
+                "CandidateIdType should reject invalid id: {}",
+                id
+            );
+        }
     }
 }

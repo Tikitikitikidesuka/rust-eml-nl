@@ -60,4 +60,35 @@ mod tests {
     fn test_election_id_regex_compiles() {
         LazyLock::force(&ELECTION_ID_RE);
     }
+
+    #[test]
+    fn test_valid_election_ids() {
+        let valid_ids = [
+            "EP2021",
+            "EK2021",
+            "TK2021",
+            "GR2021",
+            "GR2021_Amsterdam",
+            "TK20210101",
+        ];
+        for id in valid_ids {
+            assert!(
+                ElectionIdType::new(id).is_ok(),
+                "ElectionIdType should accept valid id: {}",
+                id
+            );
+        }
+    }
+
+    #[test]
+    fn test_invalid_election_ids() {
+        let invalid_ids = ["", "2021", "EP21", "EP202A", "EP2021-01-01"];
+        for id in invalid_ids {
+            assert!(
+                ElectionIdType::new(id).is_err(),
+                "ElectionIdType should reject invalid id: {}",
+                id
+            );
+        }
+    }
 }
