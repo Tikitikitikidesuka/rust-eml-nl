@@ -260,3 +260,103 @@ where
         self.map_err(|kind| EMLError::UnknownPosition { kind: kind.into() })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::NS_EML;
+
+    use super::*;
+
+    #[test]
+    fn test_creating_invalid_value_error() {
+        let error = EMLError::invalid_value(
+            OwnedQualifiedName::from_static("Test", Some(NS_EML)),
+            std::io::Error::new(std::io::ErrorKind::Other, "error"),
+            None,
+        );
+
+        assert!(matches!(
+            error,
+            EMLError::UnknownPosition {
+                kind: EMLErrorKind::InvalidValue(_, _)
+            }
+        ));
+
+        let error_with_span = EMLError::invalid_value(
+            OwnedQualifiedName::from_static("Test", Some(NS_EML)),
+            std::io::Error::new(std::io::ErrorKind::Other, "error"),
+            Some(Span { start: 10, end: 20 }),
+        );
+
+        assert!(matches!(
+            error_with_span,
+            EMLError::Positioned {
+                kind: EMLErrorKind::InvalidValue(_, _),
+                span: Span { start: 10, end: 20 }
+            }
+        ));
+    }
+
+    #[test]
+    fn test_creating_multiple_errors() {
+        let err1 = EMLErrorKind::UnexpectedEndElement.add_span(Span { start: 0, end: 5 });
+        let err2 =
+            EMLErrorKind::MissingElement(OwnedQualifiedName::from_static("Test", Some(NS_EML)))
+                .add_span(Span { start: 10, end: 15 });
+
+        let multiple_error = EMLError::from_vec_with_additional(vec![err1], err2);
+        assert!(matches!(multiple_error, EMLError::Multiple(_)));
+
+        let err3 = EMLErrorKind::UnexpectedEof.add_span(Span { start: 0, end: 10 });
+        let multiple_error2 = EMLError::from_vec_with_additional(vec![], err3);
+        assert!(matches!(
+            multiple_error2,
+            EMLError::Positioned {
+                kind: EMLErrorKind::UnexpectedEof,
+                span: Span { start: 0, end: 10 }
+            }
+        ));
+    }
+
+    #[test]
+    fn get_data_from_error() {
+        let err = EMLErrorKind::UnexpectedEof.add_span(Span { start: 0, end: 10 });
+        assert!(matches!(err.kind(), &EMLErrorKind::UnexpectedEof));
+        assert_eq!(err.span(), Some(Span { start: 0, end: 10 }));
+        assert!(err.is_fatal());
+
+        let err2 = EMLError::UnknownPosition {
+            kind: EMLErrorKind::UnexpectedElement(
+                OwnedQualifiedName::from_static("Test", None),
+                OwnedQualifiedName::from_static("Test", None),
+            ),
+        };
+
+        assert!(matches!(
+            err2.kind(),
+            &EMLErrorKind::UnexpectedElement(_, _)
+        ));
+        assert_eq!(err2.span(), None);
+        assert!(!err2.is_fatal());
+
+        let err3 = EMLError::Multiple(MultipleEMLErrors {
+            errors: vec![
+                EMLError::Positioned {
+                    kind: EMLErrorKind::UnexpectedElement(
+                        OwnedQualifiedName::from_static("Test", None),
+                        OwnedQualifiedName::from_static("Test", None),
+                    ),
+                    span: Span { start: 0, end: 5 },
+                },
+                EMLError::UnknownPosition {
+                    kind: EMLErrorKind::MissingElement(OwnedQualifiedName::from_static(
+                        "Test", None,
+                    )),
+                },
+            ],
+        });
+        assert!(matches!(err3.kind(), &EMLErrorKind::MissingElement(_)));
+        assert_eq!(err3.span(), None);
+        assert!(err3.is_fatal());
+    }
+}
