@@ -197,7 +197,7 @@ mod tests {
 
     #[test]
     fn test_parsing_arbitrary_eml_documents() {
-        let doc = include_str!("../../test-emls/candidate_list/eml230b_test.eml.xml");
+        let doc = include_str!("../../test-emls/candidate_lists/eml230b_test.eml.xml");
         let eml = EML::parse_eml(doc, EMLParsingMode::Strict)
             .ok()
             .expect("Failed to parse EML document");
@@ -215,11 +215,17 @@ mod tests {
             .expect("Failed to parse EML document");
         assert!(matches!(eml, EML::PollingStations(_)));
 
-        let doc = include_str!("../../test-emls/count/deserialize_eml510b_test.eml.xml");
+        let doc = include_str!("../../test-emls/election_count/deserialize_eml510b_test.eml.xml");
         let eml = EML::parse_eml(doc, EMLParsingMode::Strict)
             .ok()
             .expect("Failed to parse EML document");
         assert!(matches!(eml, EML::ElectionCount(_)));
+
+        let doc = include_str!("../../test-emls/election_result/eml520_test.eml.xml");
+        let eml = EML::parse_eml(doc, EMLParsingMode::Strict)
+            .ok()
+            .expect("Failed to parse EML document");
+        assert!(matches!(eml, EML::ElectionResult(_)));
     }
 
     #[test]

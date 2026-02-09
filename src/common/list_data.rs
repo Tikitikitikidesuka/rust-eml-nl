@@ -158,8 +158,11 @@ pub struct ListDataContest {
 
 impl ListDataContest {
     /// Create a new `ListDataContest` with the given ID and no name.
-    pub fn new(id: StringValue<ContestIdType>) -> Self {
-        ListDataContest { id, name: None }
+    pub fn new(id: ContestIdType) -> Self {
+        ListDataContest {
+            id: StringValue::from_value(id),
+            name: None,
+        }
     }
 
     /// Set the name of the contest.
@@ -176,13 +179,10 @@ impl EMLElement for ListDataContest {
     where
         Self: Sized,
     {
-        Ok(collect_struct!(
-            elem,
-            ListDataContest {
-                id: elem.string_value_attr("Id", None)?,
-                name: elem.text_without_children_opt()?,
-            }
-        ))
+        Ok(ListDataContest {
+            id: elem.string_value_attr("Id", None)?,
+            name: elem.text_without_children_opt()?,
+        })
     }
 
     fn write_eml(&self, writer: crate::io::EMLElementWriter) -> Result<(), crate::EMLError> {
@@ -197,7 +197,7 @@ impl EMLElement for ListDataContest {
 }
 
 /// Type representing the combination a list belongs to.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListDataBelongsToCombinationType(String);
 
 /// Error returned when an invalid list data belongs to combination type string is encountered.
@@ -231,6 +231,8 @@ impl StringValueData for ListDataBelongsToCombinationType {
 
 #[cfg(test)]
 mod tests {
+    use crate::io::{EMLRead as _, test_write_eml_element, test_xml_fragment};
+
     use super::*;
 
     #[test]
@@ -250,5 +252,60 @@ mod tests {
             list_data.belongs_to_combination.as_ref().unwrap().raw(),
             "A"
         );
+    }
+
+    #[test]
+    fn test_list_data_contest_construction() {
+        let contest =
+            ListDataContest::new(ContestIdType::new("1234").unwrap()).with_name("Test Contest");
+
+        assert_eq!(contest.id.raw(), "1234");
+        assert_eq!(contest.name.as_ref().unwrap(), "Test Contest");
+    }
+
+    #[test]
+    fn test_list_data_parsing() {
+        let xml = test_xml_fragment(
+            r#"
+            <kr:ListData xmlns:kr="http://www.kiesraad.nl/extensions" PublishGender="true" PublicationLanguage="nl" BelongsToSet="1" BelongsToCombination="A">
+                <kr:Contests>
+                    <kr:Contest Id="1234">Test Contest 1</kr:Contest>
+                    <kr:Contest Id="5678">Test Contest 2</kr:Contest>
+                </kr:Contests>
+            </kr:ListData>
+            "#,
+        );
+
+        let list_data = ListData::parse_eml(&xml, crate::io::EMLParsingMode::Strict).unwrap();
+
+        assert_eq!(
+            list_data.belongs_to_combination,
+            Some(StringValue::Parsed(ListDataBelongsToCombinationType(
+                "A".to_string()
+            )))
+        );
+        assert_eq!(
+            list_data.publication_language,
+            Some(StringValue::Parsed(PublicationLanguageType::Dutch))
+        );
+        assert_eq!(
+            list_data.belongs_to_set,
+            Some(StringValue::Parsed(NonZeroU64::new(1).unwrap()))
+        );
+
+        assert_eq!(list_data.contests.len(), 2);
+        assert_eq!(list_data.contests[0].id.raw(), "1234");
+        assert_eq!(
+            list_data.contests[0].name.as_deref(),
+            Some("Test Contest 1")
+        );
+        assert_eq!(list_data.contests[1].id.raw(), "5678");
+        assert_eq!(
+            list_data.contests[1].name.as_deref(),
+            Some("Test Contest 2")
+        );
+
+        let xml_output = test_write_eml_element(&list_data, &[NS_KR]).unwrap();
+        assert_eq!(xml_output, xml);
     }
 }
