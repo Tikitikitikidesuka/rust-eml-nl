@@ -12,6 +12,16 @@ pub struct ReportingUnitIdentifier {
     pub name: String,
 }
 
+impl ReportingUnitIdentifier {
+    /// Create a new `ReportingUnitIdentifier` with the given id and name.
+    pub fn new(id: ReportingUnitIdentifierId, name: impl Into<String>) -> Self {
+        ReportingUnitIdentifier {
+            id: StringValue::from_value(id),
+            name: name.into(),
+        }
+    }
+}
+
 impl EMLElement for ReportingUnitIdentifier {
     const EML_NAME: crate::io::QualifiedName<'_, '_> =
         crate::io::QualifiedName::from_static("ReportingUnitIdentifier", Some(crate::NS_EML));
@@ -27,5 +37,40 @@ impl EMLElement for ReportingUnitIdentifier {
             .attr("Id", self.id.raw().as_ref())?
             .text(self.name.as_ref())?
             .finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        NS_EML,
+        io::{EMLParsingMode, EMLRead as _, test_write_eml_element, test_xml_fragment},
+    };
+
+    use super::*;
+
+    #[test]
+    fn test_reporting_unit_identifier_construction() {
+        let id = ReportingUnitIdentifierId::new("1234").unwrap();
+        let reporting_unit_identifier = ReportingUnitIdentifier::new(id, "Test");
+
+        assert_eq!(reporting_unit_identifier.id.raw(), "1234");
+        assert_eq!(reporting_unit_identifier.name, "Test");
+    }
+
+    #[test]
+    fn test_reporting_unit_identifier_parsing() {
+        let xml = test_xml_fragment(
+            r#"
+            <ReportingUnitIdentifier xmlns="urn:oasis:names:tc:evs:schema:eml" Id="1234">Test</ReportingUnitIdentifier>
+            "#,
+        );
+        let reporting_unit_identifier =
+            ReportingUnitIdentifier::parse_eml(&xml, EMLParsingMode::Strict).unwrap();
+        assert_eq!(reporting_unit_identifier.id.raw(), "1234");
+        assert_eq!(reporting_unit_identifier.name, "Test");
+
+        let xml_output = test_write_eml_element(&reporting_unit_identifier, &[NS_EML]).unwrap();
+        assert_eq!(xml_output, xml);
     }
 }

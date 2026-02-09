@@ -46,3 +46,30 @@ impl EMLElement for TransactionId {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::io::{EMLParsingMode, EMLRead as _, test_write_eml_element, test_xml_fragment};
+
+    use super::*;
+
+    #[test]
+    fn test_transaction_id_construction() {
+        let transaction_id = TransactionId::new(1234);
+        assert_eq!(transaction_id.raw(), "1234");
+        assert_eq!(transaction_id.value().unwrap(), 1234);
+    }
+
+    #[test]
+    fn test_transaction_id_parsing() {
+        let xml = test_xml_fragment(
+            r#"<TransactionId xmlns="urn:oasis:names:tc:evs:schema:eml">5678</TransactionId>"#,
+        );
+        let transaction_id = TransactionId::parse_eml(&xml, EMLParsingMode::Strict).unwrap();
+        assert_eq!(transaction_id.raw(), "5678");
+        assert_eq!(transaction_id.value().unwrap(), 5678);
+
+        let xml_output = test_write_eml_element(&transaction_id, &[NS_EML]).unwrap();
+        assert_eq!(xml_output, xml);
+    }
+}

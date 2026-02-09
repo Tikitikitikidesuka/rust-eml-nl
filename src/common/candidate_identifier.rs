@@ -6,7 +6,7 @@ use crate::{
     utils::{CandidateIdType, NameShortCodeType, StringValue},
 };
 
-/// Candidate identifier, but not for 510 document types.\
+/// Candidate identifier, but not for 510 document types.
 #[derive(Debug, Clone)]
 pub struct CandidateIdentifier {
     /// The candidate id.
