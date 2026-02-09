@@ -271,7 +271,7 @@ mod tests {
     fn test_creating_invalid_value_error() {
         let error = EMLError::invalid_value(
             OwnedQualifiedName::from_static("Test", Some(NS_EML)),
-            std::io::Error::new(std::io::ErrorKind::Other, "error"),
+            std::io::Error::other("error"),
             None,
         );
 
@@ -284,7 +284,7 @@ mod tests {
 
         let error_with_span = EMLError::invalid_value(
             OwnedQualifiedName::from_static("Test", Some(NS_EML)),
-            std::io::Error::new(std::io::ErrorKind::Other, "error"),
+            std::io::Error::other("error"),
             Some(Span { start: 10, end: 20 }),
         );
 
