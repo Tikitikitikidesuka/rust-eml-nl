@@ -476,6 +476,7 @@ impl EMLElement for ReportingUnitVotes {
 
     fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         writer
+            .child_elem(ReportingUnitIdentifier::EML_NAME, &self.identifier)?
             .child_elems(ElectionCountSelection::EML_NAME, &self.selections)?
             .child(("Cast", NS_EML), |elem| {
                 elem.text(self.eligible_voter_count.raw().as_ref())?
