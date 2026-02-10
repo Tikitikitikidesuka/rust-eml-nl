@@ -48,9 +48,8 @@ impl EMLElement for CreationDateTime {
 mod tests {
     use std::str::FromStr as _;
 
-    use crate::io::{EMLParsingMode, EMLRead, test_write_eml_element, test_xml_fragment};
-
     use super::*;
+    use crate::io::{EMLParsingMode, EMLRead, test_write_eml_element, test_xml_fragment};
 
     #[test]
     fn test_creation_date_time_construction() {

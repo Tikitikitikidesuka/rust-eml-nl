@@ -95,9 +95,8 @@ impl EMLElement for CandidateIdentifier {
 
 #[cfg(test)]
 mod tests {
-    use crate::io::{EMLParsingMode, EMLRead as _, test_write_eml_element, test_xml_fragment};
-
     use super::*;
+    use crate::io::{EMLParsingMode, EMLRead as _, test_write_eml_element, test_xml_fragment};
 
     #[test]
     fn test_simple_candidate_identifier() {

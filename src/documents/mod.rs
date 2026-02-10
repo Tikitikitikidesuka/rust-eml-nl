@@ -26,12 +26,16 @@ pub mod polling_stations;
 pub enum EML {
     /// Representing a `110a` document, containing an election definition.
     ElectionDefinition(Box<ElectionDefinition>),
+
     /// Representing a `110b` document, containing polling stations.
     PollingStations(Box<PollingStations>),
+
     /// Representing a `230b` document, containing a candidate list.
     CandidateLists(Box<CandidateLists>),
+
     /// Representing a `510a`, `510b`, `510c` or `510d` document, containing a count.
     ElectionCount(Box<ElectionCount>),
+
     /// Representing a `520` document, containing the election result.
     ElectionResult(Box<ElectionResult>),
 }
@@ -130,6 +134,24 @@ impl EML {
             _ => None,
         }
     }
+
+    /// Create a generic EML document from a Result (`520`) document.
+    pub fn from_result_doc(result: ElectionResult) -> Self {
+        EML::ElectionResult(Box::new(result))
+    }
+
+    /// Check if this EML document is a Result (`520`) document.
+    pub fn is_result_doc(&self) -> bool {
+        matches!(self, EML::ElectionResult(_))
+    }
+
+    /// Get a reference to this EML document as a Result (`520`) document, if possible.
+    pub fn as_result_doc(&self) -> Option<&ElectionResult> {
+        match self {
+            EML::ElectionResult(result) => Some(result),
+            _ => None,
+        }
+    }
 }
 
 impl EMLElement for EML {
@@ -191,9 +213,8 @@ fn accepted_root(elem: &EMLElementReader<'_, '_>) -> Result<(), EMLError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::io::{EMLParsingMode, EMLRead as _, EMLWrite as _};
-
     use super::*;
+    use crate::io::{EMLParsingMode, EMLRead as _, EMLWrite as _};
 
     #[test]
     fn test_parsing_arbitrary_eml_documents() {
@@ -229,18 +250,47 @@ mod tests {
     }
 
     #[test]
-    fn parse_and_write_eml_document_should_not_fail() {
+    fn parse_and_write_110a_eml_document_should_not_fail() {
         let doc = include_str!("../../test-emls/election_definition/eml110a_test.eml.xml");
-        let eml = dbg!(
-            EML::parse_eml(doc, EMLParsingMode::Strict)
-                .ok()
-                .expect("Failed to parse EML document")
-        );
+        let eml = EML::parse_eml(doc, EMLParsingMode::Strict)
+            .ok()
+            .expect("Failed to parse EML document");
+        assert!(eml.write_eml_root_str(true, true).is_ok());
+    }
 
-        println!(
-            "{}",
-            eml.write_eml_root_str(true, true)
-                .expect("Failed to output EML document")
-        );
+    #[test]
+    fn parse_and_write_110b_eml_document_should_not_fail() {
+        let doc = include_str!("../../test-emls/polling_stations/eml110b_test.eml.xml");
+        let eml = EML::parse_eml(doc, EMLParsingMode::Strict)
+            .ok()
+            .expect("Failed to parse EML document");
+        assert!(eml.write_eml_root_str(true, true).is_ok());
+    }
+
+    #[test]
+    fn parse_and_write_230b_eml_document_should_not_fail() {
+        let doc = include_str!("../../test-emls/candidate_lists/eml230b_test.eml.xml");
+        let eml = EML::parse_eml(doc, EMLParsingMode::Strict)
+            .ok()
+            .expect("Failed to parse EML document");
+        assert!(eml.write_eml_root_str(true, true).is_ok());
+    }
+
+    #[test]
+    fn parse_and_write_510b_eml_document_should_not_fail() {
+        let doc = include_str!("../../test-emls/election_count/deserialize_eml510b_test.eml.xml");
+        let eml = EML::parse_eml(doc, EMLParsingMode::Strict)
+            .ok()
+            .expect("Failed to parse EML document");
+        assert!(eml.write_eml_root_str(true, true).is_ok());
+    }
+
+    #[test]
+    fn parse_and_write_520_eml_document_should_not_fail() {
+        let doc = include_str!("../../test-emls/election_result/eml520_test.eml.xml");
+        let eml = EML::parse_eml(doc, EMLParsingMode::Strict)
+            .ok()
+            .expect("Failed to parse EML document");
+        assert!(eml.write_eml_root_str(true, true).is_ok());
     }
 }

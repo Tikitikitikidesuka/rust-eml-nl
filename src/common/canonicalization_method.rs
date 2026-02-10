@@ -40,9 +40,8 @@ impl EMLElement for CanonicalizationMethod {
 
 #[cfg(test)]
 mod tests {
-    use crate::io::{EMLParsingMode, EMLRead, test_write_eml_element, test_xml_fragment};
-
     use super::*;
+    use crate::io::{EMLParsingMode, EMLRead, test_write_eml_element, test_xml_fragment};
 
     #[test]
     fn test_canonicalization_method_construction() {

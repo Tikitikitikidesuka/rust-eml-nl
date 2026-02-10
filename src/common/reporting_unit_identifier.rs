@@ -42,12 +42,11 @@ impl EMLElement for ReportingUnitIdentifier {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::{
         NS_EML,
         io::{EMLParsingMode, EMLRead as _, test_write_eml_element, test_xml_fragment},
     };
-
-    use super::*;
 
     #[test]
     fn test_reporting_unit_identifier_construction() {

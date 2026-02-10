@@ -47,12 +47,11 @@ impl EMLElement for IssueDate {
 mod tests {
     use std::str::FromStr as _;
 
+    use super::*;
     use crate::{
         io::{EMLParsingMode, EMLRead, test_write_eml_element, test_xml_fragment},
         utils::XsDateTime,
     };
-
-    use super::*;
 
     #[test]
     fn test_issue_date_construction() {

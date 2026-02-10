@@ -263,9 +263,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::NS_EML;
-
     use super::*;
+    use crate::NS_EML;
 
     #[test]
     fn test_creating_invalid_value_error() {
