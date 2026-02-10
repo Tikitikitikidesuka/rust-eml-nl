@@ -57,7 +57,7 @@ impl EML {
         match self {
             EML::ElectionDefinition(_) => "Election Definition",
             EML::PollingStations(_) => "Polling Stations",
-            EML::CandidateLists(_) => "Candidate List",
+            EML::CandidateLists(_) => "Candidate Lists",
             EML::ElectionCount(c) => c.count_type.to_friendly_name(),
             EML::ElectionResult(_) => "Result",
         }
@@ -255,6 +255,12 @@ mod tests {
         let eml = EML::parse_eml(doc, EMLParsingMode::Strict)
             .ok()
             .expect("Failed to parse EML document");
+        assert_eq!(eml.to_eml_id(), "110a");
+        assert_eq!(eml.to_friendly_name(), "Election Definition");
+        assert!(eml.is_election_definition_doc());
+        assert!(!eml.is_result_doc());
+        assert!(eml.as_election_definition_doc().is_some());
+        assert!(eml.as_result_doc().is_none());
         assert!(eml.write_eml_root_str(true, true).is_ok());
     }
 
@@ -264,6 +270,12 @@ mod tests {
         let eml = EML::parse_eml(doc, EMLParsingMode::Strict)
             .ok()
             .expect("Failed to parse EML document");
+        assert_eq!(eml.to_eml_id(), "110b");
+        assert_eq!(eml.to_friendly_name(), "Polling Stations");
+        assert!(eml.is_polling_stations_doc());
+        assert!(!eml.is_election_definition_doc());
+        assert!(eml.as_polling_stations_doc().is_some());
+        assert!(eml.as_election_definition_doc().is_none());
         assert!(eml.write_eml_root_str(true, true).is_ok());
     }
 
@@ -273,6 +285,12 @@ mod tests {
         let eml = EML::parse_eml(doc, EMLParsingMode::Strict)
             .ok()
             .expect("Failed to parse EML document");
+        assert_eq!(eml.to_eml_id(), "230b");
+        assert_eq!(eml.to_friendly_name(), "Candidate Lists");
+        assert!(eml.is_candidate_lists_doc());
+        assert!(!eml.is_polling_stations_doc());
+        assert!(eml.as_candidate_lists_doc().is_some());
+        assert!(eml.as_polling_stations_doc().is_none());
         assert!(eml.write_eml_root_str(true, true).is_ok());
     }
 
@@ -282,6 +300,12 @@ mod tests {
         let eml = EML::parse_eml(doc, EMLParsingMode::Strict)
             .ok()
             .expect("Failed to parse EML document");
+        assert_eq!(eml.to_eml_id(), "510b");
+        assert_eq!(eml.to_friendly_name(), "Municipal Count");
+        assert!(eml.is_count_doc());
+        assert!(!eml.is_candidate_lists_doc());
+        assert!(eml.as_count_doc().is_some());
+        assert!(eml.as_candidate_lists_doc().is_none());
         assert!(eml.write_eml_root_str(true, true).is_ok());
     }
 
@@ -291,6 +315,12 @@ mod tests {
         let eml = EML::parse_eml(doc, EMLParsingMode::Strict)
             .ok()
             .expect("Failed to parse EML document");
+        assert_eq!(eml.to_eml_id(), "520");
+        assert_eq!(eml.to_friendly_name(), "Result");
+        assert!(eml.is_result_doc());
+        assert!(!eml.is_count_doc());
+        assert!(eml.as_result_doc().is_some());
+        assert!(eml.as_count_doc().is_none());
         assert!(eml.write_eml_root_str(true, true).is_ok());
     }
 }
