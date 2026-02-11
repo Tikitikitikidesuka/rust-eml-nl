@@ -223,6 +223,12 @@ impl CandidateListsBuilder {
     }
 }
 
+impl Default for CandidateListsBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EMLElement for CandidateLists {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("EML", Some(NS_EML));
 
@@ -642,6 +648,12 @@ impl CandidateListsAffiliationBuilder {
     }
 }
 
+impl Default for CandidateListsAffiliationBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EMLElement for CandidateListsAffiliation {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("Affiliation", Some(NS_EML));
 
@@ -805,6 +817,12 @@ impl CandidateListsCandidateBuilder {
             gender: self.gender.map(StringValue::from_value),
             qualifying_address: self.qualifying_address,
         })
+    }
+}
+
+impl Default for CandidateListsCandidateBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

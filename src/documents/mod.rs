@@ -390,6 +390,12 @@ impl ElectionIdentifierBuilder {
     }
 }
 
+impl Default for ElectionIdentifierBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
