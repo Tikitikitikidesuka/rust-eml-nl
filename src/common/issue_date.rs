@@ -30,6 +30,12 @@ impl IssueDate {
     }
 }
 
+impl From<XsDateOrDateTime> for IssueDate {
+    fn from(value: XsDateOrDateTime) -> Self {
+        IssueDate::new(value)
+    }
+}
+
 impl EMLElement for IssueDate {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("IssueDate", Some(NS_EML));
 

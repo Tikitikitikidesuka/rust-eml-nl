@@ -49,6 +49,12 @@ impl CandidateIdentifier {
     }
 }
 
+impl From<CandidateIdType> for CandidateIdentifier {
+    fn from(value: CandidateIdType) -> Self {
+        CandidateIdentifier::new(value)
+    }
+}
+
 impl EMLElement for CandidateIdentifier {
     const EML_NAME: crate::io::QualifiedName<'_, '_> =
         crate::io::QualifiedName::from_static("CandidateIdentifier", Some(NS_EML));

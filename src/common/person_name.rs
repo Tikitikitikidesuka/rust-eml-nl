@@ -41,6 +41,12 @@ impl PersonNameStructure {
     }
 }
 
+impl From<PersonName> for PersonNameStructure {
+    fn from(value: PersonName) -> Self {
+        PersonNameStructure::new(value)
+    }
+}
+
 impl EMLReadElement for PersonNameStructure {
     fn read_eml_element<'a, 'b>(
         elem: &mut crate::io::EMLElementReader<'a, 'b>,

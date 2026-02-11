@@ -1,15 +1,15 @@
 //! Document variant for the EML_NL Candidate List (`230b`) document.
 
-use std::borrow::Cow;
+use std::{borrow::Cow, num::NonZeroU64};
 
 use crate::{
     EML_SCHEMA_VERSION, EMLError, NS_EML, NS_KR, NS_XAL,
     common::{
         CandidateIdentifier, CanonicalizationMethod, ContestIdentifier, CountryNameCode,
-        CreationDateTime, ElectionDomain, IssueDate, ListData, LocalityName, ManagingAuthority,
-        PersonNameStructure, TransactionId,
+        CreationDateTime, ElectionDomain, IssueDate, ListData, ListDataBelongsToCombinationType,
+        LocalityName, ManagingAuthority, PersonNameStructure, TransactionId,
     },
-    documents::accepted_root,
+    documents::{ElectionIdentifierBuilder, accepted_root},
     error::{EMLErrorKind, EMLResultExt},
     io::{
         EMLElement, EMLElementReader, EMLElementWriter, EMLReadElement as _, QualifiedName,
@@ -17,7 +17,7 @@ use crate::{
     },
     utils::{
         AffiliationIdType, AffiliationType, ElectionCategory, ElectionIdType, ElectionSubcategory,
-        GenderType, StringValue, XsDate, XsDateOrDateTime,
+        GenderType, PublicationLanguageType, StringValue, XsDate, XsDateOrDateTime, XsDateTime,
     },
 };
 
@@ -43,6 +43,184 @@ pub struct CandidateLists {
 
     /// The candidate lists contained in this document.
     pub candidate_list: CandidateListsCandidateList,
+}
+
+impl CandidateLists {
+    /// Create a new builder for the `CandidateLists` document.
+    pub fn builder() -> CandidateListsBuilder {
+        CandidateListsBuilder::new()
+    }
+}
+
+/// Builder for the `CandidateLists` document.
+pub struct CandidateListsBuilder {
+    transaction_id: Option<TransactionId>,
+    managing_authority: Option<ManagingAuthority>,
+    issue_date: Option<IssueDate>,
+    creation_date_time: Option<CreationDateTime>,
+    canonicalization_method: Option<CanonicalizationMethod>,
+    candidate_list: Option<CandidateListsCandidateList>,
+    affiliations: Vec<CandidateListsAffiliation>,
+    contest_identifier: ContestIdentifier,
+    election_identifier: Option<CandidateListsElectionIdentifier>,
+    list_date: Option<CandidateListsListDate>,
+}
+
+impl CandidateListsBuilder {
+    /// Create a new builder for the `CandidateLists` document.
+    pub fn new() -> Self {
+        CandidateListsBuilder {
+            transaction_id: None,
+            managing_authority: None,
+            issue_date: None,
+            creation_date_time: None,
+            canonicalization_method: None,
+            candidate_list: None,
+            affiliations: vec![],
+            contest_identifier: ContestIdentifier::geen(),
+            election_identifier: None,
+            list_date: None,
+        }
+    }
+
+    /// Set the transaction id for the document.
+    pub fn transaction_id(mut self, transaction_id: impl Into<TransactionId>) -> Self {
+        self.transaction_id = Some(transaction_id.into());
+        self
+    }
+
+    /// Set the managing authority for the document.
+    pub fn managing_authority(mut self, managing_authority: impl Into<ManagingAuthority>) -> Self {
+        self.managing_authority = Some(managing_authority.into());
+        self
+    }
+
+    /// Set the issue date for the document.
+    pub fn issue_date(mut self, issue_date: impl Into<XsDateOrDateTime>) -> Self {
+        self.issue_date = Some(IssueDate::new(issue_date.into()));
+        self
+    }
+
+    /// Set the creation date and time for the document.
+    pub fn creation_date_time(mut self, creation_date_time: impl Into<XsDateTime>) -> Self {
+        self.creation_date_time = Some(CreationDateTime::new(creation_date_time.into()));
+        self
+    }
+
+    /// Set the canonicalization method for the document.
+    pub fn canonicalization_method(
+        mut self,
+        canonicalization_method: impl Into<CanonicalizationMethod>,
+    ) -> Self {
+        self.canonicalization_method = Some(canonicalization_method.into());
+        self
+    }
+
+    /// Set the candidate list for the document.
+    ///
+    /// You may either set the entire candidate list at once using this
+    /// method, or use any of [`Self::affiliations`], [`Self::push_affiliation`],
+    /// [`Self::contest_identifier`], [`Self::list_date`] and
+    /// [`Self::election_identifier`] to construct the individual components of
+    /// the CandidateList, Election and Contest elements to allow this builder
+    /// to construct them for you.
+    pub fn candidate_list(
+        mut self,
+        candidate_list: impl Into<CandidateListsCandidateList>,
+    ) -> Self {
+        self.candidate_list = Some(candidate_list.into());
+        self
+    }
+
+    /// Set the affiliations for the candidate list
+    ///
+    /// This only has effect if the candidate list was not set directly using
+    /// [`Self::candidate_list`].
+    pub fn affiliations(mut self, affiliations: impl Into<Vec<CandidateListsAffiliation>>) -> Self {
+        self.affiliations = affiliations.into();
+        self
+    }
+
+    /// Add an affiliation to the list of candidate lists.
+    ///
+    /// This only has effect if the candidate list was not set directly using
+    /// [`Self::candidate_list`].
+    pub fn push_affiliation(mut self, affiliation: impl Into<CandidateListsAffiliation>) -> Self {
+        self.affiliations.push(affiliation.into());
+        self
+    }
+
+    /// Set the contest identifier for the contained Contest element.
+    ///
+    /// This only has effect if the candidate list was not set directly using
+    /// [`Self::candidate_list`].
+    pub fn contest_identifier(mut self, contest_identifier: impl Into<ContestIdentifier>) -> Self {
+        self.contest_identifier = contest_identifier.into();
+        self
+    }
+
+    /// Set the list date for the contained CandidateList element.
+    ///
+    /// This only has effect if the candidate list was not set directly using
+    /// [`Self::candidate_list`].
+    pub fn list_date(mut self, list_date: impl Into<XsDateOrDateTime>) -> Self {
+        self.list_date = Some(CandidateListsListDate::from(list_date.into()));
+        self
+    }
+
+    /// Set the election identifier for the contained Election element.
+    ///
+    /// This only has effect if the candidate list was not set directly using
+    /// [`Self::candidate_list`].
+    pub fn election_identifier(
+        mut self,
+        election_identifier: impl Into<CandidateListsElectionIdentifier>,
+    ) -> Self {
+        self.election_identifier = Some(election_identifier.into());
+        self
+    }
+
+    /// Build the `CandidateLists` document, returning an error if any required fields are missing.
+    pub fn build(self) -> Result<CandidateLists, EMLError> {
+        Ok(CandidateLists {
+            transaction_id: self
+                .transaction_id
+                .ok_or(EMLErrorKind::MissingBuildProperty("transaction_id").without_span())?,
+            managing_authority: self
+                .managing_authority
+                .ok_or(EMLErrorKind::MissingBuildProperty("managing_authority").without_span())?,
+            issue_date: self
+                .issue_date
+                .ok_or(EMLErrorKind::MissingBuildProperty("issue_date").without_span())?,
+            creation_date_time: self
+                .creation_date_time
+                .ok_or(EMLErrorKind::MissingBuildProperty("creation_date_time").without_span())?,
+            canonicalization_method: self.canonicalization_method,
+            candidate_list: self.candidate_list.map_or_else(
+                || {
+                    let contest = CandidateListsContest::new(self.affiliations)
+                        .with_identifier(self.contest_identifier);
+
+                    let election = CandidateListsElection::new(
+                        self.election_identifier.ok_or(
+                            EMLErrorKind::MissingBuildProperty("election_identifier")
+                                .without_span(),
+                        )?,
+                        contest,
+                    );
+                    let list = CandidateListsCandidateList::new(election);
+                    let list = if let Some(list_date) = self.list_date {
+                        list.with_list_date(list_date)
+                    } else {
+                        list
+                    };
+
+                    Ok(list)
+                },
+                Ok,
+            )?,
+        })
+    }
 }
 
 impl EMLElement for CandidateLists {
@@ -97,6 +275,28 @@ pub struct CandidateListsCandidateList {
     pub election: CandidateListsElection,
 }
 
+impl CandidateListsCandidateList {
+    /// Create a new CandidateList element for the given election
+    pub fn new(election: CandidateListsElection) -> Self {
+        Self {
+            list_date: None,
+            election,
+        }
+    }
+
+    /// Set the list date for this CandidateList
+    pub fn with_list_date(mut self, list_date: CandidateListsListDate) -> Self {
+        self.list_date = Some(list_date);
+        self
+    }
+}
+
+impl From<CandidateListsElection> for CandidateListsCandidateList {
+    fn from(election: CandidateListsElection) -> Self {
+        Self::new(election)
+    }
+}
+
 impl EMLElement for CandidateListsCandidateList {
     const EML_NAME: QualifiedName<'_, '_> =
         QualifiedName::from_static("CandidateList", Some(NS_EML));
@@ -120,6 +320,12 @@ impl EMLElement for CandidateListsCandidateList {
 #[derive(Debug, Clone)]
 pub struct CandidateListsListDate(pub StringValue<XsDateOrDateTime>);
 
+impl From<XsDateOrDateTime> for CandidateListsListDate {
+    fn from(value: XsDateOrDateTime) -> Self {
+        CandidateListsListDate(StringValue::from_value(value))
+    }
+}
+
 impl EMLElement for CandidateListsListDate {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("ListDate", Some(NS_EML));
 
@@ -140,6 +346,19 @@ pub struct CandidateListsElection {
     pub identifier: CandidateListsElectionIdentifier,
     /// Election contest details.
     pub contest: CandidateListsContest,
+}
+
+impl CandidateListsElection {
+    /// Create a new Election element with the given identifier and contest
+    pub fn new(
+        identifier: impl Into<CandidateListsElectionIdentifier>,
+        contest: impl Into<CandidateListsContest>,
+    ) -> Self {
+        Self {
+            identifier: identifier.into(),
+            contest: contest.into(),
+        }
+    }
 }
 
 impl EMLElement for CandidateListsElection {
@@ -165,18 +384,31 @@ impl EMLElement for CandidateListsElection {
 pub struct CandidateListsElectionIdentifier {
     /// Id of the election
     pub id: StringValue<ElectionIdType>,
+
     /// Name of the election
     pub name: Option<String>,
+
     /// Category of the election
     pub category: StringValue<ElectionCategory>,
+
     /// Subcategory of the election
     pub subcategory: Option<StringValue<ElectionSubcategory>>,
+
     /// The (top level) region where the election takes place.
     pub domain: Option<ElectionDomain>,
+
     /// Date of the election
     pub election_date: StringValue<XsDate>,
+
     /// Nomination date for the election
     pub nomination_date: StringValue<XsDate>,
+}
+
+impl CandidateListsElectionIdentifier {
+    /// Create a new Election Identifier builder
+    pub fn builder() -> ElectionIdentifierBuilder {
+        ElectionIdentifierBuilder::new()
+    }
 }
 
 impl EMLElement for CandidateListsElectionIdentifier {
@@ -234,6 +466,29 @@ pub struct CandidateListsContest {
     pub affiliations: Vec<CandidateListsAffiliation>,
 }
 
+impl CandidateListsContest {
+    /// Create a new contest, with 'geen' as ContestIdentifier and the given
+    /// list of affiliations.
+    pub fn new(affiliations: impl Into<Vec<CandidateListsAffiliation>>) -> Self {
+        Self {
+            identifier: ContestIdentifier::geen(),
+            affiliations: affiliations.into(),
+        }
+    }
+
+    /// Set the identifier for the contest
+    pub fn with_identifier(mut self, identifier: impl Into<ContestIdentifier>) -> Self {
+        self.identifier = identifier.into();
+        self
+    }
+}
+
+impl From<Vec<CandidateListsAffiliation>> for CandidateListsContest {
+    fn from(value: Vec<CandidateListsAffiliation>) -> Self {
+        Self::new(value)
+    }
+}
+
 impl EMLElement for CandidateListsContest {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("Contest", Some(NS_EML));
 
@@ -266,6 +521,125 @@ pub struct CandidateListsAffiliation {
 
     /// The candidates of the affiliation.
     pub candidates: Vec<CandidateListsCandidate>,
+}
+
+impl CandidateListsAffiliation {
+    /// Create a new builder for building an affiliation for the candidate lists document.
+    pub fn builder() -> CandidateListsAffiliationBuilder {
+        CandidateListsAffiliationBuilder::new()
+    }
+}
+
+/// Builder for an affiliation participating in the contest.
+pub struct CandidateListsAffiliationBuilder {
+    id: Option<AffiliationIdType>,
+    registered_name: Option<String>,
+    affiliation_type: Option<AffiliationType>,
+    publish_gender: Option<bool>,
+    publication_language: Option<PublicationLanguageType>,
+    belongs_to_set: Option<NonZeroU64>,
+    belongs_to_combination: Option<ListDataBelongsToCombinationType>,
+    candidates: Vec<CandidateListsCandidate>,
+}
+
+impl CandidateListsAffiliationBuilder {
+    /// Create a new builder for building an affiliation for the candidate lists document.
+    pub fn new() -> Self {
+        CandidateListsAffiliationBuilder {
+            id: None,
+            registered_name: None,
+            affiliation_type: None,
+            publish_gender: None,
+            publication_language: None,
+            belongs_to_set: None,
+            belongs_to_combination: None,
+            candidates: vec![],
+        }
+    }
+
+    /// Set the affiliation id for the affiliation.
+    pub fn id(mut self, id: impl Into<AffiliationIdType>) -> Self {
+        self.id = Some(id.into());
+        self
+    }
+
+    /// Set the registered name for the affiliation.
+    pub fn registered_name(mut self, registered_name: impl Into<String>) -> Self {
+        self.registered_name = Some(registered_name.into());
+        self
+    }
+
+    /// Set the affiliation type for the affiliation.
+    pub fn affiliation_type(mut self, affiliation_type: impl Into<AffiliationType>) -> Self {
+        self.affiliation_type = Some(affiliation_type.into());
+        self
+    }
+
+    /// Set whether to publish genders
+    pub fn publish_gender(mut self, publish_gender: bool) -> Self {
+        self.publish_gender = Some(publish_gender);
+        self
+    }
+
+    /// Set the publication language for the affiliation.
+    pub fn publication_language(
+        mut self,
+        publication_language: impl Into<PublicationLanguageType>,
+    ) -> Self {
+        self.publication_language = Some(publication_language.into());
+        self
+    }
+
+    /// Set the set that this affiliation belongs to.
+    pub fn belongs_to_set(mut self, belongs_to_set: NonZeroU64) -> Self {
+        self.belongs_to_set = Some(belongs_to_set);
+        self
+    }
+
+    /// Set the combination that this affiliation belongs to.
+    pub fn belongs_to_combination(
+        mut self,
+        belongs_to_combination: impl Into<ListDataBelongsToCombinationType>,
+    ) -> Self {
+        self.belongs_to_combination = Some(belongs_to_combination.into());
+        self
+    }
+
+    /// Set the candidates for this affiliation.
+    pub fn candidates(mut self, candidates: impl Into<Vec<CandidateListsCandidate>>) -> Self {
+        self.candidates = candidates.into();
+        self
+    }
+
+    /// Add a candidate to the list of candidates for this affiliation.
+    pub fn push_candidate(mut self, candidate: impl Into<CandidateListsCandidate>) -> Self {
+        self.candidates.push(candidate.into());
+        self
+    }
+
+    /// Build the affiliation, returning an error if any required fields are missing.
+    pub fn build(self) -> Result<CandidateListsAffiliation, EMLError> {
+        Ok(CandidateListsAffiliation {
+            identifier: AffiliationIdentifier::new(
+                self.id
+                    .ok_or_else(|| EMLErrorKind::MissingBuildProperty("id").without_span())?,
+                self.registered_name,
+            ),
+            affiliation_type: StringValue::from_value(self.affiliation_type.ok_or_else(|| {
+                EMLErrorKind::MissingBuildProperty("affiliation_type").without_span()
+            })?),
+            list_data: ListData {
+                publish_gender: StringValue::from_value(self.publish_gender.ok_or_else(|| {
+                    EMLErrorKind::MissingBuildProperty("publish_gender").without_span()
+                })?),
+                publication_language: self.publication_language.map(StringValue::from_value),
+                belongs_to_set: self.belongs_to_set.map(StringValue::from_value),
+                belongs_to_combination: self.belongs_to_combination.map(StringValue::from_value),
+                contests: vec![],
+            },
+            candidates: self.candidates,
+        })
+    }
 }
 
 impl EMLElement for CandidateListsAffiliation {
@@ -359,6 +733,81 @@ pub struct CandidateListsCandidate {
     pub qualifying_address: Option<QualifyingAddress>,
 }
 
+impl CandidateListsCandidate {
+    /// Create a new builder for building a candidate for the candidate lists document.
+    pub fn builder() -> CandidateListsCandidateBuilder {
+        CandidateListsCandidateBuilder::new()
+    }
+}
+
+/// A builder for building [`CandidateListsCandidate`] structs.
+#[derive(Debug, Clone)]
+pub struct CandidateListsCandidateBuilder {
+    identifier: Option<CandidateIdentifier>,
+    date_of_birth: Option<XsDate>,
+    gender: Option<GenderType>,
+    full_name: Option<PersonNameStructure>,
+    qualifying_address: Option<QualifyingAddress>,
+}
+
+impl CandidateListsCandidateBuilder {
+    /// Create a new builder for building a candidate for the candidate lists document.
+    pub fn new() -> Self {
+        Self {
+            identifier: None,
+            date_of_birth: None,
+            gender: None,
+            full_name: None,
+            qualifying_address: None,
+        }
+    }
+
+    /// Set the candidate id for the candidate.
+    pub fn identifier(mut self, identifier: impl Into<CandidateIdentifier>) -> Self {
+        self.identifier = Some(identifier.into());
+        self
+    }
+
+    /// Set the date of birth for the candidate.
+    pub fn date_of_birth(mut self, date_of_birth: impl Into<XsDate>) -> Self {
+        self.date_of_birth = Some(date_of_birth.into());
+        self
+    }
+
+    /// Set the gender for the candidate.
+    pub fn gender(mut self, gender: impl Into<GenderType>) -> Self {
+        self.gender = Some(gender.into());
+        self
+    }
+
+    /// Set the full name for the candidate.
+    pub fn full_name(mut self, full_name: impl Into<PersonNameStructure>) -> Self {
+        self.full_name = Some(full_name.into());
+        self
+    }
+
+    /// Set the qualifying address for the candidate.
+    pub fn qualifying_address(mut self, qualifying_address: impl Into<QualifyingAddress>) -> Self {
+        self.qualifying_address = Some(qualifying_address.into());
+        self
+    }
+
+    /// Build the candidate, returning an error if any required fields are missing.
+    pub fn build(self) -> Result<CandidateListsCandidate, EMLError> {
+        Ok(CandidateListsCandidate {
+            identifier: self
+                .identifier
+                .ok_or_else(|| EMLErrorKind::MissingBuildProperty("identifier").without_span())?,
+            full_name: self
+                .full_name
+                .ok_or_else(|| EMLErrorKind::MissingBuildProperty("full_name").without_span())?,
+            date_of_birth: self.date_of_birth.map(StringValue::from_value),
+            gender: self.gender.map(StringValue::from_value),
+            qualifying_address: self.qualifying_address,
+        })
+    }
+}
+
 impl EMLElement for CandidateListsCandidate {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("Candidate", Some(NS_EML));
 
@@ -404,6 +853,18 @@ pub enum QualifyingAddress {
     Locality(QualifyingAddressLocality),
     /// Qualifying address is a locality in a specific country.
     Country(QualifyingAddressCountry),
+}
+
+impl From<QualifyingAddressLocality> for QualifyingAddress {
+    fn from(locality: QualifyingAddressLocality) -> Self {
+        QualifyingAddress::Locality(locality)
+    }
+}
+
+impl From<QualifyingAddressCountry> for QualifyingAddress {
+    fn from(country: QualifyingAddressCountry) -> Self {
+        QualifyingAddress::Country(country)
+    }
 }
 
 impl EMLElement for QualifyingAddress {
@@ -493,6 +954,48 @@ impl QualifyingAddressLocality {
             indicator: None,
         }
     }
+
+    /// Set the address line for the locality.
+    pub fn with_address_line(mut self, address_line: impl Into<AddressLine>) -> Self {
+        self.address_line = Some(address_line.into());
+        self
+    }
+
+    /// Set the postal code for the locality.
+    pub fn with_postal_code(mut self, postal_code: impl Into<PostalCode>) -> Self {
+        self.postal_code = Some(postal_code.into());
+        self
+    }
+
+    /// Set the Type attribute for the locality.
+    pub fn with_locality_type(mut self, locality_type: impl Into<String>) -> Self {
+        self.locality_type = Some(locality_type.into());
+        self
+    }
+
+    /// Set the UsageType attribute for the locality.
+    pub fn with_usage_type(mut self, usage_type: impl Into<String>) -> Self {
+        self.usage_type = Some(usage_type.into());
+        self
+    }
+
+    /// Set the Indicator attribute for the locality.
+    pub fn with_indicator(mut self, indicator: impl Into<String>) -> Self {
+        self.indicator = Some(indicator.into());
+        self
+    }
+}
+
+impl From<&str> for QualifyingAddressLocality {
+    fn from(value: &str) -> Self {
+        QualifyingAddressLocality::new(value)
+    }
+}
+
+impl From<String> for QualifyingAddressLocality {
+    fn from(value: String) -> Self {
+        QualifyingAddressLocality::new(value)
+    }
 }
 
 impl EMLElement for QualifyingAddressLocality {
@@ -541,6 +1044,30 @@ impl AddressLine {
             code: None,
         }
     }
+
+    /// Set the Type attribute for the address line.
+    pub fn with_type(mut self, address_line_type: impl Into<String>) -> Self {
+        self.address_line_type = Some(address_line_type.into());
+        self
+    }
+
+    /// Set the Code attribute for the address line.
+    pub fn with_code(mut self, code: impl Into<String>) -> Self {
+        self.code = Some(code.into());
+        self
+    }
+}
+
+impl From<&str> for AddressLine {
+    fn from(value: &str) -> Self {
+        AddressLine::new(value)
+    }
+}
+
+impl From<String> for AddressLine {
+    fn from(value: String) -> Self {
+        AddressLine::new(value)
+    }
 }
 
 impl EMLElement for AddressLine {
@@ -572,10 +1099,28 @@ pub struct PostalCode {
 
 impl PostalCode {
     /// Create a new PostalCode.
-    pub fn new(postal_code_number: impl Into<String>) -> Self {
+    pub fn new(postal_code_number: impl Into<PostalCodeNumber>) -> Self {
         PostalCode {
-            postal_code_number: PostalCodeNumber::new(postal_code_number),
+            postal_code_number: postal_code_number.into(),
         }
+    }
+}
+
+impl From<&str> for PostalCode {
+    fn from(value: &str) -> Self {
+        PostalCode::new(value)
+    }
+}
+
+impl From<String> for PostalCode {
+    fn from(value: String) -> Self {
+        PostalCode::new(value)
+    }
+}
+
+impl From<PostalCodeNumber> for PostalCode {
+    fn from(postal_code_number: PostalCodeNumber) -> Self {
+        PostalCode { postal_code_number }
     }
 }
 
@@ -636,6 +1181,30 @@ impl PostalCodeNumber {
             code: None,
         }
     }
+
+    /// Set the Type attribute for the postal code number.
+    pub fn with_type(mut self, postal_code_number_type: impl Into<String>) -> Self {
+        self.postal_code_number_type = Some(postal_code_number_type.into());
+        self
+    }
+
+    /// Set the Code attribute for the postal code number.
+    pub fn with_code(mut self, code: impl Into<String>) -> Self {
+        self.code = Some(code.into());
+        self
+    }
+}
+
+impl From<&str> for PostalCodeNumber {
+    fn from(value: &str) -> Self {
+        PostalCodeNumber::new(value)
+    }
+}
+
+impl From<String> for PostalCodeNumber {
+    fn from(value: String) -> Self {
+        PostalCodeNumber::new(value)
+    }
 }
 
 /// Qualifying address country.
@@ -651,11 +1220,11 @@ impl QualifyingAddressCountry {
     /// Create a new QualifyingAddressCountry.
     pub fn new(
         country_code: Option<impl Into<String>>,
-        locality: QualifyingAddressLocality,
+        locality: impl Into<QualifyingAddressLocality>,
     ) -> Self {
         Self {
             country_name_code: country_code.map(|code| CountryNameCode::new(code)),
-            locality,
+            locality: locality.into(),
         }
     }
 }
@@ -680,8 +1249,16 @@ impl EMLElement for QualifyingAddressCountry {
 
 #[cfg(test)]
 mod tests {
+    use chrono::TimeZone as _;
+
     use super::*;
-    use crate::io::{EMLParsingMode, EMLRead as _, test_write_eml_element, test_xml_fragment};
+    use crate::{
+        common::PersonName,
+        io::{
+            EMLParsingMode, EMLRead as _, EMLWrite as _, test_write_eml_element, test_xml_fragment,
+        },
+        utils::{CandidateIdType, XSBType},
+    };
 
     #[test]
     fn test_affiliation_identifier() {
@@ -730,5 +1307,164 @@ mod tests {
 
         let xml_output = test_write_eml_element(&affiliation_identifier, &[NS_EML]).unwrap();
         assert_eq!(xml_output, xml);
+    }
+
+    #[test]
+    fn test_qualifying_address_full() {
+        let c = QualifyingAddressCountry::new(
+            Some("NL"),
+            QualifyingAddressLocality::new("Amsterdam")
+                .with_address_line(
+                    AddressLine::new("Test 1")
+                        .with_code("TestCode")
+                        .with_type("TestType"),
+                )
+                .with_postal_code(
+                    PostalCodeNumber::new("1234 AB")
+                        .with_code("TestCode")
+                        .with_type("TestType"),
+                )
+                .with_indicator("Test")
+                .with_locality_type("City")
+                .with_usage_type("Example"),
+        );
+
+        assert_eq!(c.country_name_code, Some(CountryNameCode::new("NL")));
+        assert_eq!(c.locality.locality_name.name, "Amsterdam");
+        assert_eq!(c.locality.address_line.as_ref().unwrap().value, "Test 1");
+        assert_eq!(
+            c.locality
+                .address_line
+                .as_ref()
+                .unwrap()
+                .code
+                .as_ref()
+                .unwrap(),
+            "TestCode"
+        );
+        assert_eq!(
+            c.locality
+                .address_line
+                .as_ref()
+                .unwrap()
+                .address_line_type
+                .as_ref()
+                .unwrap(),
+            "TestType"
+        );
+        assert_eq!(
+            c.locality
+                .postal_code
+                .as_ref()
+                .unwrap()
+                .postal_code_number
+                .value,
+            "1234 AB"
+        );
+        assert_eq!(
+            c.locality
+                .postal_code
+                .as_ref()
+                .unwrap()
+                .postal_code_number
+                .code
+                .as_ref()
+                .unwrap(),
+            "TestCode"
+        );
+        assert_eq!(
+            c.locality
+                .postal_code
+                .as_ref()
+                .unwrap()
+                .postal_code_number
+                .postal_code_number_type
+                .as_ref()
+                .unwrap(),
+            "TestType"
+        );
+        assert_eq!(c.locality.indicator.as_ref().unwrap(), "Test");
+        assert_eq!(c.locality.locality_type.as_ref().unwrap(), "City");
+        assert_eq!(c.locality.usage_type.as_ref().unwrap(), "Example");
+
+        test_write_eml_element(&c, &[NS_XAL]).unwrap();
+    }
+
+    #[test]
+    fn test_qualifying_address_parsing() {
+        let xml = test_xml_fragment(
+            r#"
+            <QualifyingAddress xmlns="urn:oasis:names:tc:evs:schema:eml" xmlns:xal="urn:oasis:names:tc:ciq:xsdschema:xAL:2.0">
+                <xal:Country>
+                    <xal:Locality>
+                        <xal:LocalityName>Amsterdam</xal:LocalityName>
+                    </xal:Locality>
+                </xal:Country>
+            </QualifyingAddress>
+            "#,
+        );
+
+        let qualifying_address = QualifyingAddress::parse_eml(&xml, EMLParsingMode::Strict)
+            .ok()
+            .unwrap();
+        match &qualifying_address {
+            QualifyingAddress::Country(country) => {
+                assert_eq!(country.country_name_code, None);
+                assert_eq!(country.locality.locality_name.name, "Amsterdam");
+            }
+            _ => panic!("Expected country qualifying address"),
+        }
+
+        let xml_output = test_write_eml_element(&qualifying_address, &[NS_EML, NS_XAL]).unwrap();
+        assert_eq!(xml_output, xml);
+    }
+
+    #[test]
+    fn candidate_lists_construction() {
+        let cl = CandidateLists::builder()
+            .transaction_id(TransactionId::new(1))
+            .managing_authority(ManagingAuthority::new(XSBType::new("1234").unwrap()))
+            .issue_date(XsDate::from_date(2024, 6, 10).unwrap())
+            .creation_date_time(
+                chrono::Utc
+                    .with_ymd_and_hms(2014, 11, 28, 12, 0, 9)
+                    .unwrap(),
+            )
+            .election_identifier(
+                CandidateListsElectionIdentifier::builder()
+                    .id(ElectionIdType::new("GR2026_Test").unwrap())
+                    .category(ElectionCategory::GR)
+                    .election_date(XsDate::from_date(2024, 11, 5).unwrap())
+                    .nomination_date(XsDate::from_date(2024, 10, 1).unwrap())
+                    .build_for_candidate_lists()
+                    .unwrap(),
+            )
+            .affiliations([CandidateListsAffiliation::builder()
+                .id(AffiliationIdType::new("1").unwrap())
+                .registered_name("Affiliation 1")
+                .affiliation_type(AffiliationType::StandAloneList)
+                .publish_gender(true)
+                .candidates([CandidateListsCandidate::builder()
+                    .identifier(CandidateIdType::new("1").unwrap())
+                    .full_name(
+                        PersonName::new("Pietersen")
+                            .with_initials("P.")
+                            .with_first_name("Piet"),
+                    )
+                    .qualifying_address(QualifyingAddressCountry::new(Some("NL"), "Amsterdam"))
+                    .build()
+                    .unwrap()])
+                .build()
+                .unwrap()])
+            .build()
+            .unwrap();
+
+        let xml = format!("{}\n", cl.write_eml_root_str(true, true).unwrap());
+        assert_eq!(
+            xml,
+            include_str!(
+                "../../test-emls/candidate_lists/eml230b_candidate_lists_construction_output.eml.xml"
+            )
+        );
     }
 }

@@ -30,6 +30,12 @@ impl CreationDateTime {
     }
 }
 
+impl From<XsDateTime> for CreationDateTime {
+    fn from(value: XsDateTime) -> Self {
+        CreationDateTime::new(value)
+    }
+}
+
 impl EMLElement for CreationDateTime {
     const EML_NAME: QualifiedName<'_, '_> =
         QualifiedName::from_static("CreationDateTime", Some(NS_KR));

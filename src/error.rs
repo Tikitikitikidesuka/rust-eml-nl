@@ -111,6 +111,10 @@ pub enum EMLErrorKind {
         "A Selection is missing a selection type (i.e. Candidate, AffiliationIdentifier or ReferendumOptionIdentifier)"
     )]
     MissingSelectionType,
+
+    /// A field that is required for building a struct is missing.
+    #[error("A required property '{0}' is missing for building this struct")]
+    MissingBuildProperty(&'static str),
 }
 
 impl EMLErrorKind {
@@ -120,7 +124,6 @@ impl EMLErrorKind {
     }
 
     /// Converts the error kind to an error without span information.
-    #[expect(unused)]
     pub(crate) fn without_span(self) -> EMLError {
         EMLError::UnknownPosition { kind: self }
     }

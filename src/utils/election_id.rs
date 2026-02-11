@@ -28,6 +28,14 @@ impl ElectionIdType {
     }
 }
 
+impl TryFrom<&str> for ElectionIdType {
+    type Error = InvalidElectionIdError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
 /// Error returned when a string could not be parsed as a ElectionId
 #[derive(Debug, Clone, Error)]
 #[error("Invalid ElectionId: {0}")]

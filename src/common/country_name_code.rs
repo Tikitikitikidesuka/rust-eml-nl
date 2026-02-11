@@ -6,7 +6,7 @@ use crate::{
 };
 
 /// Country name code information.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CountryNameCode {
     /// The country name code value.
     pub value: String,

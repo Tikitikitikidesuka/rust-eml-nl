@@ -24,12 +24,23 @@ impl XsDate {
         XsDate { date, tz: None }
     }
 
+    /// Create a new `XsDate` without timezone information from the specified year, month and day.
+    pub fn from_date(year: i32, month: u32, day: u32) -> Option<Self> {
+        NaiveDate::from_ymd_opt(year, month, day).map(XsDate::new)
+    }
+
     /// Create a new `XsDate` with timezone information.
     pub fn new_with_tz<O: Offset>(date: NaiveDate, tz: O) -> Self {
         XsDate {
             date,
             tz: Some(tz.fix()),
         }
+    }
+}
+
+impl From<NaiveDate> for XsDate {
+    fn from(value: NaiveDate) -> Self {
+        XsDate::new(value)
     }
 }
 
@@ -146,6 +157,12 @@ impl XsDateTime {
     }
 }
 
+impl<T: TimeZone> From<DateTime<T>> for XsDateTime {
+    fn from(value: DateTime<T>) -> Self {
+        XsDateTime::new(value)
+    }
+}
+
 impl FromStr for XsDateTime {
     type Err = chrono::ParseError;
 
@@ -228,6 +245,18 @@ impl XsDateOrDateTime {
                 }
             }
         }
+    }
+}
+
+impl From<XsDate> for XsDateOrDateTime {
+    fn from(value: XsDate) -> Self {
+        XsDateOrDateTime::Date(value)
+    }
+}
+
+impl From<XsDateTime> for XsDateOrDateTime {
+    fn from(value: XsDateTime) -> Self {
+        XsDateOrDateTime::DateTime(value)
     }
 }
 

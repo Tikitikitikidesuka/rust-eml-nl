@@ -17,17 +17,20 @@ pub struct ManagingAuthority {
 
 impl ManagingAuthority {
     /// Creates a new `ManagingAuthority` with the given identifier and default values for the other fields.
-    pub fn new(authority_identifier: AuthorityIdentifier) -> Self {
+    pub fn new(authority_identifier: impl Into<AuthorityIdentifier>) -> Self {
         ManagingAuthority {
-            authority_identifier,
+            authority_identifier: authority_identifier.into(),
             authority_address: AuthorityAddress {},
             created_by_authority: None,
         }
     }
 
     /// Sets the authority that created this authority and returns the modified `ManagingAuthority`.
-    pub fn with_created_by_authority(mut self, created_by_authority: CreatedByAuthority) -> Self {
-        self.created_by_authority = Some(created_by_authority);
+    pub fn with_created_by_authority(
+        mut self,
+        created_by_authority: impl Into<CreatedByAuthority>,
+    ) -> Self {
+        self.created_by_authority = Some(created_by_authority.into());
         self
     }
 }
@@ -80,6 +83,12 @@ impl AuthorityIdentifier {
     pub fn with_name(mut self, name: impl Into<String>) -> Self {
         self.name = Some(name.into());
         self
+    }
+}
+
+impl From<XSBType> for AuthorityIdentifier {
+    fn from(value: XSBType) -> Self {
+        AuthorityIdentifier::new(value)
     }
 }
 

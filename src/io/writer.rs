@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::{borrow::Cow, collections::BTreeMap};
 
 use quick_xml::{
     Writer,
@@ -12,7 +12,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub(crate) struct NsDefinitions {
     default_namespace_uri: Option<&'static str>,
-    namespace_definitions: HashMap<&'static str, &'static str>,
+    namespace_definitions: BTreeMap<&'static str, &'static str>,
 }
 
 pub(crate) struct EMLWriter {
@@ -297,7 +297,7 @@ pub(crate) trait EMLWriteInternal {
         &self,
         root_name: Option<impl Into<QualifiedName<'a, 'b>>>,
         default_namespace_uri: Option<Option<&'static str>>,
-        namespace_definitions: Option<HashMap<&'static str, &'static str>>,
+        namespace_definitions: Option<BTreeMap<&'static str, &'static str>>,
         pretty_print: bool,
         include_declaration: bool,
     ) -> Result<Vec<u8>, EMLError>;
@@ -306,7 +306,7 @@ pub(crate) trait EMLWriteInternal {
         &self,
         root_name: Option<impl Into<QualifiedName<'a, 'b>>>,
         default_namespace_uri: Option<Option<&'static str>>,
-        namespace_definitions: Option<HashMap<&'static str, &'static str>>,
+        namespace_definitions: Option<BTreeMap<&'static str, &'static str>>,
         pretty_print: bool,
         include_declaration: bool,
     ) -> Result<String, EMLError>;
@@ -320,7 +320,7 @@ where
         &self,
         root_name: Option<impl Into<QualifiedName<'a, 'b>>>,
         default_namespace_uri: Option<Option<&'static str>>,
-        namespace_definitions: Option<HashMap<&'static str, &'static str>>,
+        namespace_definitions: Option<BTreeMap<&'static str, &'static str>>,
         pretty_print: bool,
         include_declaration: bool,
     ) -> Result<Vec<u8>, EMLError> {
@@ -330,7 +330,7 @@ where
             .unwrap_or_else(|| QualifiedName::new("EML", Some(NS_EML)));
         let default_namespace_uri = default_namespace_uri.unwrap_or(Some(NS_EML));
         let namespace_definitions = namespace_definitions.unwrap_or_else(|| {
-            let mut ns_defs = HashMap::new();
+            let mut ns_defs = BTreeMap::new();
             ns_defs.insert("kr", NS_KR);
             ns_defs.insert("xal", NS_XAL);
             ns_defs.insert("xnl", NS_XNL);
@@ -375,7 +375,7 @@ where
         &self,
         root_name: Option<impl Into<QualifiedName<'a, 'b>>>,
         default_namespace_uri: Option<Option<&'static str>>,
-        namespace_definitions: Option<HashMap<&'static str, &'static str>>,
+        namespace_definitions: Option<BTreeMap<&'static str, &'static str>>,
         pretty_print: bool,
         include_declaration: bool,
     ) -> Result<String, EMLError> {
@@ -461,7 +461,7 @@ pub(crate) fn test_write_eml_element<T: crate::io::EMLElement>(
     element: &T,
     namespaces: &[&str],
 ) -> Result<String, EMLError> {
-    let mut namespace_definitions = HashMap::new();
+    let mut namespace_definitions = BTreeMap::new();
     let mut default_namespace_uri = Some(None);
     for ns in namespaces {
         use crate::NS_DS;

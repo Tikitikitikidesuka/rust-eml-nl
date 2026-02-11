@@ -2,14 +2,24 @@
 
 use crate::{
     EML_SCHEMA_VERSION, EMLError, EMLErrorKind, EMLResultExt as _, NS_EML,
+    common::ElectionDomain,
     documents::{
-        candidate_lists::{CandidateLists, EML_CANDIDATE_LISTS_ID},
-        election_count::{CountType, ElectionCount},
-        election_definition::{EML_ELECTION_DEFINITION_ID, ElectionDefinition},
-        election_result::{EML_ELECTION_RESULT_ID, ElectionResult},
-        polling_stations::{EML_POLLING_STATIONS_ID, PollingStations},
+        candidate_lists::{
+            CandidateLists, CandidateListsElectionIdentifier, EML_CANDIDATE_LISTS_ID,
+        },
+        election_count::{CountType, ElectionCount, ElectionCountElectionIdentifier},
+        election_definition::{
+            EML_ELECTION_DEFINITION_ID, ElectionDefinition, ElectionDefinitionElectionIdentifier,
+        },
+        election_result::{
+            EML_ELECTION_RESULT_ID, ElectionResult, ElectionResultElectionIdentifier,
+        },
+        polling_stations::{
+            EML_POLLING_STATIONS_ID, PollingStations, PollingStationsElectionIdentifier,
+        },
     },
     io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName},
+    utils::{ElectionCategory, ElectionIdType, ElectionSubcategory, StringValue, XsDate},
 };
 
 pub mod candidate_lists;
@@ -208,6 +218,175 @@ fn accepted_root(elem: &EMLElementReader<'_, '_>) -> Result<(), EMLError> {
             schema_version.to_string(),
         ))
         .with_span(elem.span())
+    }
+}
+
+/// Builder for Election Identifiers
+#[derive(Debug, Clone)]
+pub struct ElectionIdentifierBuilder {
+    id: Option<StringValue<ElectionIdType>>,
+    name: Option<String>,
+    category: Option<StringValue<ElectionCategory>>,
+    subcategory: Option<StringValue<ElectionSubcategory>>,
+    domain: Option<ElectionDomain>,
+    election_date: Option<StringValue<XsDate>>,
+    nomination_date: Option<StringValue<XsDate>>,
+}
+
+impl ElectionIdentifierBuilder {
+    /// Create a new ElectionIdentifierBuilder
+    pub fn new() -> Self {
+        ElectionIdentifierBuilder {
+            id: None,
+            name: None,
+            category: None,
+            subcategory: None,
+            domain: None,
+            election_date: None,
+            nomination_date: None,
+        }
+    }
+
+    /// Set the election identifier for the document.
+    pub fn id(mut self, id: impl Into<ElectionIdType>) -> Self {
+        self.id = Some(StringValue::from_value(id.into()));
+        self
+    }
+
+    /// Set the election name for the document
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    /// Set the election category for the document
+    pub fn category(mut self, category: impl Into<ElectionCategory>) -> Self {
+        self.category = Some(StringValue::from_value(category.into()));
+        self
+    }
+
+    /// Set the election sub category for the document
+    pub fn subcategory(mut self, subcategory: impl Into<ElectionSubcategory>) -> Self {
+        self.subcategory = Some(StringValue::from_value(subcategory.into()));
+        self
+    }
+
+    /// Set the election domain for the document
+    pub fn domain(mut self, domain: impl Into<ElectionDomain>) -> Self {
+        self.domain = Some(domain.into());
+        self
+    }
+
+    /// Set the election date for the document
+    pub fn election_date(mut self, date: impl Into<XsDate>) -> Self {
+        self.election_date = Some(StringValue::from_value(date.into()));
+        self
+    }
+
+    /// Set the nomination date for the document
+    pub fn nomination_date(mut self, date: impl Into<XsDate>) -> Self {
+        self.nomination_date = Some(StringValue::from_value(date.into()));
+        self
+    }
+
+    /// Build an election identifier for candidate lists.
+    pub fn build_for_candidate_lists(self) -> Result<CandidateListsElectionIdentifier, EMLError> {
+        Ok(CandidateListsElectionIdentifier {
+            id: self
+                .id
+                .ok_or(EMLErrorKind::MissingBuildProperty("id").without_span())?,
+            name: self.name,
+            category: self
+                .category
+                .ok_or(EMLErrorKind::MissingBuildProperty("category").without_span())?,
+            subcategory: self.subcategory,
+            domain: self.domain,
+            election_date: self
+                .election_date
+                .ok_or(EMLErrorKind::MissingBuildProperty("election_date").without_span())?,
+            nomination_date: self
+                .nomination_date
+                .ok_or(EMLErrorKind::MissingBuildProperty("nomination_date").without_span())?,
+        })
+    }
+
+    /// Build an election identifier for election count.
+    pub fn build_for_count(self) -> Result<ElectionCountElectionIdentifier, EMLError> {
+        Ok(ElectionCountElectionIdentifier {
+            id: self
+                .id
+                .ok_or(EMLErrorKind::MissingBuildProperty("id").without_span())?,
+            name: self.name,
+            category: self
+                .category
+                .ok_or(EMLErrorKind::MissingBuildProperty("category").without_span())?,
+            subcategory: self.subcategory,
+            domain: self.domain,
+            election_date: self
+                .election_date
+                .ok_or(EMLErrorKind::MissingBuildProperty("election_date").without_span())?,
+        })
+    }
+
+    /// Build an election identifier for election result.
+    pub fn build_for_result(self) -> Result<ElectionResultElectionIdentifier, EMLError> {
+        Ok(ElectionResultElectionIdentifier {
+            id: self
+                .id
+                .ok_or(EMLErrorKind::MissingBuildProperty("id").without_span())?,
+            name: self.name,
+            category: self
+                .category
+                .ok_or(EMLErrorKind::MissingBuildProperty("category").without_span())?,
+            subcategory: self.subcategory,
+            domain: self.domain,
+            election_date: self
+                .election_date
+                .ok_or(EMLErrorKind::MissingBuildProperty("election_date").without_span())?,
+        })
+    }
+
+    /// Build an election identifier for election definition.
+    pub fn build_for_definition(self) -> Result<ElectionDefinitionElectionIdentifier, EMLError> {
+        Ok(ElectionDefinitionElectionIdentifier {
+            id: self
+                .id
+                .ok_or(EMLErrorKind::MissingBuildProperty("id").without_span())?,
+            name: self
+                .name
+                .ok_or(EMLErrorKind::MissingBuildProperty("name").without_span())?,
+            category: self
+                .category
+                .ok_or(EMLErrorKind::MissingBuildProperty("category").without_span())?,
+            subcategory: self
+                .subcategory
+                .ok_or(EMLErrorKind::MissingBuildProperty("subcategory").without_span())?,
+            domain: self.domain,
+            election_date: self
+                .election_date
+                .ok_or(EMLErrorKind::MissingBuildProperty("election_date").without_span())?,
+            nomination_date: self
+                .nomination_date
+                .ok_or(EMLErrorKind::MissingBuildProperty("nomination_date").without_span())?,
+        })
+    }
+
+    /// Build an election identifier for polling stations.
+    pub fn build_for_polling_stations(self) -> Result<PollingStationsElectionIdentifier, EMLError> {
+        Ok(PollingStationsElectionIdentifier {
+            id: self
+                .id
+                .ok_or(EMLErrorKind::MissingBuildProperty("id").without_span())?,
+            name: self.name,
+            category: self
+                .category
+                .ok_or(EMLErrorKind::MissingBuildProperty("category").without_span())?,
+            subcategory: self.subcategory,
+            domain: self.domain,
+            election_date: self
+                .election_date
+                .ok_or(EMLErrorKind::MissingBuildProperty("election_date").without_span())?,
+        })
     }
 }
 
