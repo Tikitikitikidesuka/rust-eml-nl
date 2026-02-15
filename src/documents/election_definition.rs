@@ -128,14 +128,19 @@ const EML_NAME_PREFERENCE_THRESHOLD: QualifiedName<'_, '_> =
 pub struct ElectionDefinitionElection {
     /// Identifier
     pub identifier: ElectionDefinitionElectionIdentifier,
+
     /// Election voting method details
     pub contest: ElectionDefinitionContest,
+
     /// Number of seats in the election
     pub number_of_seats: StringValue<u64>,
+
     /// The preference threshold percentage
     pub preference_threshold: StringValue<u64>,
+
     /// Election tree for this election
     pub election_tree: ElectionTree,
+
     /// A list of registered parties.
     pub registered_parties: Vec<ElectionDefinitionRegisteredParty>,
 }
@@ -181,16 +186,22 @@ impl EMLElement for ElectionDefinitionElection {
 pub struct ElectionDefinitionElectionIdentifier {
     /// Id of the election
     pub id: StringValue<ElectionIdType>,
+
     /// Name of the election
     pub name: String,
+
     /// Category of the election
     pub category: StringValue<ElectionCategory>,
+
     /// Subcategory of the election
     pub subcategory: StringValue<ElectionSubcategory>,
+
     /// The (top level) region where the election takes place.
     pub domain: Option<ElectionDomain>,
+
     /// Date of the election
     pub election_date: StringValue<XsDate>,
+
     /// Nomination date for the election
     pub nomination_date: StringValue<XsDate>,
 }
@@ -242,8 +253,10 @@ impl EMLElement for ElectionDefinitionElectionIdentifier {
 pub struct ElectionDefinitionContest {
     /// Identifier for the contest.
     pub identifier: ContestIdentifier,
+
     /// Voting method used in the contest.
     pub voting_method: StringValue<VotingMethod>,
+
     /// Maximum number of votes allowed.
     pub max_votes: StringValue<NonZeroU64>,
 }

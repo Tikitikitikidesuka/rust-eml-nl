@@ -227,14 +227,19 @@ impl EMLElement for ElectionCountElection {
 pub struct ElectionCountElectionIdentifier {
     /// Id of the election
     pub id: StringValue<ElectionIdType>,
+
     /// Name of the election
     pub name: Option<String>,
+
     /// Category of the election
     pub category: StringValue<ElectionCategory>,
+
     /// Subcategory of the election
     pub subcategory: Option<StringValue<ElectionSubcategory>>,
+
     /// The (top level) region where the election takes place.
     pub domain: Option<ElectionDomain>,
+
     /// Date of the election
     pub election_date: StringValue<XsDate>,
 }
@@ -606,6 +611,7 @@ impl EMLElement for ReportingUnitInvestigations {
 pub struct Investigation {
     /// Whether the type of investigation as specified by reason was conducted.
     pub investigated: StringValue<bool>,
+
     /// Reason for the investigation.
     pub reason: StringValue<InvestigationReason>,
 }
@@ -705,6 +711,7 @@ impl StringValueData for InvestigationReason {
 pub struct UncountedVotes {
     /// Number of uncounted votes.
     pub value: StringValue<u64>,
+
     /// Reason for uncounted votes.
     pub reason: StringValue<UncountedVotesReason>,
 }
@@ -832,10 +839,13 @@ impl StringValueData for UncountedVotesReason {
 pub struct ElectionCountSelection {
     /// Type of selection.
     pub selection_type: ElectionCountSelectionType,
+
     /// Number of valid votes for this selection.
     pub valid_votes: StringValue<u64>,
+
     /// Value of the `Value` attribute, if present.
     pub value: Option<String>,
+
     /// Value of the `Category` attribute, if present.
     pub category: Option<String>,
 }
@@ -930,8 +940,10 @@ impl EMLElement for ElectionCountSelection {
 pub enum ElectionCountSelectionType {
     /// Selection of a candidate.
     Candidate(Box<CandidateSelection>),
+
     /// Selection of an affiliation.
     Affiliation(Box<AffiliationSelection>),
+
     /// Selection of a referendum option.
     ReferendumOption(Box<ReferendumOptionSelection>),
 }
@@ -1019,12 +1031,16 @@ impl EMLElement for AffiliationSelection {
 pub struct ReferendumOptionSelection {
     /// Value of the referendum option.
     pub value: String,
+
     /// Id of the referendum option, if present.
     pub id: Option<String>,
+
     /// Display order of the referendum option, if present.
     pub display_order: Option<StringValue<NonZeroU64>>,
+
     /// Short code of the referendum option, if present.
     pub short_code: Option<String>,
+
     /// Expected confirmation reference of the referendum option, if present.
     pub expected_confirmation_reference: Option<String>,
 }

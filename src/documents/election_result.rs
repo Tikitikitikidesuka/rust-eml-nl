@@ -137,14 +137,19 @@ impl EMLElement for ElectionResultElection {
 pub struct ElectionResultElectionIdentifier {
     /// Id of the election
     pub id: StringValue<ElectionIdType>,
+
     /// Name of the election
     pub name: Option<String>,
+
     /// Category of the election
     pub category: StringValue<ElectionCategory>,
+
     /// Subcategory of the election
     pub subcategory: Option<StringValue<ElectionSubcategory>>,
+
     /// The (top level) region where the election takes place.
     pub domain: Option<ElectionDomain>,
+
     /// Date of the election
     pub election_date: StringValue<XsDate>,
 }

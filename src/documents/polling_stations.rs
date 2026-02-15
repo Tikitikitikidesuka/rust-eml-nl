@@ -267,12 +267,16 @@ impl EMLElement for PollingStationsElectionIdentifier {
 pub struct PollingStationsContest {
     /// Identifier for the contest.
     pub identifier: ContestIdentifierGeen,
+
     /// Reporting unit for the contest.
     pub reporting_unit: PollingStationsReportingUnit,
+
     /// Voting method used in the contest.
     pub voting_method: StringValue<VotingMethod>,
+
     /// Maximum number of votes allowed.
     pub max_votes: StringValue<NonZeroU64>,
+
     /// List of polling places in this contest.
     pub polling_places: Vec<PollingPlace>,
 }
@@ -371,6 +375,7 @@ impl EMLElement for PollingStationsReportingUnit {
 pub struct PollingPlace {
     /// Voting channel used at this polling place.
     pub channel: StringValue<VotingChannelType>,
+
     /// Physical location of the polling place.
     pub physical_location: PhysicalLocation,
 }
@@ -399,6 +404,7 @@ impl EMLElement for PollingPlace {
 pub struct PhysicalLocation {
     /// Address of the physical location.
     pub address: PhysicalLocationAddress,
+
     /// Polling station information of the physical location.
     pub polling_station: PhysicalLocationPollingStation,
 }
@@ -478,6 +484,7 @@ impl EMLElement for PhysicalLocationLocality {
 pub struct PhysicalLocationPollingStation {
     /// Identifier of the polling station.
     pub id: StringValue<PhysicalLocationPollingStationId>,
+
     /// Additional data of the polling station.
     pub data: String,
 }

@@ -268,6 +268,7 @@ impl EMLElement for CandidateLists {
 pub struct CandidateListsCandidateList {
     /// The date of the candidate list, if present.
     pub list_date: Option<CandidateListsListDate>,
+
     /// The election information.
     pub election: CandidateListsElection,
 }
@@ -789,6 +790,7 @@ impl EMLElement for CandidateListsAffiliation {
 pub struct AffiliationIdentifier {
     /// The affiliation id.
     pub id: StringValue<AffiliationIdType>,
+
     /// The registered name of the affiliation.
     pub registered_name: Option<String>,
 }
@@ -975,6 +977,7 @@ impl EMLElement for CandidateListsCandidate {
 pub enum QualifyingAddress {
     /// Qualifying address is a locality only.
     Locality(QualifyingAddressLocality),
+
     /// Qualifying address is a locality in a specific country.
     Country(QualifyingAddressCountry),
 }
@@ -1054,14 +1057,19 @@ impl EMLElement for QualifyingAddress {
 pub struct QualifyingAddressLocality {
     /// The address line, if present.
     pub address_line: Option<AddressLine>,
+
     /// The locality name.
     pub locality_name: LocalityName,
+
     /// The postal code, if present.
     pub postal_code: Option<PostalCode>,
+
     /// The Type attribute, if present.
     pub locality_type: Option<String>,
+
     /// The UsageType attribute, if present.
     pub usage_type: Option<String>,
+
     /// The Indicator attribute, if present.
     pub indicator: Option<String>,
 }
@@ -1153,8 +1161,10 @@ impl EMLElement for QualifyingAddressLocality {
 pub struct AddressLine {
     /// The address line value.
     pub value: String,
+
     /// The Type attribute, if present.
     pub address_line_type: Option<String>,
+
     /// The Code attribute, if present.
     pub code: Option<String>,
 }
@@ -1269,8 +1279,10 @@ impl EMLElement for PostalCode {
 pub struct PostalCodeNumber {
     /// The postal code number value.
     pub value: String,
+
     /// The Type attribute, if present.
     pub postal_code_number_type: Option<String>,
+
     /// The Code attribute, if present.
     pub code: Option<String>,
 }
