@@ -115,11 +115,19 @@ pub enum EMLErrorKind {
     /// A field that is required for building a struct is missing.
     #[error("A required property '{0}' is missing for building this struct")]
     MissingBuildProperty(&'static str),
+
+    /// The NominationDate is before the ElectionDate, which is not allowed.
+    #[error("The NominationDate is before the ElectionDate, which is not allowed")]
+    NominationDateNotBeforeElectionDate,
+
+    /// The ElectionSubcategory is not valid for the ElectionCategory.
+    #[error("The ElectionSubcategory is not valid for the ElectionCategory")]
+    InvalidElectionSubcategory,
 }
 
 impl EMLErrorKind {
     /// Adds span information to the error.
-    pub(crate) fn add_span(self, span: Span) -> EMLError {
+    pub(crate) fn with_span(self, span: Span) -> EMLError {
         EMLError::Positioned { kind: self, span }
     }
 
@@ -216,6 +224,21 @@ impl EMLError {
         }
     }
 
+    /// Returns the kind of this error as an EMLErrorKind, consuming the error.
+    ///
+    /// When this error consists of multiple errors, the kind of the last error is returned.
+    pub fn into_kind(self) -> EMLErrorKind {
+        match self {
+            EMLError::Positioned { kind, .. } => kind,
+            EMLError::UnknownPosition { kind } => kind,
+            EMLError::Multiple(MultipleEMLErrors { errors }) => errors
+                .into_iter()
+                .last()
+                .map(|e| e.into_kind())
+                .expect("Errors vec cannot be empty"),
+        }
+    }
+
     /// Returns the span of this error, if available.
     ///
     /// Note: when multiple errors are present, the span of the last error is returned.
@@ -301,15 +324,15 @@ mod tests {
 
     #[test]
     fn test_creating_multiple_errors() {
-        let err1 = EMLErrorKind::UnexpectedEndElement.add_span(Span { start: 0, end: 5 });
+        let err1 = EMLErrorKind::UnexpectedEndElement.with_span(Span { start: 0, end: 5 });
         let err2 =
             EMLErrorKind::MissingElement(OwnedQualifiedName::from_static("Test", Some(NS_EML)))
-                .add_span(Span { start: 10, end: 15 });
+                .with_span(Span { start: 10, end: 15 });
 
         let multiple_error = EMLError::from_vec_with_additional(vec![err1], err2);
         assert!(matches!(multiple_error, EMLError::Multiple(_)));
 
-        let err3 = EMLErrorKind::UnexpectedEof.add_span(Span { start: 0, end: 10 });
+        let err3 = EMLErrorKind::UnexpectedEof.with_span(Span { start: 0, end: 10 });
         let multiple_error2 = EMLError::from_vec_with_additional(vec![], err3);
         assert!(matches!(
             multiple_error2,
@@ -322,7 +345,7 @@ mod tests {
 
     #[test]
     fn get_data_from_error() {
-        let err = EMLErrorKind::UnexpectedEof.add_span(Span { start: 0, end: 10 });
+        let err = EMLErrorKind::UnexpectedEof.with_span(Span { start: 0, end: 10 });
         assert!(matches!(err.kind(), &EMLErrorKind::UnexpectedEof));
         assert_eq!(err.span(), Some(Span { start: 0, end: 10 }));
         assert!(err.is_fatal());

@@ -9,7 +9,10 @@ use crate::{
         CreationDateTime, ElectionDomain, IssueDate, ListData, ListDataBelongsToCombinationType,
         LocalityName, ManagingAuthority, PersonNameStructure, TransactionId,
     },
-    documents::{ElectionIdentifierBuilder, accepted_root},
+    documents::{
+        ElectionIdentifierBuilder, accepted_root, validate_category_and_subcategory,
+        validate_election_and_nomination_dates,
+    },
     error::{EMLErrorKind, EMLResultExt},
     io::{
         EMLElement, EMLElementReader, EMLElementWriter, EMLReadElement as _, QualifiedName,
@@ -60,10 +63,9 @@ pub struct CandidateListsBuilder {
     creation_date_time: Option<CreationDateTime>,
     canonicalization_method: Option<CanonicalizationMethod>,
     candidate_list: Option<CandidateListsCandidateList>,
-    affiliations: Vec<CandidateListsAffiliation>,
-    contest_identifier: ContestIdentifier,
     election_identifier: Option<CandidateListsElectionIdentifier>,
     list_date: Option<CandidateListsListDate>,
+    contests: Vec<CandidateListsContest>,
 }
 
 impl CandidateListsBuilder {
@@ -76,10 +78,9 @@ impl CandidateListsBuilder {
             creation_date_time: None,
             canonicalization_method: None,
             candidate_list: None,
-            affiliations: vec![],
-            contest_identifier: ContestIdentifier::geen(),
             election_identifier: None,
             list_date: None,
+            contests: vec![],
         }
     }
 
@@ -119,43 +120,15 @@ impl CandidateListsBuilder {
     /// Set the candidate list for the document.
     ///
     /// You may either set the entire candidate list at once using this
-    /// method, or use any of [`Self::affiliations`], [`Self::push_affiliation`],
-    /// [`Self::contest_identifier`], [`Self::list_date`] and
-    /// [`Self::election_identifier`] to construct the individual components of
-    /// the CandidateList, Election and Contest elements to allow this builder
-    /// to construct them for you.
+    /// method, or use any of [`Self::election_identifier`], [`Self::list_date`],
+    /// [`Self::contests`] and/or [`Self::push_contest`] to construct the
+    /// individual components of the CandidateList and Election elements to
+    /// allow this builder to construct them for you.
     pub fn candidate_list(
         mut self,
         candidate_list: impl Into<CandidateListsCandidateList>,
     ) -> Self {
         self.candidate_list = Some(candidate_list.into());
-        self
-    }
-
-    /// Set the affiliations for the candidate list
-    ///
-    /// This only has effect if the candidate list was not set directly using
-    /// [`Self::candidate_list`].
-    pub fn affiliations(mut self, affiliations: impl Into<Vec<CandidateListsAffiliation>>) -> Self {
-        self.affiliations = affiliations.into();
-        self
-    }
-
-    /// Add an affiliation to the list of candidate lists.
-    ///
-    /// This only has effect if the candidate list was not set directly using
-    /// [`Self::candidate_list`].
-    pub fn push_affiliation(mut self, affiliation: impl Into<CandidateListsAffiliation>) -> Self {
-        self.affiliations.push(affiliation.into());
-        self
-    }
-
-    /// Set the contest identifier for the contained Contest element.
-    ///
-    /// This only has effect if the candidate list was not set directly using
-    /// [`Self::candidate_list`].
-    pub fn contest_identifier(mut self, contest_identifier: impl Into<ContestIdentifier>) -> Self {
-        self.contest_identifier = contest_identifier.into();
         self
     }
 
@@ -180,6 +153,26 @@ impl CandidateListsBuilder {
         self
     }
 
+    /// Set the list of contests within the election. This will replace any
+    /// existing contests set using this method or the [`Self::push_contest`]
+    /// method.
+    ///
+    /// This only has effect if the candidate list was not set directly using
+    /// [`Self::candidate_list`].
+    pub fn contests(mut self, contests: impl Into<Vec<CandidateListsContest>>) -> Self {
+        self.contests = contests.into();
+        self
+    }
+
+    /// Add a contest to the election.
+    ///
+    /// This only has effect if the candidate list was not set directly using
+    /// [`Self::candidate_list`].
+    pub fn push_contest(mut self, contest: impl Into<CandidateListsContest>) -> Self {
+        self.contests.push(contest.into());
+        self
+    }
+
     /// Build the `CandidateLists` document, returning an error if any required fields are missing.
     pub fn build(self) -> Result<CandidateLists, EMLError> {
         Ok(CandidateLists {
@@ -198,16 +191,14 @@ impl CandidateListsBuilder {
             canonicalization_method: self.canonicalization_method,
             candidate_list: self.candidate_list.map_or_else(
                 || {
-                    let contest = CandidateListsContest::new(self.affiliations)
-                        .with_identifier(self.contest_identifier);
+                    if self.contests.is_empty() {
+                        return Err(EMLErrorKind::MissingBuildProperty("contests").without_span());
+                    }
 
-                    let election = CandidateListsElection::new(
-                        self.election_identifier.ok_or(
-                            EMLErrorKind::MissingBuildProperty("election_identifier")
-                                .without_span(),
-                        )?,
-                        contest,
-                    );
+                    let election = CandidateListsElection::new(self.election_identifier.ok_or(
+                        EMLErrorKind::MissingBuildProperty("election_identifier").without_span(),
+                    )?)
+                    .with_contests(self.contests);
                     let list = CandidateListsCandidateList::new(election);
                     let list = if let Some(list_date) = self.list_date {
                         list.with_list_date(list_date)
@@ -351,19 +342,30 @@ pub struct CandidateListsElection {
     /// Identifier for the election.
     pub identifier: CandidateListsElectionIdentifier,
     /// Election contest details.
-    pub contest: CandidateListsContest,
+    pub contests: Vec<CandidateListsContest>,
 }
 
 impl CandidateListsElection {
     /// Create a new Election element with the given identifier and contest
-    pub fn new(
-        identifier: impl Into<CandidateListsElectionIdentifier>,
-        contest: impl Into<CandidateListsContest>,
-    ) -> Self {
+    pub fn new(identifier: impl Into<CandidateListsElectionIdentifier>) -> Self {
         Self {
             identifier: identifier.into(),
-            contest: contest.into(),
+            contests: vec![],
         }
+    }
+
+    /// Set the list of contests within this election. This will replace any
+    /// existing contests set using this method or the [`Self::push_contest`]
+    /// method.
+    pub fn with_contests(mut self, contests: impl Into<Vec<CandidateListsContest>>) -> Self {
+        self.contests = contests.into();
+        self
+    }
+
+    /// Add a contest to this election.
+    pub fn push_contest(mut self, contest: impl Into<CandidateListsContest>) -> Self {
+        self.contests.push(contest.into());
+        self
     }
 }
 
@@ -371,16 +373,28 @@ impl EMLElement for CandidateListsElection {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("Election", Some(NS_EML));
 
     fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
-        Ok(collect_struct!(elem, CandidateListsElection {
+        let data = collect_struct!(elem, CandidateListsElection {
             identifier: CandidateListsElectionIdentifier::EML_NAME => |elem| CandidateListsElectionIdentifier::read_eml(elem)?,
-            contest: CandidateListsContest::EML_NAME => |elem| CandidateListsContest::read_eml(elem)?,
-        }))
+            contests as Vec: CandidateListsContest::EML_NAME => |elem| CandidateListsContest::read_eml(elem)?,
+        });
+
+        if data.contests.is_empty() {
+            let err = EMLErrorKind::MissingElement(CandidateListsContest::EML_NAME.as_owned())
+                .with_span(elem.full_span());
+            if elem.parsing_mode().is_strict() {
+                return Err(err);
+            } else {
+                elem.push_err(err);
+            }
+        }
+
+        Ok(data)
     }
 
     fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         writer
             .child_elem(CandidateListsElectionIdentifier::EML_NAME, &self.identifier)?
-            .child_elem(CandidateListsContest::EML_NAME, &self.contest)?
+            .child_elems(CandidateListsContest::EML_NAME, &self.contests)?
             .finish()
     }
 }
@@ -422,7 +436,7 @@ impl EMLElement for CandidateListsElectionIdentifier {
         QualifiedName::from_static("ElectionIdentifier", Some(NS_EML));
 
     fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
-        Ok(collect_struct!(
+        let data = collect_struct!(
             elem,
             CandidateListsElectionIdentifier {
                 id: elem.string_value_attr("Id", None)?,
@@ -433,7 +447,32 @@ impl EMLElement for CandidateListsElectionIdentifier {
                 election_date: ("ElectionDate", NS_KR) => |elem| elem.string_value()?,
                 nomination_date: ("NominationDate", NS_KR) => |elem| elem.string_value()?,
             }
-        ))
+        );
+
+        if let Err(e) = validate_election_and_nomination_dates(
+            Some(&data.election_date),
+            Some(&data.nomination_date),
+        ) {
+            let e = e.into_kind().with_span(elem.full_span());
+            if elem.parsing_mode().is_strict() {
+                return Err(e);
+            } else {
+                elem.push_err(e);
+            }
+        }
+
+        // check that the election subcategory is valid for the election category, if both are present
+        if let Err(e) = validate_category_and_subcategory(&data.category, data.subcategory.as_ref())
+        {
+            let e = e.into_kind().with_span(elem.full_span());
+            if elem.parsing_mode().is_strict() {
+                return Err(e);
+            } else {
+                elem.push_err(e);
+            }
+        }
+
+        Ok(data)
     }
 
     fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
@@ -468,30 +507,69 @@ impl EMLElement for CandidateListsElectionIdentifier {
 pub struct CandidateListsContest {
     /// Identifier for the contest.
     pub identifier: ContestIdentifier,
+
     /// Affiliations participating in the contest.
     pub affiliations: Vec<CandidateListsAffiliation>,
 }
 
-impl CandidateListsContest {
-    /// Create a new contest, with 'geen' as ContestIdentifier and the given
-    /// list of affiliations.
-    pub fn new(affiliations: impl Into<Vec<CandidateListsAffiliation>>) -> Self {
+/// Builder for the election contest details, see [`CandidateListsContest`].
+pub struct CandidateListsContestBuilder {
+    identifier: Option<ContestIdentifier>,
+    affiliations: Vec<CandidateListsAffiliation>,
+}
+
+impl CandidateListsContestBuilder {
+    /// Create a new builder for the election contest details.
+    pub fn new() -> Self {
         Self {
-            identifier: ContestIdentifier::geen(),
-            affiliations: affiliations.into(),
+            identifier: None,
+            affiliations: vec![],
         }
     }
 
-    /// Set the identifier for the contest
-    pub fn with_identifier(mut self, identifier: impl Into<ContestIdentifier>) -> Self {
-        self.identifier = identifier.into();
+    /// Set the identifier for the contest.
+    pub fn identifier(mut self, identifier: impl Into<ContestIdentifier>) -> Self {
+        self.identifier = Some(identifier.into());
         self
+    }
+
+    /// Set the affiliations for the contest. This will replace any existing affiliations.
+    pub fn affiliations(mut self, affiliations: impl Into<Vec<CandidateListsAffiliation>>) -> Self {
+        self.affiliations = affiliations.into();
+        self
+    }
+
+    /// Add an affiliation to the contest.
+    pub fn push_affiliation(mut self, affiliation: impl Into<CandidateListsAffiliation>) -> Self {
+        self.affiliations.push(affiliation.into());
+        self
+    }
+
+    /// Build the contest, returning an error if any required fields are missing.
+    pub fn build(self) -> Result<CandidateListsContest, EMLError> {
+        if self.affiliations.is_empty() {
+            return Err(EMLErrorKind::MissingBuildProperty("affiliations").without_span());
+        }
+
+        Ok(CandidateListsContest {
+            identifier: self
+                .identifier
+                .ok_or_else(|| EMLErrorKind::MissingBuildProperty("identifier").without_span())?,
+            affiliations: self.affiliations,
+        })
     }
 }
 
-impl From<Vec<CandidateListsAffiliation>> for CandidateListsContest {
-    fn from(value: Vec<CandidateListsAffiliation>) -> Self {
-        Self::new(value)
+impl Default for CandidateListsContestBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl CandidateListsContest {
+    /// Create a new builder for building a contest for the candidate lists document.
+    pub fn builder() -> CandidateListsContestBuilder {
+        CandidateListsContestBuilder::new()
     }
 }
 
@@ -499,10 +577,22 @@ impl EMLElement for CandidateListsContest {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("Contest", Some(NS_EML));
 
     fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
-        Ok(collect_struct!(elem, CandidateListsContest {
+        let data = collect_struct!(elem, CandidateListsContest {
             identifier: ContestIdentifier::EML_NAME => |elem| ContestIdentifier::read_eml(elem)?,
             affiliations as Vec: CandidateListsAffiliation::EML_NAME => |elem| CandidateListsAffiliation::read_eml(elem)?,
-        }))
+        });
+
+        if data.affiliations.is_empty() {
+            let err = EMLErrorKind::MissingElement(CandidateListsAffiliation::EML_NAME.as_owned())
+                .with_span(elem.full_span());
+            if elem.parsing_mode().is_strict() {
+                return Err(err);
+            } else {
+                elem.push_err(err);
+            }
+        }
+
+        Ok(data)
     }
 
     fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
@@ -625,6 +715,10 @@ impl CandidateListsAffiliationBuilder {
 
     /// Build the affiliation, returning an error if any required fields are missing.
     pub fn build(self) -> Result<CandidateListsAffiliation, EMLError> {
+        if self.candidates.is_empty() {
+            return Err(EMLErrorKind::MissingBuildProperty("candidates").without_span());
+        }
+
         Ok(CandidateListsAffiliation {
             identifier: AffiliationIdentifier::new(
                 self.id
@@ -658,12 +752,24 @@ impl EMLElement for CandidateListsAffiliation {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("Affiliation", Some(NS_EML));
 
     fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
-        Ok(collect_struct!(elem, CandidateListsAffiliation {
+        let data = collect_struct!(elem, CandidateListsAffiliation {
             identifier: AffiliationIdentifier::EML_NAME => |elem| AffiliationIdentifier::read_eml(elem)?,
             affiliation_type: ("Type", NS_EML) => |elem| elem.string_value()?,
             list_data: ListData::EML_NAME => |elem| ListData::read_eml(elem)?,
             candidates as Vec: CandidateListsCandidate::EML_NAME => |elem| CandidateListsCandidate::read_eml(elem)?,
-        }))
+        });
+
+        if data.candidates.is_empty() {
+            let err = EMLErrorKind::MissingElement(CandidateListsCandidate::EML_NAME.as_owned())
+                .with_span(elem.full_span());
+            if elem.parsing_mode().is_strict() {
+                return Err(err);
+            } else {
+                elem.push_err(err);
+            }
+        }
+
+        Ok(data)
     }
 
     fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
@@ -899,7 +1005,7 @@ impl EMLElement for QualifyingAddress {
                     && name != QualifyingAddressCountry::EML_NAME
             {
                 let err = EMLErrorKind::UnexpectedElement(name.as_owned(), parent_name.clone())
-                    .add_span(next_child.span());
+                    .with_span(next_child.span());
                 if next_child.parsing_mode().is_strict() {
                     return Err(err);
                 } else {
@@ -925,7 +1031,7 @@ impl EMLElement for QualifyingAddress {
                 QualifyingAddressLocality::EML_NAME.as_owned(),
                 QualifyingAddressCountry::EML_NAME.as_owned(),
             ])
-            .add_span(elem.span()));
+            .with_span(elem.span()));
         };
         Ok(value)
     }
@@ -1457,19 +1563,23 @@ mod tests {
                     .build_for_candidate_lists()
                     .unwrap(),
             )
-            .affiliations([CandidateListsAffiliation::builder()
-                .id(AffiliationIdType::new("1").unwrap())
-                .registered_name("Affiliation 1")
-                .affiliation_type(AffiliationType::StandAloneList)
-                .publish_gender(true)
-                .candidates([CandidateListsCandidate::builder()
-                    .identifier(CandidateIdType::new("1").unwrap())
-                    .full_name(
-                        PersonName::new("Pietersen")
-                            .with_initials("P.")
-                            .with_first_name("Piet"),
-                    )
-                    .qualifying_address(QualifyingAddressCountry::new(Some("NL"), "Amsterdam"))
+            .contests([CandidateListsContest::builder()
+                .identifier(ContestIdentifier::geen())
+                .affiliations([CandidateListsAffiliation::builder()
+                    .id(AffiliationIdType::new("1").unwrap())
+                    .registered_name("Affiliation 1")
+                    .affiliation_type(AffiliationType::StandAloneList)
+                    .publish_gender(true)
+                    .candidates([CandidateListsCandidate::builder()
+                        .identifier(CandidateIdType::new("1").unwrap())
+                        .full_name(
+                            PersonName::new("Pietersen")
+                                .with_initials("P.")
+                                .with_first_name("Piet"),
+                        )
+                        .qualifying_address(QualifyingAddressCountry::new(Some("NL"), "Amsterdam"))
+                        .build()
+                        .unwrap()])
                     .build()
                     .unwrap()])
                 .build()
@@ -1477,12 +1587,124 @@ mod tests {
             .build()
             .unwrap();
 
-        let xml = format!("{}\n", cl.write_eml_root_str(true, true).unwrap());
+        let xml = cl.write_eml_root_str(true, true).unwrap();
         assert_eq!(
             xml,
             include_str!(
                 "../../test-emls/candidate_lists/eml230b_candidate_lists_construction_output.eml.xml"
             )
+        );
+    }
+
+    #[test]
+    fn test_invalid_document_type() {
+        assert!(
+            CandidateLists::parse_eml(
+                include_str!(
+                    "../../test-emls/candidate_lists/eml230b_invalid_document_type.eml.xml"
+                ),
+                EMLParsingMode::Strict
+            )
+            .ok_with_errors()
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn test_invalid_empty_affiliates() {
+        assert!(
+            CandidateLists::parse_eml(
+                include_str!(
+                    "../../test-emls/candidate_lists/eml230b_invalid_empty_affiliates.eml.xml"
+                ),
+                EMLParsingMode::Strict
+            )
+            .ok_with_errors()
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn test_invalid_empty_candidates() {
+        assert!(
+            CandidateLists::parse_eml(
+                include_str!(
+                    "../../test-emls/candidate_lists/eml230b_invalid_empty_candidates.eml.xml"
+                ),
+                EMLParsingMode::Strict
+            )
+            .ok_with_errors()
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn test_invalid_incorrect_election_date() {
+        assert!(
+            CandidateLists::parse_eml(
+                include_str!(
+                    "../../test-emls/candidate_lists/eml230b_invalid_incorrect_election_date.eml.xml"
+                ),
+                EMLParsingMode::Strict
+            )
+            .ok_with_errors()
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn test_incorrect_election_domain() {
+        assert!(
+            CandidateLists::parse_eml(
+                include_str!(
+                    "../../test-emls/candidate_lists/eml230b_invalid_incorrect_election_domain.eml.xml"
+                ),
+                EMLParsingMode::Strict
+            )
+            .ok_with_errors()
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn test_incorrect_election_category() {
+        assert!(
+            CandidateLists::parse_eml(
+                include_str!(
+                    "../../test-emls/candidate_lists/eml230b_invalid_incorrect_election_category.eml.xml"
+                ),
+                EMLParsingMode::Strict
+            )
+            .ok_with_errors()
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn test_incorrect_missing_authority() {
+        assert!(
+            CandidateLists::parse_eml(
+                include_str!(
+                    "../../test-emls/candidate_lists/eml230b_invalid_missing_authority.eml.xml"
+                ),
+                EMLParsingMode::Strict
+            )
+            .ok_with_errors()
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn test_with_missing_addresses() {
+        assert!(
+            CandidateLists::parse_eml(
+                include_str!(
+                    "../../test-emls/candidate_lists/eml230b_test_without_addresses.eml.xml"
+                ),
+                EMLParsingMode::Strict
+            )
+            .ok_with_errors()
+            .is_ok()
         );
     }
 }

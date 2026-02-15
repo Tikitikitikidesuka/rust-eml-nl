@@ -176,6 +176,25 @@ impl ElectionSubcategory {
             ElectionSubcategory::IR => "IR",
         }
     }
+
+    /// Check if this election subcategory is a subcategory of the given election category.
+    pub fn is_subcategory_of(self, category: ElectionCategory) -> bool {
+        match self {
+            ElectionSubcategory::PS1 | ElectionSubcategory::PS2 => category == ElectionCategory::PS,
+            ElectionSubcategory::AB1 | ElectionSubcategory::AB2 => category == ElectionCategory::AB,
+            ElectionSubcategory::GR1 | ElectionSubcategory::GR2 => category == ElectionCategory::GR,
+            ElectionSubcategory::BC => category == ElectionCategory::BC,
+            ElectionSubcategory::GC => category == ElectionCategory::GC,
+            ElectionSubcategory::ER1 => category == ElectionCategory::ER,
+            ElectionSubcategory::TK => category == ElectionCategory::TK,
+            ElectionSubcategory::EK => category == ElectionCategory::EK,
+            ElectionSubcategory::EP => category == ElectionCategory::EP,
+            ElectionSubcategory::NR => category == ElectionCategory::NR,
+            ElectionSubcategory::PR => category == ElectionCategory::PR,
+            ElectionSubcategory::LR => category == ElectionCategory::LR,
+            ElectionSubcategory::IR => category == ElectionCategory::IR,
+        }
+    }
 }
 
 /// Error returned when an unknown election subcategory string is encountered.

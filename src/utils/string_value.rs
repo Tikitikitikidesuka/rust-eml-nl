@@ -70,6 +70,12 @@ impl<T: StringValueData> StringValue<T> {
         }
     }
 
+    /// Get the parsed value, attempts to do parsing if a raw value is stored,
+    /// but returns `None` if parsing fails.
+    pub fn maybe_value(&self) -> Option<Cow<'_, T>> {
+        self.value().ok()
+    }
+
     /// Get the parsed value, returning any possible parsing errors as an [`EMLError`].
     ///
     /// The `element_name` and `span` parameters are used to provide context in the error

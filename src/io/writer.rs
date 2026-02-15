@@ -368,6 +368,14 @@ where
             element = element.attr_raw((format!("xmlns:{}", *prefix).as_str(), *uri));
         }
         self.write_eml_element(element)?;
+
+        // Add a final newline for properly formatted output if pretty_print is enabled
+        if pretty_print {
+            eml_writer
+                .writer
+                .write_event(Event::Text(BytesText::new("\n")))
+                .without_span()?;
+        }
         Ok(eml_writer.writer.into_inner())
     }
 

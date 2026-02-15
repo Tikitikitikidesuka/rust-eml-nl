@@ -347,7 +347,7 @@ impl EMLElement for ElectionResultSelection {
                 n => {
                     let err =
                         EMLErrorKind::UnexpectedElement(n.as_owned(), Self::EML_NAME.as_owned())
-                            .add_span(child.inner_span());
+                            .with_span(child.inner_span());
                     if child.parsing_mode().is_strict() {
                         return Err(err);
                     } else {
@@ -359,12 +359,12 @@ impl EMLElement for ElectionResultSelection {
         }
         Ok(ElectionResultSelection {
             selection_type: selection_type
-                .ok_or_else(|| EMLErrorKind::MissingSelectionType.add_span(elem.inner_span()))?,
+                .ok_or_else(|| EMLErrorKind::MissingSelectionType.with_span(elem.inner_span()))?,
             votes,
             ranking,
             elected: elected.ok_or_else(|| {
                 EMLErrorKind::MissingElement(ELECTED_EML_NAME.as_owned())
-                    .add_span(elem.inner_span())
+                    .with_span(elem.inner_span())
             })?,
         })
     }

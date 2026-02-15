@@ -53,7 +53,7 @@ impl EMLElement for MinimalQualifyingAddress {
                     let name = n.as_owned();
 
                     let err =
-                        EMLErrorKind::UnexpectedElement(name, parent_name.clone()).add_span(span);
+                        EMLErrorKind::UnexpectedElement(name, parent_name.clone()).with_span(span);
                     if child.parsing_mode().is_strict() {
                         return Err(err);
                     } else {
@@ -67,7 +67,7 @@ impl EMLElement for MinimalQualifyingAddress {
                 MinimalQualifyingAddressCountry::EML_NAME.as_owned(),
                 MinimalQualifyingAddressLocality::EML_NAME.as_owned(),
             ])
-            .add_span(elem.full_span()));
+            .with_span(elem.full_span()));
         };
         Ok(result)
     }

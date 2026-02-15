@@ -877,7 +877,7 @@ impl EMLElement for ElectionCountSelection {
                 n => {
                     let err =
                         EMLErrorKind::UnexpectedElement(n.as_owned(), Self::EML_NAME.as_owned())
-                            .add_span(child.inner_span());
+                            .with_span(child.inner_span());
                     if child.parsing_mode().is_strict() {
                         return Err(err);
                     } else {
@@ -889,10 +889,10 @@ impl EMLElement for ElectionCountSelection {
         }
         Ok(ElectionCountSelection {
             selection_type: selection_type
-                .ok_or_else(|| EMLErrorKind::MissingSelectionType.add_span(elem.inner_span()))?,
+                .ok_or_else(|| EMLErrorKind::MissingSelectionType.with_span(elem.inner_span()))?,
             valid_votes: valid_votes.ok_or_else(|| {
                 EMLErrorKind::MissingElement(VALID_VOTES_EML_NAME.as_owned())
-                    .add_span(elem.inner_span())
+                    .with_span(elem.inner_span())
             })?,
             value,
             category,

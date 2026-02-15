@@ -204,10 +204,10 @@ impl EMLElement for PollingStationsElectionIdentifier {
                 election_date as Option: ("ElectionDate", NS_KR) => |elem| elem.string_value()?,
                 election_date_eml as Option: ("ElectionDate", NS_EML) => |elem| {
                     if elem.parsing_mode().is_strict() {
-                        let err = EMLErrorKind::InvalidElectionDateNamespace.add_span(elem.span());
+                        let err = EMLErrorKind::InvalidElectionDateNamespace.with_span(elem.span());
                         return Err(err);
                     } else {
-                        elem.push_err(EMLErrorKind::InvalidElectionDateNamespace.add_span(elem.span()));
+                        elem.push_err(EMLErrorKind::InvalidElectionDateNamespace.with_span(elem.span()));
                     }
                     elem.string_value()?
                 },
@@ -223,7 +223,7 @@ impl EMLElement for PollingStationsElectionIdentifier {
                         "ElectionDate",
                         Some(NS_KR),
                     ))
-                    .add_span(elem.full_span()),
+                    .with_span(elem.full_span()),
                 );
             }
         };
@@ -304,7 +304,7 @@ impl EMLElement for PollingStationsContest {
         let identifier = if let Some(identifier) = data.identifier {
             identifier
         } else {
-            let err = EMLErrorKind::MissingContenstIdentifier.add_span(elem.span());
+            let err = EMLErrorKind::MissingContenstIdentifier.with_span(elem.span());
             if elem.parsing_mode().is_strict() {
                 return Err(err);
             } else {

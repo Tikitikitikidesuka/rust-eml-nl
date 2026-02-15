@@ -291,35 +291,45 @@ impl ElectionIdentifierBuilder {
 
     /// Build an election identifier for candidate lists.
     pub fn build_for_candidate_lists(self) -> Result<CandidateListsElectionIdentifier, EMLError> {
+        let category = self
+            .category
+            .ok_or(EMLErrorKind::MissingBuildProperty("category").without_span())?;
+        validate_category_and_subcategory(&category, self.subcategory.as_ref())?;
+
+        let election_date = self
+            .election_date
+            .ok_or(EMLErrorKind::MissingBuildProperty("election_date").without_span())?;
+        let nomination_date = self
+            .nomination_date
+            .ok_or(EMLErrorKind::MissingBuildProperty("nomination_date").without_span())?;
+        validate_election_and_nomination_dates(Some(&election_date), Some(&nomination_date))?;
+
         Ok(CandidateListsElectionIdentifier {
             id: self
                 .id
                 .ok_or(EMLErrorKind::MissingBuildProperty("id").without_span())?,
             name: self.name,
-            category: self
-                .category
-                .ok_or(EMLErrorKind::MissingBuildProperty("category").without_span())?,
+            category,
             subcategory: self.subcategory,
             domain: self.domain,
-            election_date: self
-                .election_date
-                .ok_or(EMLErrorKind::MissingBuildProperty("election_date").without_span())?,
-            nomination_date: self
-                .nomination_date
-                .ok_or(EMLErrorKind::MissingBuildProperty("nomination_date").without_span())?,
+            election_date,
+            nomination_date,
         })
     }
 
     /// Build an election identifier for election count.
     pub fn build_for_count(self) -> Result<ElectionCountElectionIdentifier, EMLError> {
+        let category = self
+            .category
+            .ok_or(EMLErrorKind::MissingBuildProperty("category").without_span())?;
+        validate_category_and_subcategory(&category, self.subcategory.as_ref())?;
+
         Ok(ElectionCountElectionIdentifier {
             id: self
                 .id
                 .ok_or(EMLErrorKind::MissingBuildProperty("id").without_span())?,
             name: self.name,
-            category: self
-                .category
-                .ok_or(EMLErrorKind::MissingBuildProperty("category").without_span())?,
+            category,
             subcategory: self.subcategory,
             domain: self.domain,
             election_date: self
@@ -330,14 +340,17 @@ impl ElectionIdentifierBuilder {
 
     /// Build an election identifier for election result.
     pub fn build_for_result(self) -> Result<ElectionResultElectionIdentifier, EMLError> {
+        let category = self
+            .category
+            .ok_or(EMLErrorKind::MissingBuildProperty("category").without_span())?;
+        validate_category_and_subcategory(&category, self.subcategory.as_ref())?;
+
         Ok(ElectionResultElectionIdentifier {
             id: self
                 .id
                 .ok_or(EMLErrorKind::MissingBuildProperty("id").without_span())?,
             name: self.name,
-            category: self
-                .category
-                .ok_or(EMLErrorKind::MissingBuildProperty("category").without_span())?,
+            category,
             subcategory: self.subcategory,
             domain: self.domain,
             election_date: self
@@ -348,6 +361,22 @@ impl ElectionIdentifierBuilder {
 
     /// Build an election identifier for election definition.
     pub fn build_for_definition(self) -> Result<ElectionDefinitionElectionIdentifier, EMLError> {
+        let category = self
+            .category
+            .ok_or(EMLErrorKind::MissingBuildProperty("category").without_span())?;
+        let subcategory = self
+            .subcategory
+            .ok_or(EMLErrorKind::MissingBuildProperty("subcategory").without_span())?;
+        validate_category_and_subcategory(&category, Some(&subcategory))?;
+
+        let election_date = self
+            .election_date
+            .ok_or(EMLErrorKind::MissingBuildProperty("election_date").without_span())?;
+        let nomination_date = self
+            .nomination_date
+            .ok_or(EMLErrorKind::MissingBuildProperty("nomination_date").without_span())?;
+        validate_election_and_nomination_dates(Some(&election_date), Some(&nomination_date))?;
+
         Ok(ElectionDefinitionElectionIdentifier {
             id: self
                 .id
@@ -355,32 +384,27 @@ impl ElectionIdentifierBuilder {
             name: self
                 .name
                 .ok_or(EMLErrorKind::MissingBuildProperty("name").without_span())?,
-            category: self
-                .category
-                .ok_or(EMLErrorKind::MissingBuildProperty("category").without_span())?,
-            subcategory: self
-                .subcategory
-                .ok_or(EMLErrorKind::MissingBuildProperty("subcategory").without_span())?,
+            category,
+            subcategory,
             domain: self.domain,
-            election_date: self
-                .election_date
-                .ok_or(EMLErrorKind::MissingBuildProperty("election_date").without_span())?,
-            nomination_date: self
-                .nomination_date
-                .ok_or(EMLErrorKind::MissingBuildProperty("nomination_date").without_span())?,
+            election_date,
+            nomination_date,
         })
     }
 
     /// Build an election identifier for polling stations.
     pub fn build_for_polling_stations(self) -> Result<PollingStationsElectionIdentifier, EMLError> {
+        let category = self
+            .category
+            .ok_or(EMLErrorKind::MissingBuildProperty("category").without_span())?;
+        validate_category_and_subcategory(&category, self.subcategory.as_ref())?;
+
         Ok(PollingStationsElectionIdentifier {
             id: self
                 .id
                 .ok_or(EMLErrorKind::MissingBuildProperty("id").without_span())?,
             name: self.name,
-            category: self
-                .category
-                .ok_or(EMLErrorKind::MissingBuildProperty("category").without_span())?,
+            category,
             subcategory: self.subcategory,
             domain: self.domain,
             election_date: self
@@ -394,6 +418,38 @@ impl Default for ElectionIdentifierBuilder {
     fn default() -> Self {
         Self::new()
     }
+}
+
+pub(crate) fn validate_election_and_nomination_dates(
+    election_date: Option<&StringValue<XsDate>>,
+    nomination_date: Option<&StringValue<XsDate>>,
+) -> Result<(), EMLError> {
+    let election_date = election_date.and_then(|ed| ed.maybe_value());
+    let nomination_date = nomination_date.and_then(|nd| nd.maybe_value());
+
+    if let (Some(ed), Some(nd)) = (election_date.as_deref(), nomination_date.as_deref())
+        && nd.date >= ed.date
+    {
+        return Err(EMLErrorKind::NominationDateNotBeforeElectionDate).without_span();
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_category_and_subcategory(
+    category: &StringValue<ElectionCategory>,
+    subcategory: Option<&StringValue<ElectionSubcategory>>,
+) -> Result<(), EMLError> {
+    let category = category.maybe_value();
+    let subcategory = subcategory.and_then(|sc| sc.maybe_value());
+
+    if let (Some(c), Some(sc)) = (
+        category.as_deref().copied(),
+        subcategory.as_deref().copied(),
+    ) && !sc.is_subcategory_of(c)
+    {
+        return Err(EMLErrorKind::InvalidElectionSubcategory).without_span();
+    }
+    Ok(())
 }
 
 #[cfg(test)]

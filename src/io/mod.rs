@@ -48,7 +48,7 @@ pub(crate) fn test_xml_fragment(input: &str) -> String {
         .peek()
         .map(|v| v.chars().take_while(|c| c.is_ascii_whitespace()).count())
         .unwrap_or(0);
-    data_lines
+    let mut result = data_lines
         .map(|line| {
             let cut = line
                 .char_indices()
@@ -62,7 +62,9 @@ pub(crate) fn test_xml_fragment(input: &str) -> String {
             line.push('\n');
             line
         })
-        .collect::<String>()
-        .trim_end()
-        .to_owned()
+        .collect::<String>();
+    result.truncate(result.trim_end().len());
+    result.push('\n');
+
+    result
 }
