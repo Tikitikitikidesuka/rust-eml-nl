@@ -308,7 +308,7 @@ fn validate_election_details(election: &ElectionDefinitionElection) -> Result<()
         }
     }
 
-    if errors.len() > 0 {
+    if !errors.is_empty() {
         return Err(EMLError::from_vec(errors));
     }
 

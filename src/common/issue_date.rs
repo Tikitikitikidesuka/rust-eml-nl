@@ -63,7 +63,7 @@ mod tests {
     fn test_issue_date_construction() {
         let dt =
             XsDateOrDateTime::DateTime(XsDateTime::from_str("2024-06-01T12:34:56+00:00").unwrap());
-        let id = IssueDate::new(dt.clone());
+        let id = IssueDate::new(dt);
         assert_eq!(id.raw(), "2024-06-01T12:34:56+00:00");
         assert_eq!(id.value().unwrap(), dt);
     }
