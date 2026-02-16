@@ -10,7 +10,7 @@ use crate::utils::StringValueData;
 ///
 /// These kinds of dates may optionally contain timezone information using a
 /// fixed offset from UTC.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct XsDate {
     /// The date part of the `xs:date`.
     pub date: NaiveDate,
@@ -97,7 +97,7 @@ impl StringValueData for XsDate {
 ///
 /// These kinds of date-times may optionally contain timezone information using
 /// a fixed offset from UTC.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct XsDateTime {
     /// The naive date-time. This information does not reflect a specific point
     /// in time without considering timezone information. If a specific point in
@@ -210,7 +210,7 @@ impl StringValueData for XsDateTime {
 }
 
 /// Represents either an `xs:date` or an `xs:dateTime`.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum XsDateOrDateTime {
     /// An `xs:date` value.
     Date(XsDate),

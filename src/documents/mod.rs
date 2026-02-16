@@ -424,10 +424,10 @@ pub(crate) fn validate_election_and_nomination_dates(
     election_date: Option<&StringValue<XsDate>>,
     nomination_date: Option<&StringValue<XsDate>>,
 ) -> Result<(), EMLError> {
-    let election_date = election_date.and_then(|ed| ed.maybe_value());
-    let nomination_date = nomination_date.and_then(|nd| nd.maybe_value());
+    let election_date = election_date.and_then(|ed| ed.copied_value().ok());
+    let nomination_date = nomination_date.and_then(|nd| nd.copied_value().ok());
 
-    if let (Some(ed), Some(nd)) = (election_date.as_deref(), nomination_date.as_deref())
+    if let (Some(ed), Some(nd)) = (election_date, nomination_date)
         && nd.date >= ed.date
     {
         return Err(EMLErrorKind::NominationDateNotBeforeElectionDate).without_span();
@@ -439,13 +439,11 @@ pub(crate) fn validate_category_and_subcategory(
     category: &StringValue<ElectionCategory>,
     subcategory: Option<&StringValue<ElectionSubcategory>>,
 ) -> Result<(), EMLError> {
-    let category = category.maybe_value();
-    let subcategory = subcategory.and_then(|sc| sc.maybe_value());
+    let category = category.copied_value().ok();
+    let subcategory = subcategory.and_then(|sc| sc.copied_value().ok());
 
-    if let (Some(c), Some(sc)) = (
-        category.as_deref().copied(),
-        subcategory.as_deref().copied(),
-    ) && !sc.is_subcategory_of(c)
+    if let (Some(c), Some(sc)) = (category, subcategory)
+        && !sc.is_subcategory_of(c)
     {
         return Err(EMLErrorKind::InvalidElectionSubcategory).without_span();
     }

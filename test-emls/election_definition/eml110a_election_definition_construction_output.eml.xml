@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EML xmlns="urn:oasis:names:tc:evs:schema:eml" xmlns:kr="http://www.kiesraad.nl/extensions" xmlns:xal="urn:oasis:names:tc:ciq:xsdschema:xAL:2.0" xmlns:xnl="urn:oasis:names:tc:ciq:xsdschema:xNL:2.0" Id="110a" SchemaVersion="5">
+    <TransactionId>1</TransactionId>
+    <ManagingAuthority>
+        <AuthorityIdentifier Id="1234"/>
+        <AuthorityAddress/>
+    </ManagingAuthority>
+    <kr:CreationDateTime>2014-11-28T12:00:09+00:00</kr:CreationDateTime>
+    <IssueDate>2024-06-10</IssueDate>
+    <ElectionEvent>
+        <EventIdentifier/>
+        <Election>
+            <ElectionIdentifier Id="GR2026_Test">
+                <ElectionName>Test election</ElectionName>
+                <ElectionCategory>GR</ElectionCategory>
+                <kr:ElectionSubcategory>GR1</kr:ElectionSubcategory>
+                <kr:ElectionDate>2024-11-05</kr:ElectionDate>
+                <kr:NominationDate>2024-10-01</kr:NominationDate>
+            </ElectionIdentifier>
+            <Contest>
+                <ContestIdentifier Id="geen"/>
+                <VotingMethod>SPV</VotingMethod>
+                <MaxVotes>100</MaxVotes>
+            </Contest>
+            <kr:ElectionTree>
+            </kr:ElectionTree>
+            <kr:NumberOfSeats>10</kr:NumberOfSeats>
+            <kr:PreferenceThreshold>50</kr:PreferenceThreshold>
+            <kr:RegisteredParties>
+                <kr:RegisteredParty>
+                    <kr:RegisteredAppellation>Party a</kr:RegisteredAppellation>
+                </kr:RegisteredParty>
+                <kr:RegisteredParty>
+                    <kr:RegisteredAppellation>Party one</kr:RegisteredAppellation>
+                </kr:RegisteredParty>
+            </kr:RegisteredParties>
+        </Election>
+    </ElectionEvent>
+</EML>

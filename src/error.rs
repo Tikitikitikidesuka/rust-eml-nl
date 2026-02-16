@@ -127,6 +127,18 @@ pub enum EMLErrorKind {
     /// The ElectionSubcategory is not valid for the ElectionCategory.
     #[error("The ElectionSubcategory is not valid for the ElectionCategory")]
     InvalidElectionSubcategory,
+
+    /// The voting method specified in the document is not supported.
+    #[error("The voting method specified in the document is not supported, only SPV is supported")]
+    UnsupportedVotingMethod,
+
+    /// The preference threshold specified in the document is not valid.
+    #[error("The preference threshold specified does not match the election identifier")]
+    InvalidPreferenceThreshold,
+
+    /// The number of seats specified in the document is not valid.
+    #[error("The number of seats specified does not match the subcategory")]
+    InvalidNumberOfSeats,
 }
 
 impl EMLErrorKind {
@@ -199,9 +211,8 @@ impl EMLError {
         }
     }
 
-    /// Create an EMLError from a vector of errors.
-    pub(crate) fn from_vec_with_additional(mut errors: Vec<EMLError>, error: EMLError) -> Self {
-        errors.push(error);
+    /// Create an EMLError from a list of errors.
+    pub(crate) fn from_vec(errors: Vec<EMLError>) -> Self {
         if errors.len() == 1 {
             errors
                 .into_iter()
@@ -210,6 +221,12 @@ impl EMLError {
         } else {
             EMLError::Multiple(MultipleEMLErrors { errors })
         }
+    }
+
+    /// Create an EMLError from a vector of errors.
+    pub(crate) fn from_vec_with_additional(mut errors: Vec<EMLError>, error: EMLError) -> Self {
+        errors.push(error);
+        Self::from_vec(errors)
     }
 
     /// Returns the kind of this error.

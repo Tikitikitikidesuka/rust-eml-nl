@@ -458,7 +458,11 @@ impl<'r, 'input> EMLElementReader<'r, 'input> {
 
     /// Pushes an error to the reader's error collection.
     pub fn push_err(&mut self, err: EMLError) {
-        self.reader.errors.push(err);
+        if let EMLError::Multiple(MultipleEMLErrors { errors }) = err {
+            self.reader.errors.extend(errors);
+        } else {
+            self.reader.errors.push(err);
+        }
     }
 
     /// Maps a parsing error to an EMLError with context about this element.

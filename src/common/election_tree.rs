@@ -10,6 +10,21 @@ pub struct ElectionTree {
     pub regions: Vec<ElectionTreeRegion>,
 }
 
+impl ElectionTree {
+    /// Create a new election tree with the given regions.
+    pub fn new(regions: impl Into<Vec<ElectionTreeRegion>>) -> Self {
+        ElectionTree {
+            regions: regions.into(),
+        }
+    }
+}
+
+impl From<Vec<ElectionTreeRegion>> for ElectionTree {
+    fn from(regions: Vec<ElectionTreeRegion>) -> Self {
+        ElectionTree::new(regions)
+    }
+}
+
 impl EMLElement for ElectionTree {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("ElectionTree", Some(NS_KR));
 

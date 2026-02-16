@@ -549,14 +549,21 @@ impl PollingStationsContestBuilder {
             return Err(EMLErrorKind::MissingBuildProperty("polling_places").without_span());
         }
 
+        let voting_method = self
+            .voting_method
+            .ok_or(EMLErrorKind::MissingBuildProperty("voting_method").without_span())?;
+        if let Ok(vm) = voting_method.copied_value()
+            && vm != VotingMethod::SPV
+        {
+            return Err(EMLErrorKind::UnsupportedVotingMethod).without_span();
+        }
+
         Ok(PollingStationsContest {
             identifier: ContestIdentifierGeen::default(),
             reporting_unit: self
                 .reporting_unit
                 .ok_or(EMLErrorKind::MissingBuildProperty("reporting_unit").without_span())?,
-            voting_method: self
-                .voting_method
-                .ok_or(EMLErrorKind::MissingBuildProperty("voting_method").without_span())?,
+            voting_method,
             max_votes: self
                 .max_votes
                 .ok_or(EMLErrorKind::MissingBuildProperty("max_votes").without_span())?,
@@ -621,9 +628,22 @@ impl EMLElement for PollingStationsContest {
             }
         };
 
+        // Technically there should be at least one polling place
         if data.polling_places.is_empty() {
             let err = EMLErrorKind::MissingElement(PollingPlace::EML_NAME.as_owned())
                 .with_span(elem.full_span());
+            if elem.parsing_mode().is_strict() {
+                return Err(err);
+            } else {
+                elem.push_err(err);
+            }
+        }
+
+        // Only SPV voting method is supported
+        if let Ok(vm) = data.voting_method.copied_value()
+            && vm != VotingMethod::SPV
+        {
+            let err = EMLErrorKind::UnsupportedVotingMethod.with_span(elem.full_span());
             if elem.parsing_mode().is_strict() {
                 return Err(err);
             } else {
