@@ -514,7 +514,7 @@ pub struct ElectionDefinitionElectionIdentifier {
 
 impl ElectionDefinitionElectionIdentifier {
     /// Create a builder for the [`ElectionDefinitionElectionIdentifier`].
-    /// Note: this is a generic builder, use the [`ElectionIdentifierBuilder::build_for_election_definition`] method for an election definition specific builder that will fill in the correct category and subcategory.
+    /// Note: this is a generic builder, use the [`ElectionIdentifierBuilder::build_for_definition`] method for an election definition specific builder that will fill in the correct category and subcategory.
     pub fn builder() -> ElectionIdentifierBuilder {
         ElectionIdentifierBuilder::new()
     }
