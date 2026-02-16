@@ -35,6 +35,18 @@ impl ManagingAuthority {
     }
 }
 
+impl From<AuthorityIdentifier> for ManagingAuthority {
+    fn from(value: AuthorityIdentifier) -> Self {
+        ManagingAuthority::new(value)
+    }
+}
+
+impl From<XSBType> for ManagingAuthority {
+    fn from(value: XSBType) -> Self {
+        ManagingAuthority::new(AuthorityIdentifier::new(value))
+    }
+}
+
 impl EMLElement for ManagingAuthority {
     const EML_NAME: QualifiedName<'_, '_> =
         QualifiedName::from_static("ManagingAuthority", Some(NS_EML));

@@ -50,6 +50,18 @@ impl PostalCode {
     }
 }
 
+impl From<String> for PostalCode {
+    fn from(number: String) -> Self {
+        PostalCode::new(number)
+    }
+}
+
+impl From<&str> for PostalCode {
+    fn from(number: &str) -> Self {
+        PostalCode::new(number)
+    }
+}
+
 impl EMLElement for PostalCode {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("PostalCode", Some(NS_XAL));
 

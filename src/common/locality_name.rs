@@ -37,6 +37,18 @@ impl LocalityName {
     }
 }
 
+impl From<String> for LocalityName {
+    fn from(name: String) -> Self {
+        LocalityName::new(name)
+    }
+}
+
+impl From<&str> for LocalityName {
+    fn from(name: &str) -> Self {
+        LocalityName::new(name)
+    }
+}
+
 impl EMLElement for LocalityName {
     const EML_NAME: QualifiedName<'_, '_> =
         QualifiedName::from_static("LocalityName", Some(NS_XAL));

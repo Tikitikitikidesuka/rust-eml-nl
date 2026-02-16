@@ -49,13 +49,14 @@ pub struct CandidateLists {
 }
 
 impl CandidateLists {
-    /// Create a new builder for the `CandidateLists` document.
+    /// Create a new builder for the [`CandidateLists`] document.
     pub fn builder() -> CandidateListsBuilder {
         CandidateListsBuilder::new()
     }
 }
 
-/// Builder for the `CandidateLists` document.
+/// Builder for the [`CandidateLists`] document.
+#[derive(Debug, Clone)]
 pub struct CandidateListsBuilder {
     transaction_id: Option<TransactionId>,
     managing_authority: Option<ManagingAuthority>,
@@ -69,7 +70,7 @@ pub struct CandidateListsBuilder {
 }
 
 impl CandidateListsBuilder {
-    /// Create a new builder for the `CandidateLists` document.
+    /// Create a new builder for the [`CandidateLists`] document.
     pub fn new() -> Self {
         CandidateListsBuilder {
             transaction_id: None,

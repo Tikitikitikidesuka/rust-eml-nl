@@ -14,9 +14,9 @@ pub struct ReportingUnitIdentifier {
 
 impl ReportingUnitIdentifier {
     /// Create a new `ReportingUnitIdentifier` with the given id and name.
-    pub fn new(id: ReportingUnitIdentifierId, name: impl Into<String>) -> Self {
+    pub fn new(id: impl Into<ReportingUnitIdentifierId>, name: impl Into<String>) -> Self {
         ReportingUnitIdentifier {
-            id: StringValue::from_value(id),
+            id: StringValue::from_value(id.into()),
             name: name.into(),
         }
     }

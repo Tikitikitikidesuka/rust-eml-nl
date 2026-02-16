@@ -12,7 +12,7 @@ use crate::{
         ElectionDomain, IssueDate, LocalityName, ManagingAuthority, PostalCode,
         ReportingUnitIdentifier, TransactionId,
     },
-    documents::accepted_root,
+    documents::{ElectionIdentifierBuilder, accepted_root},
     error::{EMLErrorKind, EMLResultExt},
     io::{
         EMLElement, EMLElementReader, EMLElementWriter, OwnedQualifiedName, QualifiedName,
@@ -20,7 +20,7 @@ use crate::{
     },
     utils::{
         ElectionCategory, ElectionIdType, ElectionSubcategory, StringValue, StringValueData,
-        VotingChannelType, VotingMethod, XsDate,
+        VotingChannelType, VotingMethod, XsDate, XsDateOrDateTime, XsDateTime,
     },
 };
 
@@ -46,6 +46,161 @@ pub struct PollingStations {
 
     /// Election event containing the polling stations.
     pub election_event: PollingStationsElectionEvent,
+}
+
+impl PollingStations {
+    /// Create a new builder for constructing a [`PollingStations`] document.
+    pub fn builder() -> PollingStationsBuilder {
+        PollingStationsBuilder::new()
+    }
+}
+
+/// Builder for the [`PollingStations`] document.
+#[derive(Debug, Clone)]
+pub struct PollingStationsBuilder {
+    transaction_id: Option<TransactionId>,
+    managing_authority: Option<ManagingAuthority>,
+    issue_date: Option<IssueDate>,
+    creation_date_time: Option<CreationDateTime>,
+    canonicalization_method: Option<CanonicalizationMethod>,
+    election_event: Option<PollingStationsElectionEvent>,
+    election_identifier: Option<PollingStationsElectionIdentifier>,
+    contests: Vec<PollingStationsContest>,
+}
+
+impl PollingStationsBuilder {
+    /// Create a new builder for the [`PollingStations`] document.
+    pub fn new() -> Self {
+        Self {
+            transaction_id: None,
+            managing_authority: None,
+            issue_date: None,
+            creation_date_time: None,
+            canonicalization_method: None,
+            election_event: None,
+            election_identifier: None,
+            contests: vec![],
+        }
+    }
+
+    /// Set the transaction id of the document.
+    pub fn transaction_id(mut self, transaction_id: impl Into<TransactionId>) -> Self {
+        self.transaction_id = Some(transaction_id.into());
+        self
+    }
+
+    /// Set the managing authority of the document.
+    pub fn managing_authority(mut self, managing_authority: impl Into<ManagingAuthority>) -> Self {
+        self.managing_authority = Some(managing_authority.into());
+        self
+    }
+
+    /// Set the issue date of the document.
+    pub fn issue_date(mut self, issue_date: impl Into<XsDateOrDateTime>) -> Self {
+        self.issue_date = Some(IssueDate::new(issue_date.into()));
+        self
+    }
+
+    /// Set the creation date and time of the document.
+    pub fn creation_date_time(mut self, creation_date_time: impl Into<XsDateTime>) -> Self {
+        self.creation_date_time = Some(CreationDateTime::new(creation_date_time.into()));
+        self
+    }
+
+    /// Set the canonicalization method for the document.
+    pub fn canonicalization_method(
+        mut self,
+        canonicalization_method: impl Into<CanonicalizationMethod>,
+    ) -> Self {
+        self.canonicalization_method = Some(canonicalization_method.into());
+        self
+    }
+
+    /// Set the election event containing the polling stations.
+    ///
+    /// You may either set the entire election event at once using this method,
+    /// or use any of [`Self::election_identifier`], [`Self::contests`] and/or
+    /// [`Self::push_contest`] to set the individual components of the
+    /// election event and allow this builder to construct them for you.
+    pub fn election_event(
+        mut self,
+        election_event: impl Into<PollingStationsElectionEvent>,
+    ) -> Self {
+        self.election_event = Some(election_event.into());
+        self
+    }
+
+    /// Set the election identifier for the contained Election element.
+    ///
+    /// This only has effect if the election event was not set directly using
+    /// [`Self::election_event`].
+    pub fn election_identifier(
+        mut self,
+        election_identifier: impl Into<PollingStationsElectionIdentifier>,
+    ) -> Self {
+        self.election_identifier = Some(election_identifier.into());
+        self
+    }
+
+    /// Set the list of contests within the election. This will replace any
+    /// existing contests set using this method or the [`Self::push_contest`]
+    /// method.
+    ///
+    /// This only has effect if the election event was not set directly using
+    /// [`Self::election_event`].
+    pub fn contests(mut self, contests: impl Into<Vec<PollingStationsContest>>) -> Self {
+        self.contests = contests.into();
+        self
+    }
+
+    /// Add a contest to the election.
+    ///
+    /// This only has effect if the election event was not set directly using
+    /// [`Self::election_event`].
+    pub fn push_contest(mut self, contest: impl Into<PollingStationsContest>) -> Self {
+        self.contests.push(contest.into());
+        self
+    }
+
+    /// Build the [`PollingStations`] document, returning any errors if required fields are missing.
+    pub fn build(self) -> Result<PollingStations, EMLError> {
+        Ok(PollingStations {
+            transaction_id: self
+                .transaction_id
+                .ok_or(EMLErrorKind::MissingBuildProperty("transaction_id").without_span())?,
+            managing_authority: self
+                .managing_authority
+                .ok_or(EMLErrorKind::MissingBuildProperty("managing_authority").without_span())?,
+            issue_date: self.issue_date,
+            creation_date_time: self
+                .creation_date_time
+                .ok_or(EMLErrorKind::MissingBuildProperty("creation_date_time").without_span())?,
+            canonicalization_method: self.canonicalization_method,
+            election_event: self.election_event.map_or_else(
+                || {
+                    if self.contests.is_empty() {
+                        return Err(EMLErrorKind::MissingBuildProperty("contests").without_span());
+                    }
+
+                    let election = PollingStationsElection::new(self.election_identifier.ok_or(
+                        EMLErrorKind::MissingBuildProperty("election_identifier").without_span(),
+                    )?)
+                    .with_contests(self.contests);
+
+                    let event = PollingStationsElectionEvent::new(election);
+
+                    Ok(event)
+                },
+                Ok,
+            )?,
+        })
+    }
+}
+
+impl Default for PollingStationsBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl EMLElement for PollingStations {
@@ -100,6 +255,21 @@ pub struct PollingStationsElectionEvent {
     pub election: PollingStationsElection,
 }
 
+impl PollingStationsElectionEvent {
+    /// Create a new election event containing the given election.
+    pub fn new(election: impl Into<PollingStationsElection>) -> Self {
+        PollingStationsElectionEvent {
+            election: election.into(),
+        }
+    }
+}
+
+impl From<PollingStationsElection> for PollingStationsElectionEvent {
+    fn from(value: PollingStationsElection) -> Self {
+        PollingStationsElectionEvent::new(value)
+    }
+}
+
 impl EMLElement for PollingStationsElectionEvent {
     const EML_NAME: QualifiedName<'_, '_> =
         QualifiedName::from_static("ElectionEvent", Some(NS_EML));
@@ -128,8 +298,31 @@ pub struct PollingStationsElection {
     /// Identifier of the election.
     pub identifier: PollingStationsElectionIdentifier,
 
-    /// Contest containing the polling stations.
-    pub contest: PollingStationsContest,
+    /// Contests containing the polling stations.
+    pub contests: Vec<PollingStationsContest>,
+}
+
+impl PollingStationsElection {
+    /// Create a new election within the polling stations document.
+    pub fn new(identifier: impl Into<PollingStationsElectionIdentifier>) -> Self {
+        PollingStationsElection {
+            identifier: identifier.into(),
+            contests: vec![],
+        }
+    }
+
+    /// Set the contests within the election. This will replace any existing
+    /// contests set using this method or the [`Self::push_contest`] method.
+    pub fn with_contests(mut self, contests: impl Into<Vec<PollingStationsContest>>) -> Self {
+        self.contests = contests.into();
+        self
+    }
+
+    /// Add a contest to the election.
+    pub fn push_contest(mut self, contest: impl Into<PollingStationsContest>) -> Self {
+        self.contests.push(contest.into());
+        self
+    }
 }
 
 impl EMLElement for PollingStationsElection {
@@ -141,7 +334,7 @@ impl EMLElement for PollingStationsElection {
     {
         Ok(collect_struct!(elem, PollingStationsElection {
             identifier: PollingStationsElectionIdentifier::EML_NAME => |elem| PollingStationsElectionIdentifier::read_eml(elem)?,
-            contest: PollingStationsContest::EML_NAME => |elem| PollingStationsContest::read_eml(elem)?,
+            contests as Vec: PollingStationsContest::EML_NAME => |elem| PollingStationsContest::read_eml(elem)?,
         }))
     }
 
@@ -151,7 +344,7 @@ impl EMLElement for PollingStationsElection {
                 PollingStationsElectionIdentifier::EML_NAME,
                 &self.identifier,
             )?
-            .child_elem(PollingStationsContest::EML_NAME, &self.contest)?
+            .child_elems(PollingStationsContest::EML_NAME, &self.contests)?
             .finish()
     }
 }
@@ -176,6 +369,13 @@ pub struct PollingStationsElectionIdentifier {
 
     /// Date of the election
     pub election_date: StringValue<XsDate>,
+}
+
+impl PollingStationsElectionIdentifier {
+    /// Create a new builder for constructing a [`PollingStationsElectionIdentifier`].
+    pub fn builder() -> ElectionIdentifierBuilder {
+        ElectionIdentifierBuilder::new()
+    }
 }
 
 impl EMLElement for PollingStationsElectionIdentifier {
@@ -281,6 +481,96 @@ pub struct PollingStationsContest {
     pub polling_places: Vec<PollingPlace>,
 }
 
+impl PollingStationsContest {
+    /// Create a new builder for constructing a [`PollingStationsContest`].
+    pub fn builder() -> PollingStationsContestBuilder {
+        PollingStationsContestBuilder::new()
+    }
+}
+
+/// Builder for the [`PollingStationsContest`] struct.
+#[derive(Debug, Clone)]
+pub struct PollingStationsContestBuilder {
+    reporting_unit: Option<PollingStationsReportingUnit>,
+    voting_method: Option<StringValue<VotingMethod>>,
+    max_votes: Option<StringValue<NonZeroU64>>,
+    polling_places: Vec<PollingPlace>,
+}
+
+impl PollingStationsContestBuilder {
+    /// Create a new builder for constructing a [`PollingStationsContest`].
+    pub fn new() -> Self {
+        Self {
+            reporting_unit: None,
+            voting_method: None,
+            max_votes: None,
+            polling_places: vec![],
+        }
+    }
+
+    /// Set the reporting unit for the contest.
+    pub fn reporting_unit(
+        mut self,
+        reporting_unit: impl Into<PollingStationsReportingUnit>,
+    ) -> Self {
+        self.reporting_unit = Some(reporting_unit.into());
+        self
+    }
+
+    /// Set the voting method used in the contest.
+    pub fn voting_method(mut self, voting_method: impl Into<VotingMethod>) -> Self {
+        self.voting_method = Some(StringValue::from_value(voting_method.into()));
+        self
+    }
+
+    /// Set the maximum number of votes allowed in the contest.
+    pub fn max_votes(mut self, max_votes: impl Into<NonZeroU64>) -> Self {
+        self.max_votes = Some(StringValue::from_value(max_votes.into()));
+        self
+    }
+
+    /// Set the list of polling places in the contest. This will replace any
+    /// existing polling places set using this method or the [`Self::push_polling_place`]
+    /// method.
+    pub fn polling_places(mut self, polling_places: impl Into<Vec<PollingPlace>>) -> Self {
+        self.polling_places = polling_places.into();
+        self
+    }
+
+    /// Add a polling place to the contest.
+    pub fn push_polling_place(mut self, polling_place: impl Into<PollingPlace>) -> Self {
+        self.polling_places.push(polling_place.into());
+        self
+    }
+
+    /// Build the [`PollingStationsContest`], returning any errors if required fields are missing.
+    pub fn build(self) -> Result<PollingStationsContest, EMLError> {
+        if self.polling_places.is_empty() {
+            return Err(EMLErrorKind::MissingBuildProperty("polling_places").without_span());
+        }
+
+        Ok(PollingStationsContest {
+            identifier: ContestIdentifierGeen::default(),
+            reporting_unit: self
+                .reporting_unit
+                .ok_or(EMLErrorKind::MissingBuildProperty("reporting_unit").without_span())?,
+            voting_method: self
+                .voting_method
+                .ok_or(EMLErrorKind::MissingBuildProperty("voting_method").without_span())?,
+            max_votes: self
+                .max_votes
+                .ok_or(EMLErrorKind::MissingBuildProperty("max_votes").without_span())?,
+            polling_places: self.polling_places,
+        })
+    }
+}
+
+impl Default for PollingStationsContestBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EMLElement for PollingStationsContest {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("Contest", Some(NS_EML));
 
@@ -353,6 +643,21 @@ pub struct PollingStationsReportingUnit {
     pub identifier: ReportingUnitIdentifier,
 }
 
+impl PollingStationsReportingUnit {
+    /// Create a new reporting unit for the polling stations document.
+    pub fn new(identifier: impl Into<ReportingUnitIdentifier>) -> Self {
+        PollingStationsReportingUnit {
+            identifier: identifier.into(),
+        }
+    }
+}
+
+impl From<ReportingUnitIdentifier> for PollingStationsReportingUnit {
+    fn from(value: ReportingUnitIdentifier) -> Self {
+        PollingStationsReportingUnit::new(value)
+    }
+}
+
 impl EMLElement for PollingStationsReportingUnit {
     const EML_NAME: QualifiedName<'_, '_> =
         QualifiedName::from_static("ReportingUnit", Some(NS_EML));
@@ -378,6 +683,99 @@ pub struct PollingPlace {
 
     /// Physical location of the polling place.
     pub physical_location: PhysicalLocation,
+}
+
+impl PollingPlace {
+    /// Create a new builder for constructing a [`PollingPlace`].
+    pub fn builder() -> PollingPlaceBuilder {
+        PollingPlaceBuilder::new()
+    }
+}
+
+/// Builder for the [`PollingPlace`] struct.
+#[derive(Debug, Clone)]
+pub struct PollingPlaceBuilder {
+    channel: Option<StringValue<VotingChannelType>>,
+    polling_station_id: Option<StringValue<PhysicalLocationPollingStationId>>,
+    polling_station_data: Option<String>,
+    locality_name: Option<LocalityName>,
+    postal_code: Option<PostalCode>,
+}
+
+impl PollingPlaceBuilder {
+    /// Create a new builder for constructing a [`PollingPlace`].
+    pub fn new() -> Self {
+        Self {
+            channel: None,
+            polling_station_id: None,
+            polling_station_data: None,
+            locality_name: None,
+            postal_code: None,
+        }
+    }
+
+    /// Set the voting channel used at the polling place.
+    pub fn channel(mut self, channel: impl Into<VotingChannelType>) -> Self {
+        self.channel = Some(StringValue::from_value(channel.into()));
+        self
+    }
+
+    /// Set the identifier of the polling station at the polling place.
+    pub fn polling_station_id(mut self, id: impl Into<PhysicalLocationPollingStationId>) -> Self {
+        self.polling_station_id = Some(StringValue::from_value(id.into()));
+        self
+    }
+
+    /// Set the additional data of the polling station at the polling place.
+    pub fn polling_station_data(mut self, data: impl Into<String>) -> Self {
+        self.polling_station_data = Some(data.into());
+        self
+    }
+
+    /// Set the name of the locality of the polling place.
+    pub fn locality_name(mut self, locality_name: impl Into<LocalityName>) -> Self {
+        self.locality_name = Some(locality_name.into());
+        self
+    }
+
+    /// Set the postal code of the locality of the polling place.
+    pub fn postal_code(mut self, postal_code: impl Into<PostalCode>) -> Self {
+        self.postal_code = Some(postal_code.into());
+        self
+    }
+
+    /// Build the [`PollingPlace`], returning any errors if required fields are missing.
+    pub fn build(self) -> Result<PollingPlace, EMLError> {
+        Ok(PollingPlace {
+            channel: self
+                .channel
+                .ok_or(EMLErrorKind::MissingBuildProperty("channel").without_span())?,
+            physical_location: PhysicalLocation {
+                address: PhysicalLocationAddress {
+                    locality: PhysicalLocationLocality {
+                        locality_name: self.locality_name.ok_or(
+                            EMLErrorKind::MissingBuildProperty("locality_name").without_span(),
+                        )?,
+                        postal_code: self.postal_code,
+                    },
+                },
+                polling_station: PhysicalLocationPollingStation {
+                    id: self.polling_station_id.ok_or(
+                        EMLErrorKind::MissingBuildProperty("polling_station_id").without_span(),
+                    )?,
+                    data: self.polling_station_data.ok_or(
+                        EMLErrorKind::MissingBuildProperty("polling_station_data").without_span(),
+                    )?,
+                },
+            },
+        })
+    }
+}
+
+impl Default for PollingPlaceBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl EMLElement for PollingPlace {
@@ -515,6 +913,13 @@ impl EMLElement for PhysicalLocationPollingStation {
 #[derive(Debug, Clone)]
 pub struct PhysicalLocationPollingStationId(String);
 
+impl PhysicalLocationPollingStationId {
+    /// Create a new physical location polling station id from the given string, returning an error if the string is not a valid id.
+    pub fn new(s: impl AsRef<str>) -> Result<Self, PhysicalLocationPollingStationIdError> {
+        Self::parse_from_str(s.as_ref())
+    }
+}
+
 /// Error returned when a string could not be parsed as a PhysicalLocationPollingStationId
 #[derive(Debug, Clone, Error)]
 #[error("Invalid polling stations id: {0}")]
@@ -546,10 +951,61 @@ impl StringValueData for PhysicalLocationPollingStationId {
 
 #[cfg(test)]
 mod tests {
+    use chrono::TimeZone as _;
+
+    use crate::{
+        common::AuthorityIdentifier,
+        io::EMLWrite as _,
+        utils::{ReportingUnitIdentifierId, XSBType},
+    };
+
     use super::*;
 
     #[test]
     fn test_physical_location_ps_id_regex_compiles() {
         LazyLock::force(&PHYSICAL_LOCATION_PS_ID);
+    }
+
+    #[test]
+    fn test_polling_stations_construction() {
+        let ps = PollingStations::builder()
+            .transaction_id(TransactionId::new(1))
+            .managing_authority(
+                AuthorityIdentifier::new(XSBType::new("1234").unwrap()).with_name("Test"),
+            )
+            .issue_date(XsDate::from_date(2024, 1, 1).unwrap())
+            .creation_date_time(chrono::Utc.with_ymd_and_hms(2024, 1, 1, 12, 0, 0).unwrap())
+            .election_identifier(
+                PollingStationsElectionIdentifier::builder()
+                    .id(ElectionIdType::new("TK2025").unwrap())
+                    .name("Tweede Kamerverkiezingen 2025")
+                    .category(ElectionCategory::TK)
+                    .subcategory(ElectionSubcategory::TK)
+                    .election_date(XsDate::from_date(2025, 3, 17).unwrap())
+                    .build_for_polling_stations()
+                    .unwrap(),
+            )
+            .contests([PollingStationsContest::builder()
+                .reporting_unit(ReportingUnitIdentifier::new(
+                    ReportingUnitIdentifierId::new("1234").unwrap(),
+                    "Test",
+                ))
+                .max_votes(NonZeroU64::new(20).unwrap())
+                .voting_method(VotingMethod::SPV)
+                .polling_places([PollingPlace::builder()
+                    .locality_name("Amsterdam")
+                    .postal_code("1234 AB")
+                    .channel(VotingChannelType::Polling)
+                    .polling_station_data("123456")
+                    .polling_station_id(PhysicalLocationPollingStationId::new("1234").unwrap())
+                    .build()
+                    .unwrap()])
+                .build()
+                .unwrap()])
+            .build()
+            .unwrap();
+
+        let xml = ps.write_eml_root_str(true, true).unwrap();
+        println!("{}", xml);
     }
 }
