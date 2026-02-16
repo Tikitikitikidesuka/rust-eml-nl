@@ -43,6 +43,10 @@ pub enum EMLErrorKind {
     #[error("Missing required element: {0}")]
     MissingElement(OwnedQualifiedName),
 
+    /// An element existed, but it was empty or had no text content
+    #[error("Missing value for element: {0}")]
+    MissingElementValue(OwnedQualifiedName),
+
     /// None of the choice elements were found
     #[error("Missing any of these elements: {0:?}")]
     MissingChoiceElements(Vec<OwnedQualifiedName>),

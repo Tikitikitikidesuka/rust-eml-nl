@@ -586,7 +586,21 @@ impl EMLElement for PollingStationsContest {
         let data = collect_struct!(elem, PollingStationsContestInternal {
             identifier as Option: ContestIdentifierGeen::EML_NAME => |elem| ContestIdentifierGeen::read_eml(elem)?,
             reporting_unit: PollingStationsReportingUnit::EML_NAME => |elem| PollingStationsReportingUnit::read_eml(elem)?,
-            voting_method: ("VotingMethod", NS_EML) => |elem| elem.string_value()?,
+            voting_method: ("VotingMethod", NS_EML) => |elem| {
+                let value = elem.string_value_opt()?;
+                if let Some(value) = value {
+                    value
+                } else {
+                    let err = EMLErrorKind::MissingElementValue(OwnedQualifiedName::from_static("VotingMethod", Some(NS_EML)))
+                        .with_span(elem.full_span());
+                    if elem.parsing_mode().is_strict() {
+                        return Err(err);
+                    } else {
+                        elem.push_err(err);
+                        StringValue::from_value(VotingMethod::SPV)
+                    }
+                }
+            },
             max_votes: ("MaxVotes", NS_EML) => |elem| {
                 let text = elem.text_without_children_opt()?.unwrap_or_else(|| "1".to_string());
                 elem.string_value_from_text(text, None, elem.full_span())?
@@ -606,6 +620,16 @@ impl EMLElement for PollingStationsContest {
                 ContestIdentifierGeen::default()
             }
         };
+
+        if data.polling_places.is_empty() {
+            let err = EMLErrorKind::MissingElement(PollingPlace::EML_NAME.as_owned())
+                .with_span(elem.full_span());
+            if elem.parsing_mode().is_strict() {
+                return Err(err);
+            } else {
+                elem.push_err(err);
+            }
+        }
 
         Ok(PollingStationsContest {
             identifier,
@@ -955,7 +979,7 @@ mod tests {
 
     use crate::{
         common::AuthorityIdentifier,
-        io::EMLWrite as _,
+        io::{EMLParsingMode, EMLRead as _, EMLWrite as _},
         utils::{ReportingUnitIdentifierId, XSBType},
     };
 
@@ -1006,6 +1030,65 @@ mod tests {
             .unwrap();
 
         let xml = ps.write_eml_root_str(true, true).unwrap();
-        println!("{}", xml);
+        assert_eq!(
+            xml,
+            include_str!(
+                "../../test-emls/polling_stations/eml110b_polling_stations_construction_output.eml.xml"
+            )
+        );
+    }
+
+    #[test]
+    fn test_empty_polling_stations() {
+        assert!(
+            PollingStations::parse_eml(
+                include_str!(
+                    "../../test-emls/polling_stations/eml110b_empty_polling_station.eml.xml"
+                ),
+                EMLParsingMode::Strict
+            )
+            .ok_with_errors()
+            .is_err()
+        )
+    }
+
+    #[test]
+    fn test_invalid_number_of_voters() {
+        assert!(
+            PollingStations::parse_eml(
+                include_str!(
+                    "../../test-emls/polling_stations/eml110b_invalid_number_of_voters.eml.xml"
+                ),
+                EMLParsingMode::Strict
+            )
+            .ok_with_errors()
+            .is_err()
+        )
+    }
+
+    #[test]
+    fn test_one_station() {
+        let ps = PollingStations::parse_eml(
+            include_str!("../../test-emls/polling_stations/eml110b_1_station.eml.xml"),
+            EMLParsingMode::Strict,
+        )
+        .unwrap();
+
+        assert_eq!(ps.election_event.election.contests.len(), 1);
+        let contest = &ps.election_event.election.contests[0];
+        assert_eq!(contest.polling_places.len(), 1);
+    }
+
+    #[test]
+    fn test_less_than_10_stations() {
+        let ps = PollingStations::parse_eml(
+            include_str!("../../test-emls/polling_stations/eml110b_less_than_10_stations.eml.xml"),
+            EMLParsingMode::Strict,
+        )
+        .unwrap();
+
+        assert_eq!(ps.election_event.election.contests.len(), 1);
+        let contest = &ps.election_event.election.contests[0];
+        assert_eq!(contest.polling_places.len(), 9);
     }
 }

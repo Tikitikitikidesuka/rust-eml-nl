@@ -511,6 +511,23 @@ impl<'r, 'input> EMLElementReader<'r, 'input> {
         self.string_value_from_text(text, None, self.inner_span())
     }
 
+    /// Reads the value of this element as a StringValue of the given type,
+    /// returning None if the element is empty or contains no text.
+    ///
+    /// The exact parsing behavior depends on the parsing mode set in the reader;
+    /// only in [`EMLParsingMode::Strict`] mode will value parsing errors result in
+    /// an error being returned. In [`EMLParsingMode::StrictFallback`] mode,
+    /// value parsing errors will be stored, but the raw string value will be
+    /// returned instead. In [`EMLParsingMode::Loose`] mode, no parsing will be
+    /// performed and the raw string value will be returned.
+    pub fn string_value_opt<T: StringValueData>(
+        &mut self,
+    ) -> Result<Option<StringValue<T>>, EMLError> {
+        self.text_without_children_opt()?
+            .map(|v| self.string_value_from_text(v, None, self.inner_span()))
+            .transpose()
+    }
+
     /// Reads the value of the given attribute as a StringValue of the given type.
     ///
     /// If the attribute does not exist, None is returned. The exact parsing
