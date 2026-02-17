@@ -1410,57 +1410,95 @@ pub struct ElectionCountSelection {
 }
 
 impl ElectionCountSelection {
-    /// Create a new ElectionCountSelection with the given candidate selection and valid votes.
-    pub fn candidate(
-        candidate: impl Into<CandidateSelection>,
-        valid_votes: impl Into<u64>,
-    ) -> Self {
-        ElectionCountSelection {
-            selection_type: ElectionCountSelectionType::Candidate(Box::new(candidate.into())),
-            valid_votes: StringValue::from_value(valid_votes.into()),
+    /// Create a builder for the [`ElectionCountSelection`].
+    pub fn builder() -> ElectionCountSelectionBuilder {
+        ElectionCountSelectionBuilder::new()
+    }
+}
+
+/// A builder for [`ElectionCountSelection`].
+#[derive(Debug, Clone)]
+pub struct ElectionCountSelectionBuilder {
+    selection_type: Option<ElectionCountSelectionType>,
+    valid_votes: Option<StringValue<u64>>,
+    value: Option<String>,
+    category: Option<String>,
+}
+
+impl ElectionCountSelectionBuilder {
+    /// Create a new ElectionCountSelectionBuilder for building [`ElectionCountSelection`] documents.
+    pub fn new() -> Self {
+        Self {
+            selection_type: None,
+            valid_votes: None,
             value: None,
             category: None,
         }
     }
 
-    /// Create a new ElectionCountSelection with the given affiliation selection and valid votes.
-    pub fn affiliation(
-        affiliation: impl Into<AffiliationSelection>,
-        valid_votes: impl Into<u64>,
-    ) -> Self {
-        ElectionCountSelection {
-            selection_type: ElectionCountSelectionType::Affiliation(Box::new(affiliation.into())),
-            valid_votes: StringValue::from_value(valid_votes.into()),
-            value: None,
-            category: None,
-        }
+    /// Set the selection type to a candidate selection with the given candidate.
+    pub fn candidate(mut self, candidate: impl Into<CandidateSelection>) -> Self {
+        self.selection_type = Some(ElectionCountSelectionType::Candidate(Box::new(
+            candidate.into(),
+        )));
+        self
     }
 
-    /// Create a new ElectionCountSelection with the given referendum option selection and valid votes.
+    /// Set the selection type to an affiliation selection with the given affiliation.
+    pub fn affiliation(mut self, affiliation: impl Into<AffiliationSelection>) -> Self {
+        self.selection_type = Some(ElectionCountSelectionType::Affiliation(Box::new(
+            affiliation.into(),
+        )));
+        self
+    }
+
+    /// Set the selection type to a referendum option selection with the given referendum option.
     pub fn referendum_option(
+        mut self,
         referendum_option: impl Into<ReferendumOptionSelection>,
-        valid_votes: impl Into<u64>,
     ) -> Self {
-        ElectionCountSelection {
-            selection_type: ElectionCountSelectionType::ReferendumOption(Box::new(
-                referendum_option.into(),
-            )),
-            valid_votes: StringValue::from_value(valid_votes.into()),
-            value: None,
-            category: None,
-        }
+        self.selection_type = Some(ElectionCountSelectionType::ReferendumOption(Box::new(
+            referendum_option.into(),
+        )));
+        self
     }
 
-    /// Set the value of the selection.
-    pub fn with_value(mut self, value: impl Into<String>) -> Self {
+    /// Set the number of valid votes for the election count selection.
+    pub fn valid_votes(mut self, valid_votes: impl Into<u64>) -> Self {
+        self.valid_votes = Some(StringValue::from_value(valid_votes.into()));
+        self
+    }
+
+    /// Set the Value attribute of the election count selection.
+    pub fn value(mut self, value: impl Into<String>) -> Self {
         self.value = Some(value.into());
         self
     }
 
-    /// Set the category of the selection.
-    pub fn with_category(mut self, category: impl Into<String>) -> Self {
+    /// Set the Category attribute of the election count selection.
+    pub fn category(mut self, category: impl Into<String>) -> Self {
         self.category = Some(category.into());
         self
+    }
+
+    /// Build the [`ElectionCountSelection`] document, returning an error if any of the required fields are missing.
+    pub fn build(self) -> Result<ElectionCountSelection, EMLError> {
+        Ok(ElectionCountSelection {
+            selection_type: self.selection_type.ok_or_else(|| {
+                EMLErrorKind::MissingBuildProperty("selection_type").without_span()
+            })?,
+            valid_votes: self
+                .valid_votes
+                .ok_or_else(|| EMLErrorKind::MissingBuildProperty("valid_votes").without_span())?,
+            value: self.value,
+            category: self.category,
+        })
+    }
+}
+
+impl Default for ElectionCountSelectionBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -1619,7 +1657,7 @@ pub struct CandidateSelection {
     pub gender: Option<StringValue<GenderType>>,
 
     /// Qualified address of the candidate, if present.
-    pub qualified_address: Option<MinimalQualifyingAddress>,
+    pub qualifying_address: Option<MinimalQualifyingAddress>,
 }
 
 impl CandidateSelection {
@@ -1635,7 +1673,7 @@ pub struct CandidateSelectionBuilder {
     identifier: Option<CandidateIdentifier>,
     name: Option<PersonNameStructure>,
     gender: Option<StringValue<GenderType>>,
-    qualified_address: Option<MinimalQualifyingAddress>,
+    qualifying_address: Option<MinimalQualifyingAddress>,
     locality_name: Option<String>,
     country_name_code: Option<String>,
 }
@@ -1647,7 +1685,7 @@ impl CandidateSelectionBuilder {
             identifier: None,
             name: None,
             gender: None,
-            qualified_address: None,
+            qualifying_address: None,
             locality_name: None,
             country_name_code: None,
         }
@@ -1671,13 +1709,31 @@ impl CandidateSelectionBuilder {
         self
     }
 
+    /// Set the minimal qualifying address of the candidate selection.
+    ///
+    /// You may also set the locality name and country name code separately
+    /// using the [`Self::locality_name`] and [`Self::country_name_code`] methods.
+    pub fn qualifying_address(
+        mut self,
+        qualifying_address: impl Into<MinimalQualifyingAddress>,
+    ) -> Self {
+        self.qualifying_address = Some(qualifying_address.into());
+        self
+    }
+
     /// Set the locality name for the candidate selection.
+    ///
+    /// Has no effect if the qualifying address is already set using the
+    /// [`Self::qualifying_address`] method.
     pub fn locality_name(mut self, locality_name: impl Into<String>) -> Self {
         self.locality_name = Some(locality_name.into());
         self
     }
 
     /// Set the country name code for the candidate selection.
+    ///
+    /// Has no effect if the qualifying address is already set using the
+    /// [`Self::qualifying_address`] method.
     pub fn country_name_code(mut self, country_name_code: impl Into<String>) -> Self {
         self.country_name_code = Some(country_name_code.into());
         self
@@ -1691,7 +1747,7 @@ impl CandidateSelectionBuilder {
                 .ok_or_else(|| EMLErrorKind::MissingBuildProperty("identifier").without_span())?,
             name: self.name,
             gender: self.gender,
-            qualified_address: self.qualified_address.map_or_else(
+            qualifying_address: self.qualifying_address.map_or_else(
                 || {
                     if let Some(locality_name) = self.locality_name {
                         if let Some(country_name_code) = self.country_name_code {
@@ -1731,7 +1787,7 @@ impl EMLElement for CandidateSelection {
             identifier: CandidateIdentifier::EML_NAME => |elem| CandidateIdentifier::read_eml(elem)?,
             name as Option: ("CandidateFullName", NS_EML) => |elem| PersonNameStructure::read_eml_element(elem)?,
             gender as Option: ("Gender", NS_EML) => |elem| elem.string_value()?,
-            qualified_address as Option: MinimalQualifyingAddress::EML_NAME => |elem| MinimalQualifyingAddress::read_eml(elem)?,
+            qualifying_address as Option: MinimalQualifyingAddress::EML_NAME => |elem| MinimalQualifyingAddress::read_eml(elem)?,
         }))
     }
 
@@ -1748,7 +1804,7 @@ impl EMLElement for CandidateSelection {
             })?
             .child_elem_option(
                 MinimalQualifyingAddress::EML_NAME,
-                self.qualified_address.as_ref(),
+                self.qualifying_address.as_ref(),
             )?
             .finish()
     }
@@ -1930,18 +1986,25 @@ mod tests {
                 .total_rejected_votes(RejectedVotesReason::Invalid, 0u64)
                 .total_uncounted_votes(UncountedVotesReason::AdmittedVoters, 10u64)
                 .total_votes_selections([
-                    ElectionCountSelection::affiliation(
-                        AffiliationSelection::new(AffiliationIdType::new("1").unwrap(), "Example"),
-                        16u64,
-                    ),
-                    ElectionCountSelection::candidate(
-                        CandidateSelection::builder()
-                            .identifier(CandidateIdType::new("1").unwrap())
-                            .name(PersonName::new("Smid").with_first_name("Example"))
-                            .build()
-                            .unwrap(),
-                        16u64,
-                    ),
+                    ElectionCountSelection::builder()
+                        .affiliation(AffiliationSelection::new(
+                            AffiliationIdType::new("1").unwrap(),
+                            "Example",
+                        ))
+                        .valid_votes(16u64)
+                        .build()
+                        .unwrap(),
+                    ElectionCountSelection::builder()
+                        .candidate(
+                            CandidateSelection::builder()
+                                .identifier(CandidateIdType::new("1").unwrap())
+                                .name(PersonName::new("Smid").with_first_name("Example"))
+                                .build()
+                                .unwrap(),
+                        )
+                        .valid_votes(16u64)
+                        .build()
+                        .unwrap(),
                 ])
                 .reporting_unit_votes([ReportingUnitVotes::builder()
                     .identifier(ReportingUnitIdentifier::new(
@@ -1954,21 +2017,25 @@ mod tests {
                     .candidate_votes_count(10u64)
                     .eligible_voter_count(100u64)
                     .selections([
-                        ElectionCountSelection::affiliation(
-                            AffiliationSelection::new(
+                        ElectionCountSelection::builder()
+                            .affiliation(AffiliationSelection::new(
                                 AffiliationIdType::new("1").unwrap(),
                                 "Example",
-                            ),
-                            16u64,
-                        ),
-                        ElectionCountSelection::candidate(
-                            CandidateSelection::builder()
-                                .identifier(CandidateIdType::new("1").unwrap())
-                                .name(PersonName::new("Smid").with_first_name("Example"))
-                                .build()
-                                .unwrap(),
-                            16u64,
-                        ),
+                            ))
+                            .valid_votes(16u64)
+                            .build()
+                            .unwrap(),
+                        ElectionCountSelection::builder()
+                            .candidate(
+                                CandidateSelection::builder()
+                                    .identifier(CandidateIdType::new("1").unwrap())
+                                    .name(PersonName::new("Smid").with_first_name("Example"))
+                                    .build()
+                                    .unwrap(),
+                            )
+                            .valid_votes(16u64)
+                            .build()
+                            .unwrap(),
                     ])
                     .build()
                     .unwrap()])

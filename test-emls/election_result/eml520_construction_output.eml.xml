@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EML xmlns="urn:oasis:names:tc:evs:schema:eml" xmlns:kr="http://www.kiesraad.nl/extensions" xmlns:xal="urn:oasis:names:tc:ciq:xsdschema:xAL:2.0" xmlns:xnl="urn:oasis:names:tc:ciq:xsdschema:xNL:2.0" Id="520" SchemaVersion="5">
+    <TransactionId>1</TransactionId>
+    <ManagingAuthority>
+        <AuthorityIdentifier Id="1234">Place</AuthorityIdentifier>
+        <AuthorityAddress/>
+    </ManagingAuthority>
+    <kr:CreationDateTime>2024-03-17T12:00:00+00:00</kr:CreationDateTime>
+    <Result>
+        <Election>
+            <ElectionIdentifier Id="GR2024_Place">
+                <ElectionName>Gemeenteraadsverkiezingen 2024</ElectionName>
+                <ElectionCategory>GR</ElectionCategory>
+                <kr:ElectionDate>2024-03-17</kr:ElectionDate>
+            </ElectionIdentifier>
+            <Contest>
+                <ContestIdentifier Id="geen"/>
+                <Selection>
+                    <AffiliationIdentifier Id="1">
+                        <RegisteredName>Example</RegisteredName>
+                    </AffiliationIdentifier>
+                    <Elected>yes</Elected>
+                </Selection>
+                <Selection>
+                    <Candidate>
+                        <CandidateIdentifier Id="1"/>
+                        <CandidateFullName>
+                            <xnl:PersonName>
+                                <xnl:FirstName>Example</xnl:FirstName>
+                                <xnl:LastName>Smid</xnl:LastName>
+                            </xnl:PersonName>
+                        </CandidateFullName>
+                        <QualifyingAddress>
+                            <xal:Country>
+                                <xal:CountryNameCode>NL</xal:CountryNameCode>
+                                <xal:Locality>
+                                    <xal:LocalityName>Locality</xal:LocalityName>
+                                </xal:Locality>
+                            </xal:Country>
+                        </QualifyingAddress>
+                    </Candidate>
+                    <Votes>100</Votes>
+                    <Elected>yes</Elected>
+                </Selection>
+                <Selection>
+                    <Candidate>
+                        <CandidateIdentifier Id="2"/>
+                        <CandidateFullName>
+                            <xnl:PersonName>
+                                <xnl:FirstName>Example</xnl:FirstName>
+                                <xnl:LastName>Test</xnl:LastName>
+                            </xnl:PersonName>
+                        </CandidateFullName>
+                        <QualifyingAddress>
+                            <xal:Country>
+                                <xal:CountryNameCode>NL</xal:CountryNameCode>
+                                <xal:Locality>
+                                    <xal:LocalityName>Locality</xal:LocalityName>
+                                </xal:Locality>
+                            </xal:Country>
+                        </QualifyingAddress>
+                    </Candidate>
+                    <Votes>0</Votes>
+                </Selection>
+            </Contest>
+        </Election>
+    </Result>
+</EML>

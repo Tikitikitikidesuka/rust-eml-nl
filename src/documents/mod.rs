@@ -290,6 +290,10 @@ impl ElectionIdentifierBuilder {
     }
 
     /// Build an election identifier for candidate lists.
+    ///
+    /// Requires specifying [`Self::id`], [`Self::category`], [`Self::election_date`]
+    /// and [`Self::nomination_date`]. Optionally, [`Self::name`], [`Self::subcategory`]
+    /// and [`Self::domain`] may be specified as well.
     pub fn build_for_candidate_lists(self) -> Result<CandidateListsElectionIdentifier, EMLError> {
         let category = self
             .category
@@ -318,6 +322,10 @@ impl ElectionIdentifierBuilder {
     }
 
     /// Build an election identifier for election count.
+    ///
+    /// Requires specifying [`Self::id`], [`Self::category`] and [`Self::election_date`].
+    /// Optionally, [`Self::name`], [`Self::subcategory`] and [`Self::domain`]
+    /// may be specified as well.
     pub fn build_for_count(self) -> Result<ElectionCountElectionIdentifier, EMLError> {
         let category = self
             .category
@@ -339,6 +347,9 @@ impl ElectionIdentifierBuilder {
     }
 
     /// Build an election identifier for election result.
+    ///
+    /// Requires specifying [`Self::id`], [`Self::category`] and [`Self::election_date`].
+    /// Optionally, [`Self::name`], [`Self::subcategory`] and [`Self::domain`] may be specified as well.
     pub fn build_for_result(self) -> Result<ElectionResultElectionIdentifier, EMLError> {
         let category = self
             .category
@@ -360,6 +371,10 @@ impl ElectionIdentifierBuilder {
     }
 
     /// Build an election identifier for election definition.
+    ///
+    /// Requires specifying [`Self::id`], [`Self::name`], [`Self::category`],
+    /// [`Self::subcategory`], [`Self::election_date`] and [`Self::nomination_date`].
+    /// Optionally [`Self::domain`] may be specified as well.
     pub fn build_for_definition(self) -> Result<ElectionDefinitionElectionIdentifier, EMLError> {
         let category = self
             .category
@@ -393,6 +408,10 @@ impl ElectionIdentifierBuilder {
     }
 
     /// Build an election identifier for polling stations.
+    ///
+    /// Requires specifying [`Self::id`], [`Self::category`] and [`Self::election_date`].
+    /// Optionally, [`Self::name`], [`Self::subcategory`] and [`Self::domain`]
+    /// may be specified as well.
     pub fn build_for_polling_stations(self) -> Result<PollingStationsElectionIdentifier, EMLError> {
         let category = self
             .category
