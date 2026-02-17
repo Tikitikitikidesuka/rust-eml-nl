@@ -39,6 +39,18 @@ impl CountryNameCode {
     }
 }
 
+impl From<String> for CountryNameCode {
+    fn from(value: String) -> Self {
+        CountryNameCode::new(value)
+    }
+}
+
+impl From<&str> for CountryNameCode {
+    fn from(value: &str) -> Self {
+        CountryNameCode::new(value)
+    }
+}
+
 impl EMLElement for CountryNameCode {
     const EML_NAME: QualifiedName<'_, '_> =
         QualifiedName::from_static("CountryNameCode", Some(NS_XAL));

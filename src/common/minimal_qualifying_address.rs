@@ -16,15 +16,20 @@ pub enum MinimalQualifyingAddress {
 
 impl MinimalQualifyingAddress {
     /// Creates a new `MinimalQualifyingAddress` as a locality.
-    pub fn new_locality(locality_name: LocalityName) -> Self {
-        MinimalQualifyingAddress::Locality(MinimalQualifyingAddressLocality::new(locality_name))
+    pub fn new_locality(locality_name: impl Into<LocalityName>) -> Self {
+        MinimalQualifyingAddress::Locality(MinimalQualifyingAddressLocality::new(
+            locality_name.into(),
+        ))
     }
 
     /// Creates a new `MinimalQualifyingAddress` as a country.
-    pub fn new_country(country_name_code: CountryNameCode, locality_name: LocalityName) -> Self {
+    pub fn new_country(
+        country_name_code: impl Into<CountryNameCode>,
+        locality_name: impl Into<LocalityName>,
+    ) -> Self {
         MinimalQualifyingAddress::Country(MinimalQualifyingAddressCountry::new(
-            country_name_code,
-            MinimalQualifyingAddressLocality::new(locality_name),
+            country_name_code.into(),
+            MinimalQualifyingAddressLocality::new(locality_name.into()),
         ))
     }
 }

@@ -1,6 +1,6 @@
 //! Document variant for the EML_NL Count (`510a`, `510b`, `510c` or `510d`) document.
 
-use std::{num::NonZeroU64, sync::LazyLock};
+use std::{collections::BTreeMap, num::NonZeroU64, sync::LazyLock};
 
 use regex::Regex;
 
@@ -11,14 +11,14 @@ use crate::{
         ElectionDomain, ManagingAuthority, MinimalQualifyingAddress, PersonNameStructure,
         TransactionId,
     },
-    documents::accepted_root,
+    documents::{ElectionIdentifierBuilder, accepted_root},
     io::{
         EMLElement, EMLElementReader, EMLElementWriter, EMLReadElement as _, EMLWriteElement,
         QualifiedName, collect_struct,
     },
     utils::{
         AffiliationIdType, ElectionCategory, ElectionIdType, ElectionSubcategory, GenderType,
-        StringValue, StringValueData, XsDate,
+        StringValue, StringValueData, XsDate, XsDateTime,
     },
 };
 
@@ -42,6 +42,156 @@ pub struct ElectionCount {
 
     /// The actual count data.
     pub count: ElectionCountCount,
+}
+
+impl ElectionCount {
+    /// Create a builder for the [`ElectionCount`] document.
+    pub fn builder() -> ElectionCountBuilder {
+        ElectionCountBuilder::new()
+    }
+}
+
+/// Builder for [`ElectionCount`].
+#[derive(Debug, Clone)]
+pub struct ElectionCountBuilder {
+    count_type: Option<CountType>,
+    transaction_id: Option<TransactionId>,
+    managing_authority: Option<ManagingAuthority>,
+    creation_date_time: Option<CreationDateTime>,
+    canonicalization_method: Option<CanonicalizationMethod>,
+    count: Option<ElectionCountCount>,
+    election_identifier: Option<ElectionCountElectionIdentifier>,
+    contests: Vec<ElectionCountContest>,
+}
+
+impl ElectionCountBuilder {
+    /// Create a new ElectionCountBuilder for building [`ElectionCount`] documents.
+    pub fn new() -> Self {
+        Self {
+            count_type: None,
+            transaction_id: None,
+            managing_authority: None,
+            creation_date_time: None,
+            canonicalization_method: None,
+            count: None,
+            election_identifier: None,
+            contests: vec![],
+        }
+    }
+
+    /// Set the count type for the document.
+    pub fn count_type(mut self, count_type: impl Into<CountType>) -> Self {
+        self.count_type = Some(count_type.into());
+        self
+    }
+
+    /// Set the transaction id for the document.
+    pub fn transaction_id(mut self, transaction_id: impl Into<TransactionId>) -> Self {
+        self.transaction_id = Some(transaction_id.into());
+        self
+    }
+
+    /// Set the managing authority for the document.
+    pub fn managing_authority(mut self, managing_authority: impl Into<ManagingAuthority>) -> Self {
+        self.managing_authority = Some(managing_authority.into());
+        self
+    }
+
+    /// Set the creation date and time for the document.
+    pub fn creation_date_time(mut self, creation_date_time: impl Into<XsDateTime>) -> Self {
+        self.creation_date_time = Some(CreationDateTime::new(creation_date_time.into()));
+        self
+    }
+
+    /// Set the canonicalization method for the document.
+    pub fn canonicalization_method(
+        mut self,
+        canonicalization_method: impl Into<CanonicalizationMethod>,
+    ) -> Self {
+        self.canonicalization_method = Some(canonicalization_method.into());
+        self
+    }
+
+    /// Set the count for the document.
+    ///
+    /// You may either set the entire election count at once using this method,
+    /// or use any of [`Self::election_identifier`], [`Self::contests`] and/or
+    /// [`Self::push_contest`] to construct the individual components of the
+    /// count document.
+    pub fn count(mut self, count: impl Into<ElectionCountCount>) -> Self {
+        self.count = Some(count.into());
+        self
+    }
+
+    /// Set the election identifier for the document.
+    ///
+    /// This only has effect if the count was not set using the  [`Self::count`]
+    /// method on this builder.
+    pub fn election_identifier(
+        mut self,
+        election_identifier: impl Into<ElectionCountElectionIdentifier>,
+    ) -> Self {
+        self.election_identifier = Some(election_identifier.into());
+        self
+    }
+
+    /// Set the contests for the document. This overrides any previously set contests.
+    ///
+    /// This only has effect if the count was not set using the  [`Self::count`]
+    /// method on this builder.
+    pub fn contests(mut self, contests: impl Into<Vec<ElectionCountContest>>) -> Self {
+        self.contests = contests.into();
+        self
+    }
+
+    /// Add a contest to the document.
+    ///
+    /// This only has effect if the count was not set using the  [`Self::count`]
+    /// method on this builder.
+    pub fn push_contest(mut self, contest: impl Into<ElectionCountContest>) -> Self {
+        self.contests.push(contest.into());
+        self
+    }
+
+    /// Build the [`ElectionCount`] document, returning an error if any of the required fields are missing.
+    pub fn build(self) -> Result<ElectionCount, EMLError> {
+        Ok(ElectionCount {
+            count_type: self
+                .count_type
+                .ok_or_else(|| EMLErrorKind::MissingBuildProperty("count_type").without_span())?,
+            transaction_id: self.transaction_id.ok_or_else(|| {
+                EMLErrorKind::MissingBuildProperty("transaction_id").without_span()
+            })?,
+            managing_authority: self.managing_authority.ok_or_else(|| {
+                EMLErrorKind::MissingBuildProperty("managing_authority").without_span()
+            })?,
+            creation_date_time: self.creation_date_time.ok_or_else(|| {
+                EMLErrorKind::MissingBuildProperty("creation_date_time").without_span()
+            })?,
+            canonicalization_method: self.canonicalization_method,
+            count: self.count.map_or_else(
+                || {
+                    if self.contests.is_empty() {
+                        return Err(EMLErrorKind::MissingBuildProperty("contests").without_span());
+                    }
+
+                    Ok(ElectionCountCount::new(ElectionCountElection::new(
+                        self.election_identifier.ok_or_else(|| {
+                            EMLErrorKind::MissingBuildProperty("election_identifier").without_span()
+                        })?,
+                        self.contests,
+                    )))
+                },
+                Ok,
+            )?,
+        })
+    }
+}
+
+impl Default for ElectionCountBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl EMLElement for ElectionCount {
@@ -162,6 +312,21 @@ pub struct ElectionCountCount {
     pub election: ElectionCountElection,
 }
 
+impl ElectionCountCount {
+    /// Create a new count for the election count document.
+    pub fn new(election: impl Into<ElectionCountElection>) -> Self {
+        ElectionCountCount {
+            election: election.into(),
+        }
+    }
+}
+
+impl From<ElectionCountElection> for ElectionCountCount {
+    fn from(value: ElectionCountElection) -> Self {
+        ElectionCountCount::new(value)
+    }
+}
+
 impl EMLElement for ElectionCountCount {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("Count", Some(NS_EML));
 
@@ -190,11 +355,24 @@ pub struct ElectionCountElection {
     pub contests: Vec<ElectionCountContest>,
 }
 
+impl ElectionCountElection {
+    /// Create a new election for the election count document.
+    pub fn new(
+        identifier: impl Into<ElectionCountElectionIdentifier>,
+        contests: impl Into<Vec<ElectionCountContest>>,
+    ) -> Self {
+        ElectionCountElection {
+            identifier: identifier.into(),
+            contests: contests.into(),
+        }
+    }
+}
+
 impl EMLElement for ElectionCountElection {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("Election", Some(NS_EML));
 
     fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
-        Ok(collect_struct!(elem, ElectionCountElection {
+        let data = collect_struct!(elem, ElectionCountElection {
             identifier: ElectionCountElectionIdentifier::EML_NAME => |elem| ElectionCountElectionIdentifier::read_eml(elem)?,
             contests: ("Contests", NS_EML) => |elem| {
                 struct VecCollector {
@@ -207,7 +385,19 @@ impl EMLElement for ElectionCountElection {
 
                 data.contests
             },
-        }))
+        });
+
+        if data.contests.is_empty() {
+            let err = EMLErrorKind::MissingElement(ElectionCountContest::EML_NAME.as_owned())
+                .with_span(elem.full_span());
+            if elem.parsing_mode().is_strict() {
+                return Err(err);
+            } else {
+                elem.push_err(err);
+            }
+        }
+
+        Ok(data)
     }
 
     fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
@@ -242,6 +432,13 @@ pub struct ElectionCountElectionIdentifier {
 
     /// Date of the election
     pub election_date: StringValue<XsDate>,
+}
+
+impl ElectionCountElectionIdentifier {
+    /// Create a builder for the [`ElectionCountElectionIdentifier`].
+    pub fn builder() -> ElectionIdentifierBuilder {
+        ElectionIdentifierBuilder::new()
+    }
 }
 
 impl EMLElement for ElectionCountElectionIdentifier {
@@ -296,6 +493,195 @@ pub struct ElectionCountContest {
     pub reporting_unit_votes: Vec<ReportingUnitVotes>,
 }
 
+impl ElectionCountContest {
+    /// Create a builder for the [`ElectionCountContest`].
+    pub fn builder() -> ElectionCountContestBuilder {
+        ElectionCountContestBuilder::new()
+    }
+}
+
+/// A builder for [`ElectionCountContest`].
+#[derive(Debug, Clone)]
+pub struct ElectionCountContestBuilder {
+    identifier: Option<ContestIdentifier>,
+    total_votes: Option<TotalVotes>,
+    total_votes_selections: Vec<ElectionCountSelection>,
+    total_eligible_voter_count: Option<StringValue<u64>>,
+    total_candidate_votes_count: Option<StringValue<u64>>,
+    total_rejected_votes: BTreeMap<RejectedVotesReason, StringValue<u64>>,
+    total_uncounted_votes: BTreeMap<UncountedVotesReason, StringValue<u64>>,
+    reporting_unit_votes: Vec<ReportingUnitVotes>,
+}
+
+impl ElectionCountContestBuilder {
+    /// Create a new ElectionCountContestBuilder for building [`ElectionCountContest`] documents.
+    pub fn new() -> Self {
+        Self {
+            identifier: None,
+            total_votes: None,
+            total_votes_selections: vec![],
+            total_eligible_voter_count: None,
+            total_candidate_votes_count: None,
+            total_rejected_votes: BTreeMap::new(),
+            total_uncounted_votes: BTreeMap::new(),
+            reporting_unit_votes: vec![],
+        }
+    }
+
+    /// Set the identifier for the contest.
+    pub fn identifier(mut self, identifier: impl Into<ContestIdentifier>) -> Self {
+        self.identifier = Some(identifier.into());
+        self
+    }
+
+    /// Set the total votes for the contest.
+    pub fn total_votes(mut self, total_votes: impl Into<TotalVotes>) -> Self {
+        self.total_votes = Some(total_votes.into());
+        self
+    }
+
+    /// Set the selections within the total votes for the contest. This overrides any previously set selections.
+    pub fn total_votes_selections(
+        mut self,
+        selections: impl Into<Vec<ElectionCountSelection>>,
+    ) -> Self {
+        self.total_votes_selections = selections.into();
+        self
+    }
+
+    /// Add a selection to the selections within the total votes for the contest.
+    pub fn push_total_votes_selection(
+        mut self,
+        selection: impl Into<ElectionCountSelection>,
+    ) -> Self {
+        self.total_votes_selections.push(selection.into());
+        self
+    }
+
+    /// Set the total number of eligible voters within the contest.
+    pub fn total_eligible_voter_count(mut self, count: impl Into<u64>) -> Self {
+        self.total_eligible_voter_count = Some(StringValue::from_value(count.into()));
+        self
+    }
+
+    /// Set the total number of votes on candidates within the contest.
+    pub fn total_candidate_votes_count(mut self, count: impl Into<u64>) -> Self {
+        self.total_candidate_votes_count = Some(StringValue::from_value(count.into()));
+        self
+    }
+
+    /// Set the total number of rejected votes within the contest for a given reason.
+    pub fn total_rejected_votes(
+        mut self,
+        reason: RejectedVotesReason,
+        count: impl Into<u64>,
+    ) -> Self {
+        self.total_rejected_votes
+            .insert(reason, StringValue::from_value(count.into()));
+        self
+    }
+
+    /// Set the total number of uncounted votes within the contest for a given reason.
+    pub fn total_uncounted_votes(
+        mut self,
+        reason: UncountedVotesReason,
+        count: impl Into<u64>,
+    ) -> Self {
+        self.total_uncounted_votes
+            .insert(reason, StringValue::from_value(count.into()));
+        self
+    }
+
+    /// Set the details for all the reporting units within the contest. This
+    /// overrides any previously set reporting unit votes.
+    pub fn reporting_unit_votes(
+        mut self,
+        reporting_unit_votes: impl Into<Vec<ReportingUnitVotes>>,
+    ) -> Self {
+        self.reporting_unit_votes = reporting_unit_votes.into();
+        self
+    }
+
+    /// Add the details for a reporting unit within the contest.
+    pub fn push_reporting_unit_votes(
+        mut self,
+        reporting_unit_votes: impl Into<ReportingUnitVotes>,
+    ) -> Self {
+        self.reporting_unit_votes.push(reporting_unit_votes.into());
+        self
+    }
+
+    /// Build the [`ElectionCountContest`] document, returning an error if any of the required fields are missing.
+    pub fn build(self) -> Result<ElectionCountContest, EMLError> {
+        Ok(ElectionCountContest {
+            identifier: self
+                .identifier
+                .ok_or_else(|| EMLErrorKind::MissingBuildProperty("identifier").without_span())?,
+            total_votes: self.total_votes.map_or_else(
+                || {
+                    if self.total_votes_selections.is_empty()
+                        && self.total_eligible_voter_count.is_none()
+                        && self.total_candidate_votes_count.is_none()
+                        && self.total_rejected_votes.is_empty()
+                        && self.total_uncounted_votes.is_empty()
+                    {
+                        Ok(None)
+                    } else {
+                        if self.total_votes_selections.is_empty() {
+                            return Err(EMLErrorKind::MissingBuildProperty(
+                                "total_votes_selections",
+                            )
+                            .without_span());
+                        }
+
+                        if !self
+                            .total_rejected_votes
+                            .contains_key(&RejectedVotesReason::Blank)
+                        {
+                            return Err(EMLErrorKind::MissingRejectedVotesBlank).without_span();
+                        }
+
+                        if !self
+                            .total_rejected_votes
+                            .contains_key(&RejectedVotesReason::Invalid)
+                        {
+                            return Err(EMLErrorKind::MissingRejectedVotesInvalid).without_span();
+                        }
+
+                        Ok(Some(TotalVotes {
+                            selections: self.total_votes_selections,
+                            eligible_voter_count: self.total_eligible_voter_count.ok_or_else(
+                                || {
+                                    EMLErrorKind::MissingBuildProperty("total_eligible_voter_count")
+                                        .without_span()
+                                },
+                            )?,
+                            candidate_votes_count: self.total_candidate_votes_count.ok_or_else(
+                                || {
+                                    EMLErrorKind::MissingBuildProperty(
+                                        "total_candidate_votes_count",
+                                    )
+                                    .without_span()
+                                },
+                            )?,
+                            rejected_votes: self.total_rejected_votes,
+                            uncounted_votes: self.total_uncounted_votes,
+                        }))
+                    }
+                },
+                |v| Ok(Some(v)),
+            )?,
+            reporting_unit_votes: self.reporting_unit_votes,
+        })
+    }
+}
+
+impl Default for ElectionCountContestBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EMLElement for ElectionCountContest {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("Contest", Some(NS_EML));
 
@@ -315,6 +701,12 @@ impl EMLElement for ElectionCountContest {
             .finish()
     }
 }
+
+const REJECTED_VOTES_EML_NAME: QualifiedName<'_, '_> =
+    QualifiedName::from_static("RejectedVotes", Some(NS_EML));
+
+const UNCOUNTED_VOTES_EML_NAME: QualifiedName<'_, '_> =
+    QualifiedName::from_static("UncountedVotes", Some(NS_EML));
 
 /// Total votes in a contest.
 #[derive(Debug, Clone)]
@@ -338,46 +730,64 @@ pub struct TotalVotes {
     /// the actual total number of counted votes.
     pub candidate_votes_count: StringValue<u64>,
 
-    /// Rejected blank votes within the reporting unit votes.
+    /// Rejected votes within the reporting unit votes.
     ///
-    /// In EML_NL this element is called `RejectedVotes`, with a `ReasonCode`
-    /// attribute set to the value `blanco`.
-    pub rejected_votes_blank: StringValue<u64>,
+    /// Contains blank and invalid votes.
+    pub rejected_votes: BTreeMap<RejectedVotesReason, StringValue<u64>>,
 
-    /// Rejected invalid votes within the reporting unit votes.
-    ///
-    /// In EML_NL this element is called `RejectedVotes`, with a `ReasonCode`
-    /// attribute set to the value `ongeldig`.
-    pub rejected_votes_invalid: StringValue<u64>,
-
-    /// Uncounted votes reasons within the reporting unit votes.
-    pub uncounted_votes: Vec<UncountedVotes>,
+    /// Uncounted votes within the reporting unit votes.
+    pub uncounted_votes: BTreeMap<UncountedVotesReason, StringValue<u64>>,
 }
 
 impl EMLElement for TotalVotes {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("TotalVotes", Some(NS_EML));
 
     fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
-        Ok(collect_struct!(elem, TotalVotes {
+        let data = collect_struct!(elem, TotalVotes {
             selections as Vec: ElectionCountSelection::EML_NAME => |elem| ElectionCountSelection::read_eml(elem)?,
             eligible_voter_count: ("Cast", NS_EML) => |elem| elem.string_value()?,
             candidate_votes_count: ("TotalCounted", NS_EML) => |elem| elem.string_value()?,
-            rejected_votes_blank as Mapped: ("RejectedVotes", NS_EML) => |elem| {
-                if elem.attribute_value("ReasonCode")?.as_deref() == Some("blanco") {
-                    Some(elem.string_value()?)
-                } else {
-                    None
-                }
-            } else EMLErrorKind::MissingRejectedVotesBlank,
-            rejected_votes_invalid as Mapped: ("RejectedVotes", NS_EML) => |elem| {
-                if elem.attribute_value("ReasonCode")?.as_deref() == Some("ongeldig") {
-                    Some(elem.string_value()?)
-                } else {
-                    None
-                }
-            } else EMLErrorKind::MissingRejectedVotesInvalid,
-            uncounted_votes as Vec: UncountedVotes::EML_NAME => |elem| UncountedVotes::read_eml(elem)?,
-        }))
+            rejected_votes as BTreeMap: REJECTED_VOTES_EML_NAME => |elem| {
+                let reason_code = elem.attribute_value_req("ReasonCode")?;
+                let reason = RejectedVotesReason::from_eml_code(&reason_code)
+                    .map_err(|e| EMLError::invalid_value(REJECTED_VOTES_EML_NAME.as_owned(), e, Some(elem.full_span())))?;
+
+                (reason, elem.string_value()?)
+            },
+            uncounted_votes as BTreeMap: UNCOUNTED_VOTES_EML_NAME => |elem| {
+                let reason_code = elem.attribute_value_req("ReasonCode")?;
+                let reason = UncountedVotesReason::from_eml_code(&reason_code)
+                    .map_err(|e| EMLError::invalid_value(UNCOUNTED_VOTES_EML_NAME.as_owned(), e, Some(elem.full_span())))?;
+
+                (reason, elem.string_value()?)
+            },
+        });
+
+        if !data
+            .rejected_votes
+            .contains_key(&RejectedVotesReason::Blank)
+        {
+            let err = EMLErrorKind::MissingRejectedVotesBlank.with_span(elem.full_span());
+            if elem.parsing_mode().is_strict() {
+                return Err(err);
+            } else {
+                elem.push_err(err);
+            }
+        }
+
+        if !data
+            .rejected_votes
+            .contains_key(&RejectedVotesReason::Invalid)
+        {
+            let err = EMLErrorKind::MissingRejectedVotesInvalid.with_span(elem.full_span());
+            if elem.parsing_mode().is_strict() {
+                return Err(err);
+            } else {
+                elem.push_err(err);
+            }
+        }
+
+        Ok(data)
     }
 
     fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
@@ -391,17 +801,26 @@ impl EMLElement for TotalVotes {
                 elem.text(self.candidate_votes_count.raw().as_ref())?
                     .finish()
             })?
-            .child(("RejectedVotes", NS_EML), |elem| {
-                elem.attr("ReasonCode", "blanco")?
-                    .text(self.rejected_votes_blank.raw().as_ref())?
-                    .finish()
-            })?
-            .child(("RejectedVotes", NS_EML), |elem| {
-                elem.attr("ReasonCode", "ongeldig")?
-                    .text(self.rejected_votes_invalid.raw().as_ref())?
-                    .finish()
-            })?
-            .child_elems(UncountedVotes::EML_NAME, &self.uncounted_votes)?
+            .child_elems_map(
+                REJECTED_VOTES_EML_NAME,
+                &self.rejected_votes,
+                |elem, (reason, count)| {
+                    let reason_code = reason.to_eml_code();
+                    elem.attr("ReasonCode", reason_code.as_ref())?
+                        .text(count.raw().as_ref())?
+                        .finish()
+                },
+            )?
+            .child_elems_map(
+                UNCOUNTED_VOTES_EML_NAME,
+                &self.uncounted_votes,
+                |elem, (reason, count)| {
+                    let reason_code = reason.to_eml_code();
+                    elem.attr("ReasonCode", reason_code.as_ref())?
+                        .text(count.raw().as_ref())?
+                        .finish()
+                },
+            )?
             .finish()
     }
 }
@@ -431,52 +850,238 @@ pub struct ReportingUnitVotes {
     /// the actual total number of counted votes.
     pub candidate_votes_count: StringValue<u64>,
 
-    /// Rejected blank votes within the reporting unit votes.
+    /// Rejected votes within the reporting unit votes.
     ///
-    /// In EML_NL this element is called `RejectedVotes`, with a `ReasonCode`
-    /// attribute set to the value `blanco`.
-    pub rejected_votes_blank: StringValue<u64>,
+    /// Contains blank and invalid votes.
+    pub rejected_votes: BTreeMap<RejectedVotesReason, StringValue<u64>>,
 
-    /// Rejected invalid votes within the reporting unit votes.
-    ///
-    /// In EML_NL this element is called `RejectedVotes`, with a `ReasonCode`
-    /// attribute set to the value `ongeldig`.
-    pub rejected_votes_invalid: StringValue<u64>,
-
-    /// Uncounted votes reasons within the reporting unit votes.
-    pub uncounted_votes: Vec<UncountedVotes>,
+    /// Uncounted votes within the reporting unit votes.
+    pub uncounted_votes: BTreeMap<UncountedVotesReason, StringValue<u64>>,
 
     /// Investigations within the reporting unit votes.
-    pub investigations: Option<ReportingUnitInvestigations>,
+    pub investigations: BTreeMap<InvestigationReason, StringValue<bool>>,
 }
+
+impl ReportingUnitVotes {
+    /// Create a builder for the [`ReportingUnitVotes`].
+    pub fn builder() -> ReportingUnitVotesBuilder {
+        ReportingUnitVotesBuilder::new()
+    }
+}
+
+/// A builder for [`ReportingUnitVotes`].
+#[derive(Debug, Clone)]
+pub struct ReportingUnitVotesBuilder {
+    identifier: Option<ReportingUnitIdentifier>,
+    selections: Vec<ElectionCountSelection>,
+    eligible_voter_count: Option<StringValue<u64>>,
+    candidate_votes_count: Option<StringValue<u64>>,
+    rejected_votes: BTreeMap<RejectedVotesReason, StringValue<u64>>,
+    uncounted_votes: BTreeMap<UncountedVotesReason, StringValue<u64>>,
+    investigations: BTreeMap<InvestigationReason, StringValue<bool>>,
+}
+
+impl ReportingUnitVotesBuilder {
+    /// Create a new ReportingUnitVotesBuilder for building [`ReportingUnitVotes`] documents.
+    pub fn new() -> Self {
+        Self {
+            identifier: None,
+            selections: vec![],
+            eligible_voter_count: None,
+            candidate_votes_count: None,
+            rejected_votes: BTreeMap::new(),
+            uncounted_votes: BTreeMap::new(),
+            investigations: BTreeMap::new(),
+        }
+    }
+
+    /// Set the identifier for the reporting unit votes.
+    pub fn identifier(mut self, identifier: impl Into<ReportingUnitIdentifier>) -> Self {
+        self.identifier = Some(identifier.into());
+        self
+    }
+
+    /// Set the selections within the reporting unit votes. This overrides any previously set selections.
+    pub fn selections(mut self, selections: impl Into<Vec<ElectionCountSelection>>) -> Self {
+        self.selections = selections.into();
+        self
+    }
+
+    /// Add a selection to the selections within the reporting unit votes.
+    pub fn push_selection(mut self, selection: impl Into<ElectionCountSelection>) -> Self {
+        self.selections.push(selection.into());
+        self
+    }
+
+    /// Set the total number of eligible voters within the reporting unit votes.
+    pub fn eligible_voter_count(mut self, count: impl Into<u64>) -> Self {
+        self.eligible_voter_count = Some(StringValue::from_value(count.into()));
+        self
+    }
+
+    /// Set the total number of votes on candidates within the reporting unit votes.
+    pub fn candidate_votes_count(mut self, count: impl Into<u64>) -> Self {
+        self.candidate_votes_count = Some(StringValue::from_value(count.into()));
+        self
+    }
+
+    /// Set the total number of rejected votes within the reporting unit votes for a given reason.
+    pub fn rejected_votes(mut self, reason: RejectedVotesReason, count: impl Into<u64>) -> Self {
+        self.rejected_votes
+            .insert(reason, StringValue::from_value(count.into()));
+        self
+    }
+
+    /// Set the total number of uncounted votes within the reporting unit votes for a given reason.
+    pub fn uncounted_votes(mut self, reason: UncountedVotesReason, count: impl Into<u64>) -> Self {
+        self.uncounted_votes
+            .insert(reason, StringValue::from_value(count.into()));
+        self
+    }
+
+    /// Set the investigations within the reporting unit votes for a given reason.
+    pub fn investigation(mut self, reason: InvestigationReason, value: bool) -> Self {
+        self.investigations
+            .insert(reason, StringValue::from_value(value));
+        self
+    }
+
+    /// Build the [`ReportingUnitVotes`] document, returning an error if any of the required fields are missing.
+    pub fn build(self) -> Result<ReportingUnitVotes, EMLError> {
+        if self.selections.is_empty() {
+            return Err(EMLErrorKind::MissingBuildProperty("selections").without_span());
+        }
+
+        if !self
+            .rejected_votes
+            .contains_key(&RejectedVotesReason::Blank)
+        {
+            return Err(EMLErrorKind::MissingRejectedVotesBlank).without_span();
+        }
+
+        if !self
+            .rejected_votes
+            .contains_key(&RejectedVotesReason::Invalid)
+        {
+            return Err(EMLErrorKind::MissingRejectedVotesInvalid).without_span();
+        }
+
+        Ok(ReportingUnitVotes {
+            identifier: self
+                .identifier
+                .ok_or_else(|| EMLErrorKind::MissingBuildProperty("identifier").without_span())?,
+            selections: self.selections,
+            eligible_voter_count: self.eligible_voter_count.ok_or_else(|| {
+                EMLErrorKind::MissingBuildProperty("eligible_voter_count").without_span()
+            })?,
+            candidate_votes_count: self.candidate_votes_count.ok_or_else(|| {
+                EMLErrorKind::MissingBuildProperty("candidate_votes_count").without_span()
+            })?,
+            rejected_votes: self.rejected_votes,
+            uncounted_votes: self.uncounted_votes,
+            investigations: self.investigations,
+        })
+    }
+}
+
+impl Default for ReportingUnitVotesBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+const REPORTING_UNIT_INVESTIGATIONS_EML_NAME: QualifiedName<'_, '_> =
+    QualifiedName::from_static("ReportingUnitInvestigations", Some(NS_KR));
+
+const INVESTIGATION_EML_NAME: QualifiedName<'_, '_> =
+    QualifiedName::from_static("Investigation", Some(NS_KR));
 
 impl EMLElement for ReportingUnitVotes {
     const EML_NAME: QualifiedName<'_, '_> =
         QualifiedName::from_static("ReportingUnitVotes", Some(NS_EML));
 
     fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
-        Ok(collect_struct!(elem, ReportingUnitVotes {
+        struct ReportingUnitVotesInternal {
+            identifier: ReportingUnitIdentifier,
+            selections: Vec<ElectionCountSelection>,
+            eligible_voter_count: StringValue<u64>,
+            candidate_votes_count: StringValue<u64>,
+            rejected_votes: BTreeMap<RejectedVotesReason, StringValue<u64>>,
+            uncounted_votes: BTreeMap<UncountedVotesReason, StringValue<u64>>,
+            investigations: Option<BTreeMap<InvestigationReason, StringValue<bool>>>,
+        }
+
+        let data = collect_struct!(elem, ReportingUnitVotesInternal {
             identifier: ReportingUnitIdentifier::EML_NAME => |elem| ReportingUnitIdentifier::read_eml(elem)?,
             selections as Vec: ElectionCountSelection::EML_NAME => |elem| ElectionCountSelection::read_eml(elem)?,
             eligible_voter_count: ("Cast", NS_EML) => |elem| elem.string_value()?,
             candidate_votes_count: ("TotalCounted", NS_EML) => |elem| elem.string_value()?,
-            rejected_votes_blank as Mapped: ("RejectedVotes", NS_EML) => |elem| {
-                if elem.attribute_value("ReasonCode")?.as_deref() == Some("blanco") {
-                    Some(elem.string_value()?)
-                } else {
-                    None
+            rejected_votes as BTreeMap: REJECTED_VOTES_EML_NAME => |elem| {
+                let reason_code = elem.attribute_value_req("ReasonCode")?;
+                let reason = RejectedVotesReason::from_eml_code(&reason_code)
+                    .map_err(|e| EMLError::invalid_value(REJECTED_VOTES_EML_NAME.as_owned(), e, Some(elem.full_span())))?;
+
+                (reason, elem.string_value()?)
+            },
+            uncounted_votes as BTreeMap: UNCOUNTED_VOTES_EML_NAME => |elem| {
+                let reason_code = elem.attribute_value_req("ReasonCode")?;
+                let reason = UncountedVotesReason::from_eml_code(&reason_code)
+                    .map_err(|e| EMLError::invalid_value(UNCOUNTED_VOTES_EML_NAME.as_owned(), e, Some(elem.full_span())))?;
+
+                (reason, elem.string_value()?)
+            },
+            investigations as Option: REPORTING_UNIT_INVESTIGATIONS_EML_NAME => |elem| {
+                struct Collector {
+                    investigations: BTreeMap<InvestigationReason, StringValue<bool>>,
                 }
-            } else EMLErrorKind::MissingRejectedVotesBlank,
-            rejected_votes_invalid as Mapped: ("RejectedVotes", NS_EML) => |elem| {
-                if elem.attribute_value("ReasonCode")?.as_deref() == Some("ongeldig") {
-                    Some(elem.string_value()?)
-                } else {
-                    None
-                }
-            } else EMLErrorKind::MissingRejectedVotesInvalid,
-            uncounted_votes as Vec: UncountedVotes::EML_NAME => |elem| UncountedVotes::read_eml(elem)?,
-            investigations as Option: ReportingUnitInvestigations::EML_NAME => |elem| ReportingUnitInvestigations::read_eml(elem)?,
-        }))
+
+                let data = collect_struct!(elem, Collector {
+                    investigations as BTreeMap: INVESTIGATION_EML_NAME => |elem| {
+                        let reason_code = elem.attribute_value_req("ReasonCode")?;
+                        let reason = InvestigationReason::from_eml_code(&reason_code)
+                            .map_err(|e| EMLError::invalid_value(INVESTIGATION_EML_NAME.as_owned(), e, Some(elem.full_span())))?;
+
+                        (reason, elem.string_value()?)
+                    },
+                });
+
+                data.investigations
+            },
+        });
+
+        if !data
+            .rejected_votes
+            .contains_key(&RejectedVotesReason::Blank)
+        {
+            let err = EMLErrorKind::MissingRejectedVotesBlank.with_span(elem.full_span());
+            if elem.parsing_mode().is_strict() {
+                return Err(err);
+            } else {
+                elem.push_err(err);
+            }
+        }
+
+        if !data
+            .rejected_votes
+            .contains_key(&RejectedVotesReason::Invalid)
+        {
+            let err = EMLErrorKind::MissingRejectedVotesInvalid.with_span(elem.full_span());
+            if elem.parsing_mode().is_strict() {
+                return Err(err);
+            } else {
+                elem.push_err(err);
+            }
+        }
+
+        Ok(ReportingUnitVotes {
+            identifier: data.identifier,
+            selections: data.selections,
+            eligible_voter_count: data.eligible_voter_count,
+            candidate_votes_count: data.candidate_votes_count,
+            rejected_votes: data.rejected_votes,
+            uncounted_votes: data.uncounted_votes,
+            investigations: data.investigations.unwrap_or_default(),
+        })
     }
 
     fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
@@ -491,20 +1096,47 @@ impl EMLElement for ReportingUnitVotes {
                 elem.text(self.candidate_votes_count.raw().as_ref())?
                     .finish()
             })?
-            .child(("RejectedVotes", NS_EML), |elem| {
-                elem.attr("ReasonCode", "blanco")?
-                    .text(self.rejected_votes_blank.raw().as_ref())?
-                    .finish()
-            })?
-            .child(("RejectedVotes", NS_EML), |elem| {
-                elem.attr("ReasonCode", "ongeldig")?
-                    .text(self.rejected_votes_invalid.raw().as_ref())?
-                    .finish()
-            })?
-            .child_elems(UncountedVotes::EML_NAME, &self.uncounted_votes)?
-            .child_elem_option(
-                ReportingUnitInvestigations::EML_NAME,
-                self.investigations.as_ref(),
+            .child_elems_map(
+                REJECTED_VOTES_EML_NAME,
+                &self.rejected_votes,
+                |elem, (reason, count)| {
+                    let reason_code = reason.to_eml_code();
+                    elem.attr("ReasonCode", reason_code.as_ref())?
+                        .text(count.raw().as_ref())?
+                        .finish()
+                },
+            )?
+            .child_elems_map(
+                UNCOUNTED_VOTES_EML_NAME,
+                &self.uncounted_votes,
+                |elem, (reason, count)| {
+                    let reason_code = reason.to_eml_code();
+                    elem.attr("ReasonCode", reason_code.as_ref())?
+                        .text(count.raw().as_ref())?
+                        .finish()
+                },
+            )?
+            .child_option(
+                REPORTING_UNIT_INVESTIGATIONS_EML_NAME,
+                if self.investigations.is_empty() {
+                    None
+                } else {
+                    Some(&self.investigations)
+                },
+                |elem, value| {
+                    let mut elem = elem.content()?;
+
+                    for (reason, investigated) in value {
+                        elem = elem.child(INVESTIGATION_EML_NAME, |elem| {
+                            let reason_code = reason.to_eml_code();
+                            elem.attr("ReasonCode", reason_code.as_ref())?
+                                .text(investigated.raw().as_ref())?
+                                .finish()
+                        })?;
+                    }
+
+                    elem.finish()
+                },
             )?
             .finish()
     }
@@ -518,6 +1150,16 @@ pub struct ReportingUnitIdentifier {
 
     /// Name of the reporting unit
     pub name: String,
+}
+
+impl ReportingUnitIdentifier {
+    /// Create a new ReportingUnitIdentifier with the given id and name.
+    pub fn new(id: impl Into<ReportingUnitIdentifierIdType>, name: impl Into<String>) -> Self {
+        ReportingUnitIdentifier {
+            id: StringValue::from_value(id.into()),
+            name: name.into(),
+        }
+    }
 }
 
 impl EMLElement for ReportingUnitIdentifier {
@@ -582,64 +1224,8 @@ impl StringValueData for ReportingUnitIdentifierIdType {
     }
 }
 
-/// Investigations within the reporting unit.
-#[derive(Debug, Clone)]
-pub struct ReportingUnitInvestigations {
-    /// Investigations within the reporting unit.
-    pub investigations: Vec<Investigation>,
-}
-
-impl EMLElement for ReportingUnitInvestigations {
-    const EML_NAME: QualifiedName<'_, '_> =
-        QualifiedName::from_static("ReportingUnitInvestigations", Some(NS_KR));
-
-    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
-        Ok(collect_struct!(elem, ReportingUnitInvestigations {
-            investigations as Vec: Investigation::EML_NAME => |elem| Investigation::read_eml(elem)?,
-        }))
-    }
-
-    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
-        writer
-            .child_elems(Investigation::EML_NAME, &self.investigations)?
-            .finish()
-    }
-}
-
-/// An investigation within the reporting unit.
-#[derive(Debug, Clone)]
-pub struct Investigation {
-    /// Whether the type of investigation as specified by reason was conducted.
-    pub investigated: StringValue<bool>,
-
-    /// Reason for the investigation.
-    pub reason: StringValue<InvestigationReason>,
-}
-
-impl EMLElement for Investigation {
-    const EML_NAME: QualifiedName<'_, '_> =
-        QualifiedName::from_static("Investigation", Some(NS_KR));
-
-    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
-        Ok(collect_struct!(
-            elem,
-            Investigation {
-                investigated: elem.string_value()?,
-                reason: elem.string_value_attr("ReasonCode", None)?,
-            }
-        ))
-    }
-
-    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
-        writer
-            .attr("ReasonCode", self.reason.raw().as_ref())?
-            .text(self.investigated.raw().as_ref())?
-            .finish()
-    }
-}
-
 /// Reason code for a specific investigation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum InvestigationReason {
     /// onderzocht vanwege onverklaard verschil
     UnexplainedDifference,
@@ -657,19 +1243,19 @@ pub enum InvestigationReason {
 
 impl InvestigationReason {
     /// Create an InvestigationReason from an EML reason code string.
-    pub fn from_eml_code(s: &str) -> Option<Self> {
+    pub fn from_eml_code(s: &str) -> Result<Self, InvalidInvestigationReason> {
         match s {
             "onderzocht vanwege onverklaard verschil" => {
-                Some(InvestigationReason::UnexplainedDifference)
+                Ok(InvestigationReason::UnexplainedDifference)
             }
-            "onderzocht vanwege andere fout" => Some(InvestigationReason::OtherError),
-            "uitslag gecorrigeerd" => Some(InvestigationReason::ResultCorrected),
+            "onderzocht vanwege andere fout" => Ok(InvestigationReason::OtherError),
+            "uitslag gecorrigeerd" => Ok(InvestigationReason::ResultCorrected),
             "toegelaten kiezers opnieuw vastgesteld" => {
-                Some(InvestigationReason::AdmittedVotersReestablished)
+                Ok(InvestigationReason::AdmittedVotersReestablished)
             }
-            "onderzocht vanwege andere reden" => Some(InvestigationReason::OtherReason),
-            "stembiljetten deels herteld" => Some(InvestigationReason::PartiallyRecountedBallots),
-            _ => None,
+            "onderzocht vanwege andere reden" => Ok(InvestigationReason::OtherReason),
+            "stembiljetten deels herteld" => Ok(InvestigationReason::PartiallyRecountedBallots),
+            _ => Err(InvalidInvestigationReason(s.to_string())),
         }
     }
 
@@ -693,50 +1279,8 @@ impl InvestigationReason {
 #[error("Invalid investigation reason: {0}")]
 pub struct InvalidInvestigationReason(String);
 
-impl StringValueData for InvestigationReason {
-    type Error = InvalidInvestigationReason;
-
-    fn parse_from_str(s: &str) -> Result<Self, Self::Error> {
-        InvestigationReason::from_eml_code(s)
-            .ok_or_else(|| InvalidInvestigationReason(s.to_string()))
-    }
-
-    fn to_raw_value(&self) -> String {
-        self.to_eml_code().to_string()
-    }
-}
-
-/// Uncounted votes reasons within the reporting unit votes.
-#[derive(Debug, Clone)]
-pub struct UncountedVotes {
-    /// Number of uncounted votes.
-    pub value: StringValue<u64>,
-
-    /// Reason for uncounted votes.
-    pub reason: StringValue<UncountedVotesReason>,
-}
-
-impl EMLElement for UncountedVotes {
-    const EML_NAME: QualifiedName<'_, '_> =
-        QualifiedName::from_static("UncountedVotes", Some(NS_EML));
-
-    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
-        Ok(UncountedVotes {
-            value: elem.string_value()?,
-            reason: elem.string_value_attr("ReasonCode", None)?,
-        })
-    }
-
-    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
-        writer
-            .attr("ReasonCode", self.reason.raw().as_ref())?
-            .text(self.value.raw().as_ref())?
-            .finish()
-    }
-}
-
 /// Reason code for a specific uncounted votes entry.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum UncountedVotesReason {
     /// geldige stempassen
     ValidPollCards,
@@ -770,25 +1314,23 @@ pub enum UncountedVotesReason {
 
 impl UncountedVotesReason {
     /// Create an UncountedVotesReason from an EML reason code string.
-    pub fn from_eml_code(s: &str) -> Option<Self> {
-        match s {
-            "geldige stempassen" => Some(UncountedVotesReason::ValidPollCards),
-            "geldige volmachtbewijzen" => Some(UncountedVotesReason::ValidProxyCertificates),
-            "geldige kiezerspassen" => Some(UncountedVotesReason::ValidVoterCards),
-            "toegelaten kiezers" => Some(UncountedVotesReason::AdmittedVoters),
-            "meer getelde stembiljetten" => Some(UncountedVotesReason::MoreBallotsCounted),
-            "minder getelde stembiljetten" => Some(UncountedVotesReason::FewerBallotsCounted),
-            "meegenomen stembiljetten" => Some(UncountedVotesReason::BallotsTaken),
-            "te weinig uitgereikte stembiljetten" => {
-                Some(UncountedVotesReason::TooFewBallotsIssued)
-            }
-            "te veel uitgereikte stembiljetten" => Some(UncountedVotesReason::TooManyBallotsIssued),
-            "geen briefstembiljetten" => Some(UncountedVotesReason::NoPostalBallots),
-            "te veel briefstembiljetten" => Some(UncountedVotesReason::TooManyPostalBallots),
-            "kwijtgeraakte stembiljetten" => Some(UncountedVotesReason::LostBallots),
-            "geen verklaring" => Some(UncountedVotesReason::NoExplanation),
-            "andere verklaring" => Some(UncountedVotesReason::OtherExplanation),
-            _ => None,
+    pub fn from_eml_code(s: impl AsRef<str>) -> Result<Self, InvalidUncountedVotesReason> {
+        match s.as_ref() {
+            "geldige stempassen" => Ok(UncountedVotesReason::ValidPollCards),
+            "geldige volmachtbewijzen" => Ok(UncountedVotesReason::ValidProxyCertificates),
+            "geldige kiezerspassen" => Ok(UncountedVotesReason::ValidVoterCards),
+            "toegelaten kiezers" => Ok(UncountedVotesReason::AdmittedVoters),
+            "meer getelde stembiljetten" => Ok(UncountedVotesReason::MoreBallotsCounted),
+            "minder getelde stembiljetten" => Ok(UncountedVotesReason::FewerBallotsCounted),
+            "meegenomen stembiljetten" => Ok(UncountedVotesReason::BallotsTaken),
+            "te weinig uitgereikte stembiljetten" => Ok(UncountedVotesReason::TooFewBallotsIssued),
+            "te veel uitgereikte stembiljetten" => Ok(UncountedVotesReason::TooManyBallotsIssued),
+            "geen briefstembiljetten" => Ok(UncountedVotesReason::NoPostalBallots),
+            "te veel briefstembiljetten" => Ok(UncountedVotesReason::TooManyPostalBallots),
+            "kwijtgeraakte stembiljetten" => Ok(UncountedVotesReason::LostBallots),
+            "geen verklaring" => Ok(UncountedVotesReason::NoExplanation),
+            "andere verklaring" => Ok(UncountedVotesReason::OtherExplanation),
+            _ => Err(InvalidUncountedVotesReason(s.as_ref().to_string())),
         }
     }
 
@@ -818,21 +1360,38 @@ impl UncountedVotesReason {
 #[error("Invalid uncounted votes reason: {0}")]
 pub struct InvalidUncountedVotesReason(String);
 
-impl StringValueData for UncountedVotesReason {
-    type Error = InvalidUncountedVotesReason;
+/// Reason code for rejected votes entry.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum RejectedVotesReason {
+    /// Blank votes ("blanco")
+    Blank,
+    /// Invalid votes ("ongeldig")
+    Invalid,
+}
 
-    fn parse_from_str(s: &str) -> Result<Self, Self::Error>
-    where
-        Self: Sized,
-    {
-        UncountedVotesReason::from_eml_code(s)
-            .ok_or_else(|| InvalidUncountedVotesReason(s.to_string()))
+impl RejectedVotesReason {
+    /// Create a RejectedVotesReason from an EML reason code string.
+    pub fn from_eml_code(s: impl AsRef<str>) -> Result<Self, InvalidRejectedVotesReason> {
+        match s.as_ref() {
+            "blanco" => Ok(RejectedVotesReason::Blank),
+            "ongeldig" => Ok(RejectedVotesReason::Invalid),
+            _ => Err(InvalidRejectedVotesReason(s.as_ref().to_string())),
+        }
     }
 
-    fn to_raw_value(&self) -> String {
-        self.to_eml_code().to_string()
+    /// Get the EML reason code string for this RejectedVotesReason.
+    pub fn to_eml_code(&self) -> &'static str {
+        match self {
+            RejectedVotesReason::Blank => "blanco",
+            RejectedVotesReason::Invalid => "ongeldig",
+        }
     }
 }
+
+/// Error indicating an invalid rejected votes reason.
+#[derive(Debug, Clone, thiserror::Error)]
+#[error("Invalid rejected votes reason: {0}")]
+pub struct InvalidRejectedVotesReason(String);
 
 /// A selection within the reporting unit votes.
 #[derive(Debug, Clone)]
@@ -848,6 +1407,61 @@ pub struct ElectionCountSelection {
 
     /// Value of the `Category` attribute, if present.
     pub category: Option<String>,
+}
+
+impl ElectionCountSelection {
+    /// Create a new ElectionCountSelection with the given candidate selection and valid votes.
+    pub fn candidate(
+        candidate: impl Into<CandidateSelection>,
+        valid_votes: impl Into<u64>,
+    ) -> Self {
+        ElectionCountSelection {
+            selection_type: ElectionCountSelectionType::Candidate(Box::new(candidate.into())),
+            valid_votes: StringValue::from_value(valid_votes.into()),
+            value: None,
+            category: None,
+        }
+    }
+
+    /// Create a new ElectionCountSelection with the given affiliation selection and valid votes.
+    pub fn affiliation(
+        affiliation: impl Into<AffiliationSelection>,
+        valid_votes: impl Into<u64>,
+    ) -> Self {
+        ElectionCountSelection {
+            selection_type: ElectionCountSelectionType::Affiliation(Box::new(affiliation.into())),
+            valid_votes: StringValue::from_value(valid_votes.into()),
+            value: None,
+            category: None,
+        }
+    }
+
+    /// Create a new ElectionCountSelection with the given referendum option selection and valid votes.
+    pub fn referendum_option(
+        referendum_option: impl Into<ReferendumOptionSelection>,
+        valid_votes: impl Into<u64>,
+    ) -> Self {
+        ElectionCountSelection {
+            selection_type: ElectionCountSelectionType::ReferendumOption(Box::new(
+                referendum_option.into(),
+            )),
+            valid_votes: StringValue::from_value(valid_votes.into()),
+            value: None,
+            category: None,
+        }
+    }
+
+    /// Set the value of the selection.
+    pub fn with_value(mut self, value: impl Into<String>) -> Self {
+        self.value = Some(value.into());
+        self
+    }
+
+    /// Set the category of the selection.
+    pub fn with_category(mut self, category: impl Into<String>) -> Self {
+        self.category = Some(category.into());
+        self
+    }
 }
 
 const VALID_VOTES_EML_NAME: QualifiedName<'_, '_> =
@@ -948,6 +1562,50 @@ pub enum ElectionCountSelectionType {
     ReferendumOption(Box<ReferendumOptionSelection>),
 }
 
+impl ElectionCountSelectionType {
+    /// Check if the selection type is a candidate selection.
+    pub fn is_candidate(&self) -> bool {
+        matches!(self, ElectionCountSelectionType::Candidate(_))
+    }
+
+    /// Check if the selection type is an affiliation selection.
+    pub fn is_affiliation(&self) -> bool {
+        matches!(self, ElectionCountSelectionType::Affiliation(_))
+    }
+
+    /// Check if the selection type is a referendum option selection.
+    pub fn is_referendum_option(&self) -> bool {
+        matches!(self, ElectionCountSelectionType::ReferendumOption(_))
+    }
+
+    /// Get the candidate selection if the selection type is a candidate selection.
+    pub fn as_candidate(&self) -> Option<&CandidateSelection> {
+        if let ElectionCountSelectionType::Candidate(candidate_selection) = self {
+            Some(candidate_selection)
+        } else {
+            None
+        }
+    }
+
+    /// Get the affiliation selection if the selection type is an affiliation selection.
+    pub fn as_affiliation(&self) -> Option<&AffiliationSelection> {
+        if let ElectionCountSelectionType::Affiliation(affiliation_selection) = self {
+            Some(affiliation_selection)
+        } else {
+            None
+        }
+    }
+
+    /// Get the referendum option selection if the selection type is a referendum option selection.
+    pub fn as_referendum_option(&self) -> Option<&ReferendumOptionSelection> {
+        if let ElectionCountSelectionType::ReferendumOption(referendum_option_selection) = self {
+            Some(referendum_option_selection)
+        } else {
+            None
+        }
+    }
+}
+
 /// Selection of a candidate.
 #[derive(Debug, Clone)]
 pub struct CandidateSelection {
@@ -962,6 +1620,107 @@ pub struct CandidateSelection {
 
     /// Qualified address of the candidate, if present.
     pub qualified_address: Option<MinimalQualifyingAddress>,
+}
+
+impl CandidateSelection {
+    /// Create a new builder for building an instance.
+    pub fn builder() -> CandidateSelectionBuilder {
+        CandidateSelectionBuilder::new()
+    }
+}
+
+/// A builder for [`CandidateSelection`].
+#[derive(Debug, Clone)]
+pub struct CandidateSelectionBuilder {
+    identifier: Option<CandidateIdentifier>,
+    name: Option<PersonNameStructure>,
+    gender: Option<StringValue<GenderType>>,
+    qualified_address: Option<MinimalQualifyingAddress>,
+    locality_name: Option<String>,
+    country_name_code: Option<String>,
+}
+
+impl CandidateSelectionBuilder {
+    /// Create a new CandidateSelectionBuilder for building [`CandidateSelection`] instances.
+    pub fn new() -> Self {
+        CandidateSelectionBuilder {
+            identifier: None,
+            name: None,
+            gender: None,
+            qualified_address: None,
+            locality_name: None,
+            country_name_code: None,
+        }
+    }
+
+    /// Set the identifier of the candidate selection.
+    pub fn identifier(mut self, identifier: impl Into<CandidateIdentifier>) -> Self {
+        self.identifier = Some(identifier.into());
+        self
+    }
+
+    /// Set the name of the candidate selection.
+    pub fn name(mut self, name: impl Into<PersonNameStructure>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    /// Set the gender of the candidate selection.
+    pub fn gender(mut self, gender: impl Into<GenderType>) -> Self {
+        self.gender = Some(StringValue::from_value(gender.into()));
+        self
+    }
+
+    /// Set the locality name for the candidate selection.
+    pub fn locality_name(mut self, locality_name: impl Into<String>) -> Self {
+        self.locality_name = Some(locality_name.into());
+        self
+    }
+
+    /// Set the country name code for the candidate selection.
+    pub fn country_name_code(mut self, country_name_code: impl Into<String>) -> Self {
+        self.country_name_code = Some(country_name_code.into());
+        self
+    }
+
+    /// Build a CandidateSelection, returning an error if any required properties are missing.
+    pub fn build(self) -> Result<CandidateSelection, EMLError> {
+        Ok(CandidateSelection {
+            identifier: self
+                .identifier
+                .ok_or_else(|| EMLErrorKind::MissingBuildProperty("identifier").without_span())?,
+            name: self.name,
+            gender: self.gender,
+            qualified_address: self.qualified_address.map_or_else(
+                || {
+                    if let Some(locality_name) = self.locality_name {
+                        if let Some(country_name_code) = self.country_name_code {
+                            Ok(Some(MinimalQualifyingAddress::new_country(
+                                country_name_code,
+                                locality_name,
+                            )))
+                        } else {
+                            Ok(Some(MinimalQualifyingAddress::new_locality(locality_name)))
+                        }
+                    } else {
+                        if self.country_name_code.is_some() {
+                            return Err(
+                                EMLErrorKind::MissingBuildProperty("locality_name").without_span()
+                            );
+                        }
+                        Ok(None)
+                    }
+                },
+                |address| Ok(Some(address)),
+            )?,
+        })
+    }
+}
+
+impl Default for CandidateSelectionBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl EMLElement for CandidateSelection {
@@ -1005,6 +1764,16 @@ pub struct AffiliationSelection {
     pub name: String,
 }
 
+impl AffiliationSelection {
+    /// Create a new AffiliationSelection with the given id and name.
+    pub fn new(id: impl Into<AffiliationIdType>, name: impl Into<String>) -> Self {
+        AffiliationSelection {
+            id: StringValue::from_value(id.into()),
+            name: name.into(),
+        }
+    }
+}
+
 impl EMLElement for AffiliationSelection {
     const EML_NAME: QualifiedName<'_, '_> =
         QualifiedName::from_static("AffiliationIdentifier", Some(NS_EML));
@@ -1045,6 +1814,46 @@ pub struct ReferendumOptionSelection {
     pub expected_confirmation_reference: Option<String>,
 }
 
+impl ReferendumOptionSelection {
+    /// Create a new ReferendumOptionSelection with the given value.
+    pub fn new(value: impl Into<String>) -> Self {
+        ReferendumOptionSelection {
+            value: value.into(),
+            id: None,
+            display_order: None,
+            short_code: None,
+            expected_confirmation_reference: None,
+        }
+    }
+
+    /// Set the Id attribute of the referendum option.
+    pub fn with_id(mut self, id: impl Into<String>) -> Self {
+        self.id = Some(id.into());
+        self
+    }
+
+    /// Set the DisplayOrder attribute of the referendum option.
+    pub fn with_display_order(mut self, display_order: impl Into<NonZeroU64>) -> Self {
+        self.display_order = Some(StringValue::from_value(display_order.into()));
+        self
+    }
+
+    /// Set the ShortCode attribute of the referendum option.
+    pub fn with_short_code(mut self, short_code: impl Into<String>) -> Self {
+        self.short_code = Some(short_code.into());
+        self
+    }
+
+    /// Set the ExpectedConfirmationReference attribute of the referendum option.
+    pub fn with_expected_confirmation_reference(
+        mut self,
+        expected_confirmation_reference: impl Into<String>,
+    ) -> Self {
+        self.expected_confirmation_reference = Some(expected_confirmation_reference.into());
+        self
+    }
+}
+
 impl EMLElement for ReferendumOptionSelection {
     const EML_NAME: QualifiedName<'_, '_> =
         QualifiedName::from_static("ReferendumOptionIdentifier", Some(NS_EML));
@@ -1077,10 +1886,135 @@ impl EMLElement for ReferendumOptionSelection {
 
 #[cfg(test)]
 mod tests {
+    use chrono::{NaiveDate, TimeZone as _};
+
+    use crate::{
+        common::{AuthorityIdentifier, PersonName},
+        io::{EMLParsingMode, EMLRead, EMLWrite},
+        utils::{CandidateIdType, XSBType},
+    };
+
     use super::*;
 
     #[test]
     fn test_reporting_unit_votes_identifier_type_regex_compiles() {
         LazyLock::force(&REPORTING_UNIT_VOTES_IDENTIFIER_TYPE_RE);
+    }
+
+    #[test]
+    fn test_election_count_construction() {
+        let ec = ElectionCount::builder()
+            .count_type(CountType::Municipal)
+            .transaction_id(TransactionId::new(1))
+            .creation_date_time(
+                chrono::Utc
+                    .with_ymd_and_hms(2014, 11, 28, 12, 0, 9)
+                    .unwrap(),
+            )
+            .managing_authority(ManagingAuthority::new(
+                AuthorityIdentifier::new(XSBType::new("1234").unwrap()).with_name("Rotterdam"),
+            ))
+            .election_identifier(
+                ElectionCountElectionIdentifier::builder()
+                    .id(ElectionIdType::new("GR2222_Cyber").unwrap())
+                    .category(ElectionCategory::GR)
+                    .election_date(NaiveDate::from_ymd_opt(2222, 11, 16).unwrap())
+                    .build_for_count()
+                    .unwrap(),
+            )
+            .contests([ElectionCountContest::builder()
+                .identifier(ContestIdentifier::geen())
+                .total_candidate_votes_count(65u64)
+                .total_eligible_voter_count(100u64)
+                .total_rejected_votes(RejectedVotesReason::Blank, 100u64)
+                .total_rejected_votes(RejectedVotesReason::Invalid, 0u64)
+                .total_uncounted_votes(UncountedVotesReason::AdmittedVoters, 10u64)
+                .total_votes_selections([
+                    ElectionCountSelection::affiliation(
+                        AffiliationSelection::new(AffiliationIdType::new("1").unwrap(), "Example"),
+                        16u64,
+                    ),
+                    ElectionCountSelection::candidate(
+                        CandidateSelection::builder()
+                            .identifier(CandidateIdType::new("1").unwrap())
+                            .name(PersonName::new("Smid").with_first_name("Example"))
+                            .build()
+                            .unwrap(),
+                        16u64,
+                    ),
+                ])
+                .reporting_unit_votes([ReportingUnitVotes::builder()
+                    .identifier(ReportingUnitIdentifier::new(
+                        ReportingUnitIdentifierIdType::new("SB1234").unwrap(),
+                        "Stembureau",
+                    ))
+                    .rejected_votes(RejectedVotesReason::Blank, 10u64)
+                    .rejected_votes(RejectedVotesReason::Invalid, 0u64)
+                    .uncounted_votes(UncountedVotesReason::AdmittedVoters, 5u64)
+                    .candidate_votes_count(10u64)
+                    .eligible_voter_count(100u64)
+                    .selections([
+                        ElectionCountSelection::affiliation(
+                            AffiliationSelection::new(
+                                AffiliationIdType::new("1").unwrap(),
+                                "Example",
+                            ),
+                            16u64,
+                        ),
+                        ElectionCountSelection::candidate(
+                            CandidateSelection::builder()
+                                .identifier(CandidateIdType::new("1").unwrap())
+                                .name(PersonName::new("Smid").with_first_name("Example"))
+                                .build()
+                                .unwrap(),
+                            16u64,
+                        ),
+                    ])
+                    .build()
+                    .unwrap()])
+                .build()
+                .unwrap()])
+            .build()
+            .unwrap();
+
+        let xml = ec.write_eml_root_str(true, true).unwrap();
+        assert_eq!(
+            xml,
+            include_str!("../../test-emls/election_count/eml510b_construction_output.eml.xml")
+        );
+    }
+
+    #[test]
+    fn test_parse_510b() {
+        let xml = include_str!("../../test-emls/election_count/deserialize_eml510b_test.eml.xml");
+
+        assert!(
+            ElectionCount::parse_eml(xml, EMLParsingMode::Strict)
+                .ok_with_errors()
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn test_parse_510d() {
+        let xml = include_str!("../../test-emls/election_count/deserialize_eml510d_test.eml.xml");
+
+        assert!(
+            ElectionCount::parse_eml(xml, EMLParsingMode::Strict)
+                .ok_with_errors()
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn test_parse_with_investigations() {
+        let xml =
+            include_str!("../../test-emls/election_count/eml510b_with_investigations.eml.xml");
+
+        assert!(
+            ElectionCount::parse_eml(xml, EMLParsingMode::Strict)
+                .ok_with_errors()
+                .is_ok()
+        );
     }
 }

@@ -26,7 +26,7 @@ pub trait StringValueData: Clone {
 /// The type `T` must implement the [`StringValueData`] trait, which defines how to parse and
 /// serialize the value. This type is used whenever an EML_NL document element or attribute
 /// contains a string value that could be parsed, but where strict parsing is not always desired.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum StringValue<T: StringValueData> {
     /// A raw unparsed string value that potentially can be parsed into a value of type `T`.
     Raw(String),

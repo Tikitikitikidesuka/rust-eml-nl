@@ -353,7 +353,7 @@ impl<'r, 'input> EMLElementReader<'r, 'input> {
         Ok(None)
     }
 
-    /// Get a hasmap of all attributes of the start tag of this element.
+    /// Get a hashmap of all attributes of the start tag of this element.
     #[expect(unused)]
     pub fn attributes(&self) -> Result<HashMap<QualifiedName<'_, '_>, Cow<'_, str>>, EMLError> {
         let mut attributes = HashMap::new();
@@ -753,14 +753,14 @@ macro_rules! collect_struct {
         ] $($tail)*)
     };
 
-    // accumulate, for a row that maps to Option
+    // accumulate, for a btreemap row
     ( @expand [$root:expr] [$ty:ident] [$($items:tt ; )*]
-        $field:ident as Mapped: $namespaced_name:expr => |$var:ident| { $map:expr } else $errkind:expr,
+        $field:ident as BTreeMap: $namespaced_name:expr => |$var:ident| $map:expr,
         $($tail:tt)*
     ) => {
         collect_struct!(@expand [$root] [$ty] [
             $($items ; )*
-            (@option_mapped [$field] [$namespaced_name] [$var] [$map] [$errkind]) ;
+            (@btreemap [$field] [$namespaced_name] [$var] [$map]) ;
         ] $($tail)*)
     };
 
@@ -826,8 +826,8 @@ macro_rules! collect_struct {
     (@decl (@optional [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {
         let mut $field: Option<_> = None;
     };
-    (@decl (@option_mapped [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr] [$errkind:expr])) => {
-        let mut $field: Option<_> = None;
+    (@decl (@btreemap [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {
+        let mut $field: std::collections::BTreeMap<_, _> = std::collections::BTreeMap::new();
     };
     (@decl (@field [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {
         let mut $field: Option<_> = None;
@@ -854,25 +854,23 @@ macro_rules! collect_struct {
             $handled = true;
         }
     };
-    (@matcher $next_child:ident, $name:ident, $handled:ident, (@option_mapped [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr] [$errkind:expr])) => {
-        if !$handled &&
-            &$name == $crate::io::IntoQualifiedNameCow::into_qname_cow($namespaced_name).as_ref()
-        {
-            let $var = &mut $next_child;
-            let tmp = $map;
-            if let Some(tmp) = tmp {
-                $field = Some(tmp);
-                $var.skip()?;
-                $handled = true;
-            }
-        }
-    };
     (@matcher $next_child:ident, $name:ident, $handled:ident, (@vec [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {
         if !$handled &&
             &$name == $crate::io::IntoQualifiedNameCow::into_qname_cow($namespaced_name).as_ref()
         {
             let $var = &mut $next_child;
             $field.push($map);
+            $var.skip()?;
+            $handled = true;
+        }
+    };
+    (@matcher $next_child:ident, $name:ident, $handled:ident, (@btreemap [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {
+        if !$handled &&
+            &$name == $crate::io::IntoQualifiedNameCow::into_qname_cow($namespaced_name).as_ref()
+        {
+            let $var = &mut $next_child;
+            let (k, v) = $map;
+            $field.insert(k, v);
             $var.skip()?;
             $handled = true;
         }
@@ -889,7 +887,7 @@ macro_rules! collect_struct {
     };
     (@process $root:expr, (@direct [$field:ident] [$value:expr])) => {};
     (@process $root:expr, (@optional [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {};
-    (@process $root:expr, (@option_mapped [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr] [$errkind:expr])) => {};
+    (@process $root:expr, (@btreemap [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {};
     (@process $root:expr, (@field [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {};
     (@process $root:expr, (@vec [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr])) => {};
 
@@ -924,6 +922,12 @@ macro_rules! collect_struct {
             $field: $field,
         ], $($tail)*)
     };
+    (@assign $root:expr, $ty:ident, [$($out:tt)*], (@btreemap [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr]) ; $($tail:tt)*) => {
+        collect_struct!(@assign $root, $ty, [
+            $($out)*
+            $field: $field,
+        ], $($tail)*)
+    };
     (@assign $root:expr, $ty:ident, [$($out:tt)*], (@field [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr]) ; $($tail:tt)*) => {
         collect_struct!(@assign $root, $ty, [
             $($out)*
@@ -931,15 +935,6 @@ macro_rules! collect_struct {
                 $field.ok_or_else(|| $crate::error::EMLErrorKind::MissingElement(
                     $crate::io::QualifiedName::from($namespaced_name).as_owned()
                 )),
-                $root.last_span()
-            )?,
-        ], $($tail)*)
-    };
-    (@assign $root:expr, $ty:ident, [$($out:tt)*], (@option_mapped [$field:ident] [$namespaced_name:expr] [$var:ident] [$map:expr] [$errkind:expr]) ; $($tail:tt)*) => {
-        collect_struct!(@assign $root, $ty, [
-            $($out)*
-            $field: $crate::error::EMLResultExt::with_span(
-                $field.ok_or_else(|| $errkind),
                 $root.last_span()
             )?,
         ], $($tail)*)

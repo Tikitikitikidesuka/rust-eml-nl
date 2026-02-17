@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EML xmlns="urn:oasis:names:tc:evs:schema:eml" xmlns:kr="http://www.kiesraad.nl/extensions" xmlns:xal="urn:oasis:names:tc:ciq:xsdschema:xAL:2.0" xmlns:xnl="urn:oasis:names:tc:ciq:xsdschema:xNL:2.0" Id="510b" SchemaVersion="5">
+    <TransactionId>1</TransactionId>
+    <ManagingAuthority>
+        <AuthorityIdentifier Id="1234">Rotterdam</AuthorityIdentifier>
+        <AuthorityAddress/>
+    </ManagingAuthority>
+    <kr:CreationDateTime>2014-11-28T12:00:09+00:00</kr:CreationDateTime>
+    <Count>
+        <EventIdentifier/>
+        <Election>
+            <ElectionIdentifier Id="GR2222_Cyber">
+                <ElectionCategory>GR</ElectionCategory>
+                <kr:ElectionDate>2222-11-16</kr:ElectionDate>
+            </ElectionIdentifier>
+            <Contests>
+                <Contest>
+                    <ContestIdentifier Id="geen"/>
+                    <TotalVotes>
+                        <Selection>
+                            <AffiliationIdentifier Id="1">
+                                <RegisteredName>Example</RegisteredName>
+                            </AffiliationIdentifier>
+                            <ValidVotes>16</ValidVotes>
+                        </Selection>
+                        <Selection>
+                            <Candidate>
+                                <CandidateIdentifier Id="1"/>
+                                <CandidateFullName>
+                                    <xnl:PersonName>
+                                        <xnl:FirstName>Example</xnl:FirstName>
+                                        <xnl:LastName>Smid</xnl:LastName>
+                                    </xnl:PersonName>
+                                </CandidateFullName>
+                            </Candidate>
+                            <ValidVotes>16</ValidVotes>
+                        </Selection>
+                        <Cast>100</Cast>
+                        <TotalCounted>65</TotalCounted>
+                        <RejectedVotes ReasonCode="blanco">100</RejectedVotes>
+                        <RejectedVotes ReasonCode="ongeldig">0</RejectedVotes>
+                        <UncountedVotes ReasonCode="toegelaten kiezers">10</UncountedVotes>
+                    </TotalVotes>
+                    <ReportingUnitVotes>
+                        <ReportingUnitIdentifier Id="SB1234">Stembureau</ReportingUnitIdentifier>
+                        <Selection>
+                            <AffiliationIdentifier Id="1">
+                                <RegisteredName>Example</RegisteredName>
+                            </AffiliationIdentifier>
+                            <ValidVotes>16</ValidVotes>
+                        </Selection>
+                        <Selection>
+                            <Candidate>
+                                <CandidateIdentifier Id="1"/>
+                                <CandidateFullName>
+                                    <xnl:PersonName>
+                                        <xnl:FirstName>Example</xnl:FirstName>
+                                        <xnl:LastName>Smid</xnl:LastName>
+                                    </xnl:PersonName>
+                                </CandidateFullName>
+                            </Candidate>
+                            <ValidVotes>16</ValidVotes>
+                        </Selection>
+                        <Cast>100</Cast>
+                        <TotalCounted>10</TotalCounted>
+                        <RejectedVotes ReasonCode="blanco">10</RejectedVotes>
+                        <RejectedVotes ReasonCode="ongeldig">0</RejectedVotes>
+                        <UncountedVotes ReasonCode="toegelaten kiezers">5</UncountedVotes>
+                    </ReportingUnitVotes>
+                </Contest>
+            </Contests>
+        </Election>
+    </Count>
+</EML>

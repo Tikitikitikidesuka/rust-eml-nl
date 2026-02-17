@@ -275,6 +275,19 @@ impl<'a> EMLElementContentWriter<'a> {
         Ok(self)
     }
 
+    pub fn child_elems_map<'b, 'c, T>(
+        mut self,
+        name: impl Into<QualifiedName<'b, 'c>>,
+        children: impl IntoIterator<Item = T>,
+        child_map: impl Fn(EMLElementWriter, T) -> Result<(), EMLError>,
+    ) -> Result<EMLElementContentWriter<'a>, EMLError> {
+        let name = name.into();
+        for child in children {
+            self = self.child(name.clone(), |writer| child_map(writer, child))?;
+        }
+        Ok(self)
+    }
+
     pub fn text(self, text: &str) -> Result<Self, EMLError> {
         self.writer
             .writer
