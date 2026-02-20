@@ -15,8 +15,8 @@ use crate::{
         QualifiedName, collect_struct,
     },
     utils::{
-        AffiliationIdType, ElectionCategory, ElectionIdType, ElectionSubcategory, GenderType,
-        StringValue, XsDate, XsDateTime,
+        AffiliationId, ElectionCategory, ElectionId, ElectionSubcategory, Gender, StringValue,
+        XsDate, XsDateTime,
     },
 };
 
@@ -199,13 +199,8 @@ impl EMLElement for ElectionCount {
         accepted_root(elem)?;
 
         let document_id = elem.attribute_value_req(("Id", None))?;
-        let Some(count_type) = CountType::from_eml_id(document_id.as_ref()) else {
-            return Err(EMLErrorKind::InvalidDocumentType(
-                "510a/510b/510c/510d",
-                document_id.to_string(),
-            ))
-            .with_span(elem.span());
-        };
+        let count_type = CountType::from_eml_id(document_id.as_ref())
+            .map_err(|e| e.into_kind().with_span(elem.span()))?;
 
         Ok(collect_struct!(elem, ElectionCount {
             count_type: count_type,
@@ -261,13 +256,17 @@ pub enum CountType {
 
 impl CountType {
     /// Create a CountType from an EML document ID string.
-    pub fn from_eml_id(s: &str) -> Option<Self> {
-        match s {
-            EML_COUNT_POLLING_STATION_ID => Some(CountType::PollingStation),
-            EML_COUNT_MUNICIPAL_ID => Some(CountType::Municipal),
-            EML_COUNT_DISTRICT_ID => Some(CountType::District),
-            EML_COUNT_CENTRAL_ID => Some(CountType::Central),
-            _ => None,
+    pub fn from_eml_id(s: impl AsRef<str>) -> Result<Self, EMLError> {
+        let data = s.as_ref();
+        match data {
+            EML_COUNT_POLLING_STATION_ID => Ok(CountType::PollingStation),
+            EML_COUNT_MUNICIPAL_ID => Ok(CountType::Municipal),
+            EML_COUNT_DISTRICT_ID => Ok(CountType::District),
+            EML_COUNT_CENTRAL_ID => Ok(CountType::Central),
+            _ => Err(
+                EMLErrorKind::InvalidDocumentType("510a/510b/510c/510d", data.to_string())
+                    .without_span(),
+            ),
         }
     }
 
@@ -414,7 +413,7 @@ impl EMLElement for ElectionCountElection {
 #[derive(Debug, Clone)]
 pub struct ElectionCountElectionIdentifier {
     /// Id of the election
-    pub id: StringValue<ElectionIdType>,
+    pub id: StringValue<ElectionId>,
 
     /// Name of the election
     pub name: Option<String>,
@@ -747,7 +746,7 @@ impl EMLElement for TotalVotes {
             candidate_votes_count: ("TotalCounted", NS_EML) => |elem| elem.string_value()?,
             rejected_votes as BTreeMap: REJECTED_VOTES_EML_NAME => |elem| {
                 let reason_code = elem.attribute_value_req("ReasonCode")?;
-                let reason = RejectedVotesReason::from_eml_code(&reason_code)
+                let reason = RejectedVotesReason::from_eml_str(&reason_code)
                     .map_err(|e| EMLError::invalid_value(REJECTED_VOTES_EML_NAME.as_owned(), e, Some(elem.full_span())))?;
 
                 (reason, elem.string_value()?)
@@ -803,7 +802,7 @@ impl EMLElement for TotalVotes {
                 REJECTED_VOTES_EML_NAME,
                 &self.rejected_votes,
                 |elem, (reason, count)| {
-                    let reason_code = reason.to_eml_code();
+                    let reason_code = reason.to_eml_str();
                     elem.attr("ReasonCode", reason_code.as_ref())?
                         .text(count.raw().as_ref())?
                         .finish()
@@ -1016,7 +1015,7 @@ impl EMLElement for ReportingUnitVotes {
             candidate_votes_count: ("TotalCounted", NS_EML) => |elem| elem.string_value()?,
             rejected_votes as BTreeMap: REJECTED_VOTES_EML_NAME => |elem| {
                 let reason_code = elem.attribute_value_req("ReasonCode")?;
-                let reason = RejectedVotesReason::from_eml_code(&reason_code)
+                let reason = RejectedVotesReason::from_eml_str(&reason_code)
                     .map_err(|e| EMLError::invalid_value(REJECTED_VOTES_EML_NAME.as_owned(), e, Some(elem.full_span())))?;
 
                 (reason, elem.string_value()?)
@@ -1036,7 +1035,7 @@ impl EMLElement for ReportingUnitVotes {
                 let data = collect_struct!(elem, Collector {
                     investigations as BTreeMap: INVESTIGATION_EML_NAME => |elem| {
                         let reason_code = elem.attribute_value_req("ReasonCode")?;
-                        let reason = InvestigationReason::from_eml_code(&reason_code)
+                        let reason = InvestigationReason::from_eml_str(&reason_code)
                             .map_err(|e| EMLError::invalid_value(INVESTIGATION_EML_NAME.as_owned(), e, Some(elem.full_span())))?;
 
                         (reason, elem.string_value()?)
@@ -1098,7 +1097,7 @@ impl EMLElement for ReportingUnitVotes {
                 REJECTED_VOTES_EML_NAME,
                 &self.rejected_votes,
                 |elem, (reason, count)| {
-                    let reason_code = reason.to_eml_code();
+                    let reason_code = reason.to_eml_str();
                     elem.attr("ReasonCode", reason_code.as_ref())?
                         .text(count.raw().as_ref())?
                         .finish()
@@ -1126,7 +1125,7 @@ impl EMLElement for ReportingUnitVotes {
 
                     for (reason, investigated) in value {
                         elem = elem.child(INVESTIGATION_EML_NAME, |elem| {
-                            let reason_code = reason.to_eml_code();
+                            let reason_code = reason.to_eml_str();
                             elem.attr("ReasonCode", reason_code.as_ref())?
                                 .text(investigated.raw().as_ref())?
                                 .finish()
@@ -1159,8 +1158,9 @@ pub enum InvestigationReason {
 
 impl InvestigationReason {
     /// Create an InvestigationReason from an EML reason code string.
-    pub fn from_eml_code(s: &str) -> Result<Self, InvalidInvestigationReason> {
-        match s {
+    pub fn from_eml_str(s: impl AsRef<str>) -> Result<Self, InvalidInvestigationReason> {
+        let data = s.as_ref();
+        match data {
             "onderzocht vanwege onverklaard verschil" => {
                 Ok(InvestigationReason::UnexplainedDifference)
             }
@@ -1171,12 +1171,12 @@ impl InvestigationReason {
             }
             "onderzocht vanwege andere reden" => Ok(InvestigationReason::OtherReason),
             "stembiljetten deels herteld" => Ok(InvestigationReason::PartiallyRecountedBallots),
-            _ => Err(InvalidInvestigationReason(s.to_string())),
+            _ => Err(InvalidInvestigationReason(data.to_string())),
         }
     }
 
     /// Get the EML reason code string for this InvestigationReason.
-    pub fn to_eml_code(&self) -> &'static str {
+    pub fn to_eml_str(&self) -> &'static str {
         match self {
             InvestigationReason::UnexplainedDifference => "onderzocht vanwege onverklaard verschil",
             InvestigationReason::OtherError => "onderzocht vanwege andere fout",
@@ -1287,16 +1287,17 @@ pub enum RejectedVotesReason {
 
 impl RejectedVotesReason {
     /// Create a RejectedVotesReason from an EML reason code string.
-    pub fn from_eml_code(s: impl AsRef<str>) -> Result<Self, InvalidRejectedVotesReason> {
-        match s.as_ref() {
+    pub fn from_eml_str(s: impl AsRef<str>) -> Result<Self, InvalidRejectedVotesReason> {
+        let data = s.as_ref();
+        match data {
             "blanco" => Ok(RejectedVotesReason::Blank),
             "ongeldig" => Ok(RejectedVotesReason::Invalid),
-            _ => Err(InvalidRejectedVotesReason(s.as_ref().to_string())),
+            _ => Err(InvalidRejectedVotesReason(data.to_string())),
         }
     }
 
     /// Get the EML reason code string for this RejectedVotesReason.
-    pub fn to_eml_code(&self) -> &'static str {
+    pub fn to_eml_str(&self) -> &'static str {
         match self {
             RejectedVotesReason::Blank => "blanco",
             RejectedVotesReason::Invalid => "ongeldig",
@@ -1570,7 +1571,7 @@ pub struct CandidateSelection {
     pub name: Option<PersonNameStructure>,
 
     /// Gender of the candidate.
-    pub gender: Option<StringValue<GenderType>>,
+    pub gender: Option<StringValue<Gender>>,
 
     /// Qualified address of the candidate, if present.
     pub qualifying_address: Option<MinimalQualifyingAddress>,
@@ -1588,7 +1589,7 @@ impl CandidateSelection {
 pub struct CandidateSelectionBuilder {
     identifier: Option<CandidateIdentifier>,
     name: Option<PersonNameStructure>,
-    gender: Option<StringValue<GenderType>>,
+    gender: Option<StringValue<Gender>>,
     qualifying_address: Option<MinimalQualifyingAddress>,
     locality_name: Option<String>,
     country_name_code: Option<String>,
@@ -1620,7 +1621,7 @@ impl CandidateSelectionBuilder {
     }
 
     /// Set the gender of the candidate selection.
-    pub fn gender(mut self, gender: impl Into<GenderType>) -> Self {
+    pub fn gender(mut self, gender: impl Into<Gender>) -> Self {
         self.gender = Some(StringValue::from_value(gender.into()));
         self
     }
@@ -1730,7 +1731,7 @@ impl EMLElement for CandidateSelection {
 #[derive(Debug, Clone)]
 pub struct AffiliationSelection {
     /// Id of the affiliation.
-    pub id: StringValue<AffiliationIdType>,
+    pub id: StringValue<AffiliationId>,
 
     /// Name of the affiliation.
     pub name: String,
@@ -1738,7 +1739,7 @@ pub struct AffiliationSelection {
 
 impl AffiliationSelection {
     /// Create a new AffiliationSelection with the given id and name.
-    pub fn new(id: impl Into<AffiliationIdType>, name: impl Into<String>) -> Self {
+    pub fn new(id: impl Into<AffiliationId>, name: impl Into<String>) -> Self {
         AffiliationSelection {
             id: StringValue::from_value(id.into()),
             name: name.into(),
@@ -1863,7 +1864,7 @@ mod tests {
     use crate::{
         common::{AuthorityIdentifier, PersonName},
         io::{EMLParsingMode, EMLRead, EMLWrite},
-        utils::{CandidateIdType, ReportingUnitIdentifierId, XSBType},
+        utils::{AuthorityId, CandidateId, ReportingUnitIdentifierId},
     };
 
     use super::*;
@@ -1879,11 +1880,11 @@ mod tests {
                     .unwrap(),
             )
             .managing_authority(ManagingAuthority::new(
-                AuthorityIdentifier::new(XSBType::new("1234").unwrap()).with_name("Rotterdam"),
+                AuthorityIdentifier::new(AuthorityId::new("1234").unwrap()).with_name("Rotterdam"),
             ))
             .election_identifier(
                 ElectionCountElectionIdentifier::builder()
-                    .id(ElectionIdType::new("GR2222_Cyber").unwrap())
+                    .id(ElectionId::new("GR2222_Cyber").unwrap())
                     .category(ElectionCategory::GR)
                     .election_date(NaiveDate::from_ymd_opt(2222, 11, 16).unwrap())
                     .build_for_count()
@@ -1899,7 +1900,7 @@ mod tests {
                 .total_votes_selections([
                     ElectionCountSelection::builder()
                         .affiliation(AffiliationSelection::new(
-                            AffiliationIdType::new("1").unwrap(),
+                            AffiliationId::new("1").unwrap(),
                             "Example",
                         ))
                         .valid_votes(16u64)
@@ -1908,7 +1909,7 @@ mod tests {
                     ElectionCountSelection::builder()
                         .candidate(
                             CandidateSelection::builder()
-                                .identifier(CandidateIdType::new("1").unwrap())
+                                .identifier(CandidateId::new("1").unwrap())
                                 .name(PersonName::new("Smid").with_first_name("Example"))
                                 .build()
                                 .unwrap(),
@@ -1930,7 +1931,7 @@ mod tests {
                     .selections([
                         ElectionCountSelection::builder()
                             .affiliation(AffiliationSelection::new(
-                                AffiliationIdType::new("1").unwrap(),
+                                AffiliationId::new("1").unwrap(),
                                 "Example",
                             ))
                             .valid_votes(16u64)
@@ -1939,7 +1940,7 @@ mod tests {
                         ElectionCountSelection::builder()
                             .candidate(
                                 CandidateSelection::builder()
-                                    .identifier(CandidateIdType::new("1").unwrap())
+                                    .identifier(CandidateId::new("1").unwrap())
                                     .name(PersonName::new("Smid").with_first_name("Example"))
                                     .build()
                                     .unwrap(),

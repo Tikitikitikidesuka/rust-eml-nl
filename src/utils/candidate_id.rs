@@ -12,26 +12,26 @@ static CANDIDATE_ID_RE: LazyLock<Regex> =
 /// A string of type CandidateIdType as defined in the EML_NL specification
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(transparent)]
-pub struct CandidateIdType(String);
+pub struct CandidateId(String);
 
-impl CandidateIdType {
-    /// Create a new CandidateIdType from a string, validating its format
+impl CandidateId {
+    /// Create a new CandidateId from a string, validating its format
     pub fn new(s: impl AsRef<str>) -> Result<Self, InvalidCandidateIdError> {
         StringValueData::parse_from_str(s.as_ref())
     }
 
-    /// Get the raw string value of the CandidateIdType.
+    /// Get the raw string value of the CandidateId.
     pub fn value(&self) -> &str {
         &self.0
     }
 }
 
-/// Error returned when a string could not be parsed as a ElectionId
+/// Error returned when a string could not be parsed as a CandidateId
 #[derive(Debug, Clone, Error)]
-#[error("Invalid CandidateIdType: {0}")]
+#[error("Invalid candidate id: {0}")]
 pub struct InvalidCandidateIdError(String);
 
-impl StringValueData for CandidateIdType {
+impl StringValueData for CandidateId {
     type Error = InvalidCandidateIdError;
 
     fn parse_from_str(s: &str) -> Result<Self, Self::Error>
@@ -39,7 +39,7 @@ impl StringValueData for CandidateIdType {
         Self: Sized,
     {
         if CANDIDATE_ID_RE.is_match(s) {
-            Ok(CandidateIdType(s.to_string()))
+            Ok(CandidateId(s.to_string()))
         } else {
             Err(InvalidCandidateIdError(s.to_string()))
         }
@@ -64,8 +64,8 @@ mod tests {
         let valid_ids = ["1", "12345"];
         for id in valid_ids {
             assert!(
-                CandidateIdType::new(id).is_ok(),
-                "CandidateIdType should accept valid id: {}",
+                CandidateId::new(id).is_ok(),
+                "CandidateId should accept valid id: {}",
                 id
             );
         }
@@ -76,8 +76,8 @@ mod tests {
         let invalid_ids = ["", "0", "0123", "abc", "123abc", "-1"];
         for id in invalid_ids {
             assert!(
-                CandidateIdType::new(id).is_err(),
-                "CandidateIdType should reject invalid id: {}",
+                CandidateId::new(id).is_err(),
+                "CandidateId should reject invalid id: {}",
                 id
             );
         }

@@ -1,7 +1,7 @@
 use crate::{
     EMLError, NS_EML, NS_KR,
     io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName, collect_struct},
-    utils::{StringValue, XSBType},
+    utils::{AuthorityId, StringValue},
 };
 
 /// Managing authority of an election.
@@ -41,8 +41,8 @@ impl From<AuthorityIdentifier> for ManagingAuthority {
     }
 }
 
-impl From<XSBType> for ManagingAuthority {
-    fn from(value: XSBType) -> Self {
+impl From<AuthorityId> for ManagingAuthority {
+    fn from(value: AuthorityId) -> Self {
         ManagingAuthority::new(AuthorityIdentifier::new(value))
     }
 }
@@ -77,14 +77,14 @@ impl EMLElement for ManagingAuthority {
 #[derive(Debug, Clone)]
 pub struct AuthorityIdentifier {
     /// Identifier of the managing authority
-    pub id: StringValue<XSBType>,
+    pub id: StringValue<AuthorityId>,
     /// Name of the managing authority
     pub name: Option<String>,
 }
 
 impl AuthorityIdentifier {
     /// Creates a new `AuthorityIdentifier` with the given ID and no name.
-    pub fn new(id: XSBType) -> Self {
+    pub fn new(id: AuthorityId) -> Self {
         AuthorityIdentifier {
             id: StringValue::from_value(id),
             name: None,
@@ -98,8 +98,8 @@ impl AuthorityIdentifier {
     }
 }
 
-impl From<XSBType> for AuthorityIdentifier {
-    fn from(value: XSBType) -> Self {
+impl From<AuthorityId> for AuthorityIdentifier {
+    fn from(value: AuthorityId) -> Self {
         AuthorityIdentifier::new(value)
     }
 }
@@ -150,14 +150,14 @@ impl EMLElement for AuthorityAddress {
 #[derive(Debug, Clone)]
 pub struct CreatedByAuthority {
     /// Identifier of the managing authority
-    pub id: StringValue<XSBType>,
+    pub id: StringValue<AuthorityId>,
     /// Name of the managing authority
     pub name: Option<String>,
 }
 
 impl CreatedByAuthority {
     /// Creates a new `CreatedByAuthority` with the given ID and no name.
-    pub fn new(id: XSBType) -> Self {
+    pub fn new(id: AuthorityId) -> Self {
         CreatedByAuthority {
             id: StringValue::from_value(id),
             name: None,
@@ -204,9 +204,10 @@ mod tests {
 
     #[test]
     fn test_managing_authority_construction() {
-        let id = AuthorityIdentifier::new(XSBType::new("1234").unwrap()).with_name("Authority 1");
-        let created_by =
-            CreatedByAuthority::new(XSBType::new("4321").unwrap()).with_name("Creator Authority");
+        let id =
+            AuthorityIdentifier::new(AuthorityId::new("1234").unwrap()).with_name("Authority 1");
+        let created_by = CreatedByAuthority::new(AuthorityId::new("4321").unwrap())
+            .with_name("Creator Authority");
         let m = ManagingAuthority::new(id).with_created_by_authority(created_by);
         assert_eq!(m.authority_identifier.id.raw(), "1234");
         assert_eq!(m.authority_identifier.name.as_deref(), Some("Authority 1"));

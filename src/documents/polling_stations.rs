@@ -19,7 +19,7 @@ use crate::{
         collect_struct,
     },
     utils::{
-        ElectionCategory, ElectionIdType, ElectionSubcategory, StringValue, StringValueData,
+        ElectionCategory, ElectionId, ElectionSubcategory, StringValue, StringValueData,
         VotingChannelType, VotingMethod, XsDate, XsDateOrDateTime, XsDateTime,
     },
 };
@@ -353,7 +353,7 @@ impl EMLElement for PollingStationsElection {
 #[derive(Debug, Clone)]
 pub struct PollingStationsElectionIdentifier {
     /// Election id.
-    pub id: StringValue<ElectionIdType>,
+    pub id: StringValue<ElectionId>,
 
     /// Election name, if present.
     pub name: Option<String>,
@@ -384,7 +384,7 @@ impl EMLElement for PollingStationsElectionIdentifier {
 
     fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         struct PollingStationsElectionIdentifierInternal {
-            id: StringValue<ElectionIdType>,
+            id: StringValue<ElectionId>,
             name: Option<String>,
             category: StringValue<ElectionCategory>,
             subcategory: Option<StringValue<ElectionSubcategory>>,
@@ -1000,7 +1000,7 @@ mod tests {
     use crate::{
         common::AuthorityIdentifier,
         io::{EMLParsingMode, EMLRead as _, EMLWrite as _},
-        utils::{ReportingUnitIdentifierId, XSBType},
+        utils::{AuthorityId, ReportingUnitIdentifierId},
     };
 
     use super::*;
@@ -1015,13 +1015,13 @@ mod tests {
         let ps = PollingStations::builder()
             .transaction_id(TransactionId::new(1))
             .managing_authority(
-                AuthorityIdentifier::new(XSBType::new("1234").unwrap()).with_name("Test"),
+                AuthorityIdentifier::new(AuthorityId::new("1234").unwrap()).with_name("Test"),
             )
             .issue_date(XsDate::from_date(2024, 1, 1).unwrap())
             .creation_date_time(chrono::Utc.with_ymd_and_hms(2024, 1, 1, 12, 0, 0).unwrap())
             .election_identifier(
                 PollingStationsElectionIdentifier::builder()
-                    .id(ElectionIdType::new("TK2025").unwrap())
+                    .id(ElectionId::new("TK2025").unwrap())
                     .name("Tweede Kamerverkiezingen 2025")
                     .category(ElectionCategory::TK)
                     .subcategory(ElectionSubcategory::TK)

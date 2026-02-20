@@ -19,8 +19,8 @@ use crate::{
         collect_struct, write_eml_element,
     },
     utils::{
-        AffiliationIdType, AffiliationType, ElectionCategory, ElectionIdType, ElectionSubcategory,
-        GenderType, PublicationLanguageType, StringValue, XsDate, XsDateOrDateTime, XsDateTime,
+        AffiliationId, AffiliationType, ElectionCategory, ElectionId, ElectionSubcategory, Gender,
+        PublicationLanguage, StringValue, XsDate, XsDateOrDateTime, XsDateTime,
     },
 };
 
@@ -405,7 +405,7 @@ impl EMLElement for CandidateListsElection {
 #[derive(Debug, Clone)]
 pub struct CandidateListsElectionIdentifier {
     /// Id of the election
-    pub id: StringValue<ElectionIdType>,
+    pub id: StringValue<ElectionId>,
 
     /// Name of the election
     pub name: Option<String>,
@@ -630,11 +630,11 @@ impl CandidateListsAffiliation {
 
 /// Builder for an affiliation participating in the contest.
 pub struct CandidateListsAffiliationBuilder {
-    id: Option<AffiliationIdType>,
+    id: Option<AffiliationId>,
     registered_name: Option<String>,
     affiliation_type: Option<AffiliationType>,
     publish_gender: Option<bool>,
-    publication_language: Option<PublicationLanguageType>,
+    publication_language: Option<PublicationLanguage>,
     belongs_to_set: Option<NonZeroU64>,
     belongs_to_combination: Option<ListDataBelongsToCombinationType>,
     candidates: Vec<CandidateListsCandidate>,
@@ -656,7 +656,7 @@ impl CandidateListsAffiliationBuilder {
     }
 
     /// Set the affiliation id for the affiliation.
-    pub fn id(mut self, id: impl Into<AffiliationIdType>) -> Self {
+    pub fn id(mut self, id: impl Into<AffiliationId>) -> Self {
         self.id = Some(id.into());
         self
     }
@@ -682,7 +682,7 @@ impl CandidateListsAffiliationBuilder {
     /// Set the publication language for the affiliation.
     pub fn publication_language(
         mut self,
-        publication_language: impl Into<PublicationLanguageType>,
+        publication_language: impl Into<PublicationLanguage>,
     ) -> Self {
         self.publication_language = Some(publication_language.into());
         self
@@ -790,7 +790,7 @@ impl EMLElement for CandidateListsAffiliation {
 #[derive(Debug, Clone)]
 pub struct AffiliationIdentifier {
     /// The affiliation id.
-    pub id: StringValue<AffiliationIdType>,
+    pub id: StringValue<AffiliationId>,
 
     /// The registered name of the affiliation.
     pub registered_name: Option<String>,
@@ -798,7 +798,7 @@ pub struct AffiliationIdentifier {
 
 impl AffiliationIdentifier {
     /// Create a new AffiliationIdentifier.
-    pub fn new(id: AffiliationIdType, registered_name: Option<impl Into<String>>) -> Self {
+    pub fn new(id: AffiliationId, registered_name: Option<impl Into<String>>) -> Self {
         Self {
             id: StringValue::Parsed(id),
             registered_name: registered_name.map(|name| name.into()),
@@ -848,7 +848,7 @@ pub struct CandidateListsCandidate {
     pub date_of_birth: Option<StringValue<XsDate>>,
 
     /// The gender of the candidate, if present.
-    pub gender: Option<StringValue<GenderType>>,
+    pub gender: Option<StringValue<Gender>>,
 
     /// The qualifying address of the candidate.
     pub qualifying_address: Option<QualifyingAddress>,
@@ -866,7 +866,7 @@ impl CandidateListsCandidate {
 pub struct CandidateListsCandidateBuilder {
     identifier: Option<CandidateIdentifier>,
     date_of_birth: Option<XsDate>,
-    gender: Option<GenderType>,
+    gender: Option<Gender>,
     full_name: Option<PersonNameStructure>,
     qualifying_address: Option<QualifyingAddress>,
 }
@@ -896,7 +896,7 @@ impl CandidateListsCandidateBuilder {
     }
 
     /// Set the gender for the candidate.
-    pub fn gender(mut self, gender: impl Into<GenderType>) -> Self {
+    pub fn gender(mut self, gender: impl Into<Gender>) -> Self {
         self.gender = Some(gender.into());
         self
     }
@@ -1394,7 +1394,7 @@ mod tests {
         io::{
             EMLParsingMode, EMLRead as _, EMLWrite as _, test_write_eml_element, test_xml_fragment,
         },
-        utils::{CandidateIdType, XSBType},
+        utils::{AuthorityId, CandidateId},
     };
 
     #[test]
@@ -1412,7 +1412,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             affiliation_identifier.id,
-            StringValue::Parsed(AffiliationIdType::new("1").unwrap())
+            StringValue::Parsed(AffiliationId::new("1").unwrap())
         );
         assert_eq!(
             affiliation_identifier.registered_name,
@@ -1438,7 +1438,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             affiliation_identifier.id,
-            StringValue::Parsed(AffiliationIdType::new("2").unwrap())
+            StringValue::Parsed(AffiliationId::new("2").unwrap())
         );
         assert_eq!(affiliation_identifier.registered_name, None);
 
@@ -1560,7 +1560,7 @@ mod tests {
     fn candidate_lists_construction() {
         let cl = CandidateLists::builder()
             .transaction_id(TransactionId::new(1))
-            .managing_authority(ManagingAuthority::new(XSBType::new("1234").unwrap()))
+            .managing_authority(ManagingAuthority::new(AuthorityId::new("1234").unwrap()))
             .issue_date(XsDate::from_date(2024, 6, 10).unwrap())
             .creation_date_time(
                 chrono::Utc
@@ -1569,7 +1569,7 @@ mod tests {
             )
             .election_identifier(
                 CandidateListsElectionIdentifier::builder()
-                    .id(ElectionIdType::new("GR2026_Test").unwrap())
+                    .id(ElectionId::new("GR2026_Test").unwrap())
                     .category(ElectionCategory::GR)
                     .election_date(XsDate::from_date(2024, 11, 5).unwrap())
                     .nomination_date(XsDate::from_date(2024, 10, 1).unwrap())
@@ -1579,12 +1579,12 @@ mod tests {
             .contests([CandidateListsContest::builder()
                 .identifier(ContestIdentifier::geen())
                 .affiliations([CandidateListsAffiliation::builder()
-                    .id(AffiliationIdType::new("1").unwrap())
+                    .id(AffiliationId::new("1").unwrap())
                     .registered_name("Affiliation 1")
                     .affiliation_type(AffiliationType::StandAloneList)
                     .publish_gender(true)
                     .candidates([CandidateListsCandidate::builder()
-                        .identifier(CandidateIdType::new("1").unwrap())
+                        .identifier(CandidateId::new("1").unwrap())
                         .full_name(
                             PersonName::new("Pietersen")
                                 .with_initials("P.")

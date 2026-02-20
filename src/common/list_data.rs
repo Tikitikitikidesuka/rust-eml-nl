@@ -5,7 +5,7 @@ use thiserror::Error;
 use crate::{
     NS_KR,
     io::{EMLElement, QualifiedName, collect_struct},
-    utils::{ContestIdType, PublicationLanguageType, StringValue, StringValueData},
+    utils::{ContestIdType, PublicationLanguage, StringValue, StringValueData},
 };
 
 /// Additional data for affiliation lists.
@@ -15,7 +15,7 @@ pub struct ListData {
     pub publish_gender: StringValue<bool>,
 
     /// The publication language for this list.
-    pub publication_language: Option<StringValue<PublicationLanguageType>>,
+    pub publication_language: Option<StringValue<PublicationLanguage>>,
 
     /// If this list is of type [`AffiliationType::SetOfEqualLists`](crate::utils::AffiliationType::SetOfEqualLists), the set
     /// it belongs to.
@@ -42,20 +42,18 @@ impl ListData {
     }
 
     /// Get the publication language, defaulting to [`PublicationLanguageType::default()`] if not set or invalid.
-    pub fn get_publication_language(&self) -> PublicationLanguageType {
+    pub fn get_publication_language(&self) -> PublicationLanguage {
         self.publication_language
             .as_ref()
             .map(|s| match s {
                 StringValue::Parsed(v) => *v,
-                StringValue::Raw(r) => {
-                    PublicationLanguageType::from_eml_value(r).unwrap_or_default()
-                }
+                StringValue::Raw(r) => PublicationLanguage::from_eml_value(r).unwrap_or_default(),
             })
             .unwrap_or_default()
     }
 
     /// Set the publication language for this list.
-    pub fn with_publication_language(mut self, language: PublicationLanguageType) -> Self {
+    pub fn with_publication_language(mut self, language: PublicationLanguage) -> Self {
         self.publication_language = Some(StringValue::Parsed(language));
         self
     }
@@ -237,14 +235,14 @@ mod tests {
     #[test]
     fn test_list_data_construction() {
         let list_data = ListData::new(true)
-            .with_publication_language(PublicationLanguageType::Frisian)
+            .with_publication_language(PublicationLanguage::Frisian)
             .with_belongs_to_set(NonZeroU64::new(1).unwrap())
             .with_belongs_to_combination(ListDataBelongsToCombinationType("A".to_string()));
 
         assert_eq!(list_data.publish_gender.raw(), "true");
         assert_eq!(
             list_data.get_publication_language(),
-            PublicationLanguageType::Frisian
+            PublicationLanguage::Frisian
         );
         assert_eq!(list_data.belongs_to_set.as_ref().unwrap().raw(), "1");
         assert_eq!(
@@ -285,7 +283,7 @@ mod tests {
         );
         assert_eq!(
             list_data.publication_language,
-            Some(StringValue::Parsed(PublicationLanguageType::Dutch))
+            Some(StringValue::Parsed(PublicationLanguage::Dutch))
         );
         assert_eq!(
             list_data.belongs_to_set,
@@ -319,7 +317,7 @@ mod tests {
         assert!(!list_data.publish_gender.value().unwrap().into_owned());
         assert_eq!(
             list_data.get_publication_language(),
-            PublicationLanguageType::Dutch
+            PublicationLanguage::Dutch
         );
 
         let xml_output = test_write_eml_element(&list_data, &[NS_KR]).unwrap();

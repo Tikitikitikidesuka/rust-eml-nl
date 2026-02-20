@@ -3,25 +3,25 @@ use std::num::NonZeroU64;
 use crate::{
     NS_EML,
     io::{EMLElement, collect_struct},
-    utils::{CandidateIdType, NameShortCodeType, StringValue},
+    utils::{CandidateId, NameShortCode, StringValue},
 };
 
 /// Candidate identifier, but not for 510 document types.
 #[derive(Debug, Clone)]
 pub struct CandidateIdentifier {
     /// The candidate id.
-    pub id: StringValue<CandidateIdType>,
+    pub id: StringValue<CandidateId>,
     /// The display order of the candidate.
     pub display_order: Option<StringValue<NonZeroU64>>,
     /// The short code of the candidate.
-    pub short_code: Option<StringValue<NameShortCodeType>>,
+    pub short_code: Option<StringValue<NameShortCode>>,
     /// The expected confirmation reference of the candidate.
     pub expected_confirmation_reference: Option<String>,
 }
 
 impl CandidateIdentifier {
     /// Create a new CandidateIdentifier.
-    pub fn new(id: CandidateIdType) -> Self {
+    pub fn new(id: CandidateId) -> Self {
         CandidateIdentifier {
             id: StringValue::Parsed(id),
             display_order: None,
@@ -37,7 +37,7 @@ impl CandidateIdentifier {
     }
 
     /// Set the short code of the candidate.
-    pub fn with_short_code(mut self, short_code: NameShortCodeType) -> Self {
+    pub fn with_short_code(mut self, short_code: NameShortCode) -> Self {
         self.short_code = Some(StringValue::Parsed(short_code));
         self
     }
@@ -49,8 +49,8 @@ impl CandidateIdentifier {
     }
 }
 
-impl From<CandidateIdType> for CandidateIdentifier {
-    fn from(value: CandidateIdType) -> Self {
+impl From<CandidateId> for CandidateIdentifier {
+    fn from(value: CandidateId) -> Self {
         CandidateIdentifier::new(value)
     }
 }
@@ -68,7 +68,7 @@ impl EMLElement for CandidateIdentifier {
             .map(|s| s.into_owned());
 
         struct CandidateIdentifierTmp {
-            short_code: Option<StringValue<NameShortCodeType>>,
+            short_code: Option<StringValue<NameShortCode>>,
         }
 
         let elem = collect_struct!(
@@ -114,7 +114,7 @@ mod tests {
         let can_id = CandidateIdentifier::parse_eml(&xml, EMLParsingMode::Strict).unwrap();
         assert_eq!(
             can_id.id,
-            StringValue::Parsed(CandidateIdType::new("1").unwrap())
+            StringValue::Parsed(CandidateId::new("1").unwrap())
         );
         assert_eq!(can_id.display_order, None);
         assert_eq!(can_id.short_code, None);
@@ -134,7 +134,7 @@ mod tests {
         let can_id = CandidateIdentifier::parse_eml(&xml, EMLParsingMode::Strict).unwrap();
         assert_eq!(
             can_id.id,
-            StringValue::Parsed(CandidateIdType::new("2254").unwrap())
+            StringValue::Parsed(CandidateId::new("2254").unwrap())
         );
         assert_eq!(
             can_id.display_order,
@@ -142,7 +142,7 @@ mod tests {
         );
         assert_eq!(
             can_id.short_code,
-            Some(StringValue::Parsed(NameShortCodeType::new("1234").unwrap()))
+            Some(StringValue::Parsed(NameShortCode::new("1234").unwrap()))
         );
         assert_eq!(
             can_id.expected_confirmation_reference,
@@ -155,13 +155,13 @@ mod tests {
 
     #[test]
     fn test_candidate_identifier_construction() {
-        let can_id = CandidateIdentifier::new(CandidateIdType::new("5678").unwrap())
+        let can_id = CandidateIdentifier::new(CandidateId::new("5678").unwrap())
             .with_display_order(NonZeroU64::new(3).unwrap())
-            .with_short_code(NameShortCodeType::new("9876").unwrap())
+            .with_short_code(NameShortCode::new("9876").unwrap())
             .with_expected_confirmation_reference("reference");
         assert_eq!(
             can_id.id,
-            StringValue::Parsed(CandidateIdType::new("5678").unwrap())
+            StringValue::Parsed(CandidateId::new("5678").unwrap())
         );
         assert_eq!(
             can_id.display_order,
@@ -169,7 +169,7 @@ mod tests {
         );
         assert_eq!(
             can_id.short_code,
-            Some(StringValue::Parsed(NameShortCodeType::new("9876").unwrap()))
+            Some(StringValue::Parsed(NameShortCode::new("9876").unwrap()))
         );
         assert_eq!(
             can_id.expected_confirmation_reference,

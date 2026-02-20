@@ -19,7 +19,7 @@ use crate::{
         },
     },
     io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName},
-    utils::{ElectionCategory, ElectionIdType, ElectionSubcategory, StringValue, XsDate},
+    utils::{ElectionCategory, ElectionId, ElectionSubcategory, StringValue, XsDate},
 };
 
 pub mod candidate_lists;
@@ -224,7 +224,7 @@ fn accepted_root(elem: &EMLElementReader<'_, '_>) -> Result<(), EMLError> {
 /// Builder for Election Identifiers
 #[derive(Debug, Clone)]
 pub struct ElectionIdentifierBuilder {
-    id: Option<StringValue<ElectionIdType>>,
+    id: Option<StringValue<ElectionId>>,
     name: Option<String>,
     category: Option<StringValue<ElectionCategory>>,
     subcategory: Option<StringValue<ElectionSubcategory>>,
@@ -248,7 +248,7 @@ impl ElectionIdentifierBuilder {
     }
 
     /// Set the election identifier for the document.
-    pub fn id(mut self, id: impl Into<ElectionIdType>) -> Self {
+    pub fn id(mut self, id: impl Into<ElectionId>) -> Self {
         self.id = Some(StringValue::from_value(id.into()));
         self
     }

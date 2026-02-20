@@ -14,21 +14,21 @@ static ELECTION_ID_RE: LazyLock<Regex> = LazyLock::new(|| {
 /// A string of type ElectionId as defined in the EML_NL specification
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(transparent)]
-pub struct ElectionIdType(String);
+pub struct ElectionId(String);
 
-impl ElectionIdType {
-    /// Create a new ElectionIdType from a string, validating its format
+impl ElectionId {
+    /// Create a new ElectionId from a string, validating its format
     pub fn new(s: impl AsRef<str>) -> Result<Self, InvalidElectionIdError> {
         StringValueData::parse_from_str(s.as_ref())
     }
 
-    /// Get the raw string value of the ElectionIdType.
+    /// Get the raw string value of the ElectionId.
     pub fn value(&self) -> &str {
         &self.0
     }
 }
 
-impl TryFrom<&str> for ElectionIdType {
+impl TryFrom<&str> for ElectionId {
     type Error = InvalidElectionIdError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
@@ -41,7 +41,7 @@ impl TryFrom<&str> for ElectionIdType {
 #[error("Invalid ElectionId: {0}")]
 pub struct InvalidElectionIdError(String);
 
-impl StringValueData for ElectionIdType {
+impl StringValueData for ElectionId {
     type Error = InvalidElectionIdError;
 
     fn parse_from_str(s: &str) -> Result<Self, Self::Error>
@@ -49,7 +49,7 @@ impl StringValueData for ElectionIdType {
         Self: Sized,
     {
         if ELECTION_ID_RE.is_match(s) {
-            Ok(ElectionIdType(s.to_string()))
+            Ok(ElectionId(s.to_string()))
         } else {
             Err(InvalidElectionIdError(s.to_string()))
         }
@@ -81,7 +81,7 @@ mod tests {
         ];
         for id in valid_ids {
             assert!(
-                ElectionIdType::new(id).is_ok(),
+                ElectionId::new(id).is_ok(),
                 "ElectionIdType should accept valid id: {}",
                 id
             );
@@ -93,7 +93,7 @@ mod tests {
         let invalid_ids = ["", "2021", "EP21", "EP202A", "EP2021-01-01"];
         for id in invalid_ids {
             assert!(
-                ElectionIdType::new(id).is_err(),
+                ElectionId::new(id).is_err(),
                 "ElectionIdType should reject invalid id: {}",
                 id
             );

@@ -12,7 +12,7 @@ use crate::{
     error::{EMLErrorKind, EMLResultExt},
     io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName, collect_struct},
     utils::{
-        ElectionCategory, ElectionIdType, ElectionSubcategory, StringValue, VotingMethod, XsDate,
+        ElectionCategory, ElectionId, ElectionSubcategory, StringValue, VotingMethod, XsDate,
         XsDateOrDateTime, XsDateTime,
     },
 };
@@ -491,7 +491,7 @@ impl EMLElement for ElectionDefinitionElection {
 #[derive(Debug, Clone)]
 pub struct ElectionDefinitionElectionIdentifier {
     /// Id of the election
-    pub id: StringValue<ElectionIdType>,
+    pub id: StringValue<ElectionId>,
 
     /// Name of the election
     pub name: String,
@@ -716,7 +716,7 @@ mod tests {
 
     use crate::{
         io::{EMLParsingMode, EMLRead as _, EMLWrite},
-        utils::XSBType,
+        utils::AuthorityId,
     };
 
     use super::*;
@@ -725,7 +725,7 @@ mod tests {
     fn test_election_definition_construction() {
         let election_definition = ElectionDefinition::builder()
             .transaction_id(TransactionId::new(1))
-            .managing_authority(ManagingAuthority::new(XSBType::new("1234").unwrap()))
+            .managing_authority(ManagingAuthority::new(AuthorityId::new("1234").unwrap()))
             .issue_date(XsDate::from_date(2024, 6, 10).unwrap())
             .creation_date_time(
                 chrono::Utc
@@ -734,7 +734,7 @@ mod tests {
             )
             .election_identifier(
                 ElectionDefinitionElectionIdentifier::builder()
-                    .id(ElectionIdType::new("GR2026_Test").unwrap())
+                    .id(ElectionId::new("GR2026_Test").unwrap())
                     .name("Test election")
                     .category(ElectionCategory::GR)
                     .subcategory(ElectionSubcategory::GR1)

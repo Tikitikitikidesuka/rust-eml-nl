@@ -15,8 +15,8 @@ use crate::{
         QualifiedName, collect_struct,
     },
     utils::{
-        AffiliationIdType, ElectionCategory, ElectionIdType, ElectionSubcategory, GenderType,
-        StringValue, StringValueData, XsDate, XsDateTime,
+        AffiliationId, ElectionCategory, ElectionId, ElectionSubcategory, Gender, StringValue,
+        StringValueData, XsDate, XsDateTime,
     },
 };
 
@@ -297,7 +297,7 @@ impl EMLElement for ElectionResultElection {
 #[derive(Debug, Clone)]
 pub struct ElectionResultElectionIdentifier {
     /// Id of the election
-    pub id: StringValue<ElectionIdType>,
+    pub id: StringValue<ElectionId>,
 
     /// Name of the election
     pub name: Option<String>,
@@ -725,7 +725,7 @@ pub struct CandidateSelection {
     pub name: PersonNameStructure,
 
     /// Gender of the candidate.
-    pub gender: Option<StringValue<GenderType>>,
+    pub gender: Option<StringValue<Gender>>,
 
     /// The minimal qualifying address of the candidate, if present.
     pub qualifying_address: MinimalQualifyingAddress,
@@ -743,7 +743,7 @@ impl CandidateSelection {
 pub struct CandidateSelectionBuilder {
     identifier: Option<CandidateIdentifier>,
     name: Option<PersonNameStructure>,
-    gender: Option<StringValue<GenderType>>,
+    gender: Option<StringValue<Gender>>,
     qualifying_address: Option<MinimalQualifyingAddress>,
     locality_name: Option<String>,
     country_name_code: Option<String>,
@@ -775,7 +775,7 @@ impl CandidateSelectionBuilder {
     }
 
     /// Set the gender of the candidate selection.
-    pub fn gender(mut self, gender: impl Into<GenderType>) -> Self {
+    pub fn gender(mut self, gender: impl Into<Gender>) -> Self {
         self.gender = Some(StringValue::from_value(gender.into()));
         self
     }
@@ -877,7 +877,7 @@ impl EMLElement for CandidateSelection {
 #[derive(Debug, Clone)]
 pub struct AffiliationSelection {
     /// Id of the affiliation.
-    pub id: StringValue<AffiliationIdType>,
+    pub id: StringValue<AffiliationId>,
 
     /// Name of the affiliation.
     pub name: String,
@@ -885,7 +885,7 @@ pub struct AffiliationSelection {
 
 impl AffiliationSelection {
     /// Create a new AffiliationSelection with the given id and name.
-    pub fn new(id: impl Into<AffiliationIdType>, name: impl Into<String>) -> Self {
+    pub fn new(id: impl Into<AffiliationId>, name: impl Into<String>) -> Self {
         AffiliationSelection {
             id: StringValue::from_value(id.into()),
             name: name.into(),
@@ -921,7 +921,7 @@ mod tests {
     use crate::{
         common::{AuthorityIdentifier, PersonName},
         io::EMLWrite,
-        utils::{CandidateIdType, XSBType},
+        utils::{AuthorityId, CandidateId},
     };
 
     use super::*;
@@ -931,12 +931,12 @@ mod tests {
         let election_result = ElectionResult::builder()
             .transaction_id(TransactionId::new(1))
             .managing_authority(
-                AuthorityIdentifier::new(XSBType::new("1234").unwrap()).with_name("Place"),
+                AuthorityIdentifier::new(AuthorityId::new("1234").unwrap()).with_name("Place"),
             )
             .creation_date_time(chrono::Utc.with_ymd_and_hms(2024, 3, 17, 12, 0, 0).unwrap())
             .election_identifier(
                 ElectionResultElectionIdentifier::builder()
-                    .id(ElectionIdType::new("GR2024_Place").unwrap())
+                    .id(ElectionId::new("GR2024_Place").unwrap())
                     .name("Gemeenteraadsverkiezingen 2024")
                     .category(ElectionCategory::GR)
                     .election_date(XsDate::from_date(2024, 3, 17).unwrap())
@@ -948,7 +948,7 @@ mod tests {
                 [
                     ElectionResultSelection::builder()
                         .affiliation(AffiliationSelection::new(
-                            AffiliationIdType::new("1").unwrap(),
+                            AffiliationId::new("1").unwrap(),
                             "Example",
                         ))
                         .elected(true)
@@ -957,7 +957,7 @@ mod tests {
                     ElectionResultSelection::builder()
                         .candidate(
                             CandidateSelection::builder()
-                                .identifier(CandidateIdType::new("1").unwrap())
+                                .identifier(CandidateId::new("1").unwrap())
                                 .name(PersonName::new("Smid").with_first_name("Example"))
                                 .locality_name("Locality")
                                 .country_name_code("NL")
@@ -971,7 +971,7 @@ mod tests {
                     ElectionResultSelection::builder()
                         .candidate(
                             CandidateSelection::builder()
-                                .identifier(CandidateIdType::new("2").unwrap())
+                                .identifier(CandidateId::new("2").unwrap())
                                 .name(PersonName::new("Test").with_first_name("Example"))
                                 .locality_name("Locality")
                                 .country_name_code("NL")

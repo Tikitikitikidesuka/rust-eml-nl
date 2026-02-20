@@ -4,7 +4,7 @@ use crate::utils::StringValueData;
 
 /// Voting method used in the election.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GenderType {
+pub enum Gender {
     /// Male gender
     Male,
     /// Female gender
@@ -13,34 +13,34 @@ pub enum GenderType {
     Unknown,
 }
 
-impl GenderType {
-    /// Create a GenderType from a `&str`, if possible.
-    pub fn from_eml_value(s: &str) -> Result<Self, UnknownGenderTypeError> {
+impl Gender {
+    /// Create a Gender from a `&str`, if possible.
+    pub fn from_eml_value(s: &str) -> Result<Self, UnknownGenderError> {
         match s {
-            "male" => Ok(GenderType::Male),
-            "female" => Ok(GenderType::Female),
-            "unknown" => Ok(GenderType::Unknown),
-            _ => Err(UnknownGenderTypeError(s.to_string())),
+            "male" => Ok(Gender::Male),
+            "female" => Ok(Gender::Female),
+            "unknown" => Ok(Gender::Unknown),
+            _ => Err(UnknownGenderError(s.to_string())),
         }
     }
 
-    /// Get the `&str` representation of this GenderType.
+    /// Get the `&str` representation of this Gender.
     pub fn to_eml_value(&self) -> &'static str {
         match self {
-            GenderType::Male => "male",
-            GenderType::Female => "female",
-            GenderType::Unknown => "unknown",
+            Gender::Male => "male",
+            Gender::Female => "female",
+            Gender::Unknown => "unknown",
         }
     }
 }
 
-/// Error returned when an unknown gender type string is encountered.
+/// Error returned when an unknown gender string is encountered.
 #[derive(Debug, Clone, Error, PartialEq, Eq)]
-#[error("Unknown gender type: {0}")]
-pub struct UnknownGenderTypeError(String);
+#[error("Unknown gender: {0}")]
+pub struct UnknownGenderError(String);
 
-impl StringValueData for GenderType {
-    type Error = UnknownGenderTypeError;
+impl StringValueData for Gender {
+    type Error = UnknownGenderError;
 
     fn parse_from_str(s: &str) -> Result<Self, Self::Error>
     where
@@ -63,8 +63,8 @@ mod tests {
         let valid_genders = ["male", "female", "unknown"];
         for gender in valid_genders {
             assert!(
-                GenderType::from_eml_value(gender).is_ok(),
-                "GenderType should accept valid gender: {}",
+                Gender::from_eml_value(gender).is_ok(),
+                "Gender should accept valid gender: {}",
                 gender
             );
         }
@@ -75,8 +75,8 @@ mod tests {
         let invalid_genders = ["", "test", "abc"];
         for gender in invalid_genders {
             assert!(
-                GenderType::from_eml_value(gender).is_err(),
-                "GenderType should reject invalid gender: {}",
+                Gender::from_eml_value(gender).is_err(),
+                "Gender should reject invalid gender: {}",
                 gender
             );
         }

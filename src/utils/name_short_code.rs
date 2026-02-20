@@ -12,26 +12,26 @@ static NAME_SHORT_CODE_RE: LazyLock<Regex> =
 /// A string of type NameShortCodeType as defined in the EML_NL specification
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(transparent)]
-pub struct NameShortCodeType(String);
+pub struct NameShortCode(String);
 
-impl NameShortCodeType {
-    /// Create a new NameShortCodeType from a string, validating its format
+impl NameShortCode {
+    /// Create a new NameShortCode from a string, validating its format
     pub fn new(s: impl AsRef<str>) -> Result<Self, InvalidNameShortCodeError> {
         StringValueData::parse_from_str(s.as_ref())
     }
 
-    /// Get the raw string value of the NameShortCodeType.
+    /// Get the raw string value of the NameShortCode.
     pub fn value(&self) -> &str {
         &self.0
     }
 }
 
-/// Error returned when a string could not be parsed as a ElectionId
+/// Error returned when a string could not be parsed as a NameShortCode
 #[derive(Debug, Clone, Error)]
-#[error("Invalid NameShortCodeType: {0}")]
+#[error("Invalid NameShortCode: {0}")]
 pub struct InvalidNameShortCodeError(String);
 
-impl StringValueData for NameShortCodeType {
+impl StringValueData for NameShortCode {
     type Error = InvalidNameShortCodeError;
     fn parse_from_str(s: &str) -> Result<Self, Self::Error>
     where
@@ -40,7 +40,7 @@ impl StringValueData for NameShortCodeType {
         // suggested alternative by clippy is not more clear in this case
         #[expect(clippy::len_zero)]
         if s.len() >= 1 && s.len() <= 15 && NAME_SHORT_CODE_RE.is_match(s) {
-            Ok(NameShortCodeType(s.to_string()))
+            Ok(NameShortCode(s.to_string()))
         } else {
             Err(InvalidNameShortCodeError(s.to_string()))
         }
@@ -65,8 +65,8 @@ mod tests {
         let valid_codes = ["1", "12345", "123456789012345"];
         for code in valid_codes {
             assert!(
-                NameShortCodeType::new(code).is_ok(),
-                "NameShortCodeType should accept valid code: {}",
+                NameShortCode::new(code).is_ok(),
+                "NameShortCode should accept valid code: {}",
                 code
             );
         }
@@ -77,8 +77,8 @@ mod tests {
         let invalid_codes = ["", "0", "012345", "abc", "123abc"];
         for code in invalid_codes {
             assert!(
-                NameShortCodeType::new(code).is_err(),
-                "NameShortCodeType should reject invalid code: {}",
+                NameShortCode::new(code).is_err(),
+                "NameShortCode should reject invalid code: {}",
                 code
             );
         }
