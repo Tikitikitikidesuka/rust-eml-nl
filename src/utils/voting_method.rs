@@ -28,40 +28,41 @@ pub enum VotingMethod {
     /// Block Voting
     Block,
     /// Supporter List Voting
-    Supporterlist,
+    SupporterList,
     /// Partisan Voting
     Partisan,
     /// Supplementary Vote
-    Supplementaryvote,
+    SupplementaryVote,
     /// Other Voting Method
     Other,
 }
 
 impl VotingMethod {
     /// Create a VotingMethod from a `&str`, if possible.
-    pub fn from_str_value(s: &str) -> Option<Self> {
-        match s {
-            "AMS" => Some(VotingMethod::AMS),
-            "FPP" => Some(VotingMethod::FPP),
-            "IRV" => Some(VotingMethod::IRV),
-            "NOR" => Some(VotingMethod::NOR),
-            "OPV" => Some(VotingMethod::OPV),
-            "RCV" => Some(VotingMethod::RCV),
-            "SPV" => Some(VotingMethod::SPV),
-            "STV" => Some(VotingMethod::STV),
-            "cumulative" => Some(VotingMethod::Cumulative),
-            "approval" => Some(VotingMethod::Approval),
-            "block" => Some(VotingMethod::Block),
-            "supporterlist" => Some(VotingMethod::Supporterlist),
-            "partisan" => Some(VotingMethod::Partisan),
-            "supplementaryvote" => Some(VotingMethod::Supplementaryvote),
-            "other" => Some(VotingMethod::Other),
-            _ => None,
+    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, UnknownVotingMethodError> {
+        let data = s.as_ref();
+        match data {
+            "AMS" => Ok(VotingMethod::AMS),
+            "FPP" => Ok(VotingMethod::FPP),
+            "IRV" => Ok(VotingMethod::IRV),
+            "NOR" => Ok(VotingMethod::NOR),
+            "OPV" => Ok(VotingMethod::OPV),
+            "RCV" => Ok(VotingMethod::RCV),
+            "SPV" => Ok(VotingMethod::SPV),
+            "STV" => Ok(VotingMethod::STV),
+            "cumulative" => Ok(VotingMethod::Cumulative),
+            "approval" => Ok(VotingMethod::Approval),
+            "block" => Ok(VotingMethod::Block),
+            "supporterlist" => Ok(VotingMethod::SupporterList),
+            "partisan" => Ok(VotingMethod::Partisan),
+            "supplementaryvote" => Ok(VotingMethod::SupplementaryVote),
+            "other" => Ok(VotingMethod::Other),
+            _ => Err(UnknownVotingMethodError(data.to_string())),
         }
     }
 
     /// Get the `&str` representation of this VotingMethod.
-    pub fn to_str_value(&self) -> &'static str {
+    pub fn to_eml_value(&self) -> &'static str {
         match self {
             VotingMethod::AMS => "AMS",
             VotingMethod::FPP => "FPP",
@@ -74,16 +75,16 @@ impl VotingMethod {
             VotingMethod::Cumulative => "cumulative",
             VotingMethod::Approval => "approval",
             VotingMethod::Block => "block",
-            VotingMethod::Supporterlist => "supporterlist",
+            VotingMethod::SupporterList => "supporterlist",
             VotingMethod::Partisan => "partisan",
-            VotingMethod::Supplementaryvote => "supplementaryvote",
+            VotingMethod::SupplementaryVote => "supplementaryvote",
             VotingMethod::Other => "other",
         }
     }
 }
 
 /// Error returned when an unknown voting method string is encountered.
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[error("Unknown voting method: {0}")]
 pub struct UnknownVotingMethodError(String);
 
@@ -94,11 +95,11 @@ impl StringValueData for VotingMethod {
     where
         Self: Sized,
     {
-        Self::from_str_value(s).ok_or(UnknownVotingMethodError(s.to_string()))
+        Self::from_eml_value(s)
     }
 
     fn to_raw_value(&self) -> String {
-        self.to_str_value().to_string()
+        self.to_eml_value().to_string()
     }
 }
 
@@ -108,16 +109,19 @@ mod tests {
 
     #[test]
     fn test_voting_method_from_str() {
-        assert_eq!(VotingMethod::from_str_value("AMS"), Some(VotingMethod::AMS));
-        assert_eq!(VotingMethod::from_str_value("FPP"), Some(VotingMethod::FPP));
-        assert_eq!(VotingMethod::from_str_value("SPV"), Some(VotingMethod::SPV));
-        assert_eq!(VotingMethod::from_str_value("UNKNOWN"), None);
+        assert_eq!(VotingMethod::from_eml_value("AMS"), Ok(VotingMethod::AMS));
+        assert_eq!(VotingMethod::from_eml_value("FPP"), Ok(VotingMethod::FPP));
+        assert_eq!(VotingMethod::from_eml_value("SPV"), Ok(VotingMethod::SPV));
+        assert_eq!(
+            VotingMethod::from_eml_value("UNKNOWN"),
+            Err(UnknownVotingMethodError("UNKNOWN".to_string()))
+        );
     }
 
     #[test]
     fn test_voting_method_to_str() {
-        assert_eq!(VotingMethod::AMS.to_str_value(), "AMS");
-        assert_eq!(VotingMethod::FPP.to_str_value(), "FPP");
-        assert_eq!(VotingMethod::SPV.to_str_value(), "SPV");
+        assert_eq!(VotingMethod::AMS.to_eml_value(), "AMS");
+        assert_eq!(VotingMethod::FPP.to_eml_value(), "FPP");
+        assert_eq!(VotingMethod::SPV.to_eml_value(), "SPV");
     }
 }

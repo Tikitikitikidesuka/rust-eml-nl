@@ -34,28 +34,29 @@ pub enum ElectionCategory {
 }
 
 impl ElectionCategory {
-    /// Create a VotingMethod from a `&str`, if possible.
-    pub fn from_str_value(s: &str) -> Option<Self> {
-        match s {
-            "EK" => Some(ElectionCategory::EK),
-            "TK" => Some(ElectionCategory::TK),
-            "EP" => Some(ElectionCategory::EP),
-            "PS" => Some(ElectionCategory::PS),
-            "AB" => Some(ElectionCategory::AB),
-            "GR" => Some(ElectionCategory::GR),
-            "BC" => Some(ElectionCategory::BC),
-            "GC" => Some(ElectionCategory::GC),
-            "ER" => Some(ElectionCategory::ER),
-            "NR" => Some(ElectionCategory::NR),
-            "PR" => Some(ElectionCategory::PR),
-            "LR" => Some(ElectionCategory::LR),
-            "IR" => Some(ElectionCategory::IR),
-            _ => None,
+    /// Create an [`ElectionCategory`] from a `&str`, if possible.
+    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, UnknownElectionCategory> {
+        let data = s.as_ref();
+        match data {
+            "EK" => Ok(ElectionCategory::EK),
+            "TK" => Ok(ElectionCategory::TK),
+            "EP" => Ok(ElectionCategory::EP),
+            "PS" => Ok(ElectionCategory::PS),
+            "AB" => Ok(ElectionCategory::AB),
+            "GR" => Ok(ElectionCategory::GR),
+            "BC" => Ok(ElectionCategory::BC),
+            "GC" => Ok(ElectionCategory::GC),
+            "ER" => Ok(ElectionCategory::ER),
+            "NR" => Ok(ElectionCategory::NR),
+            "PR" => Ok(ElectionCategory::PR),
+            "LR" => Ok(ElectionCategory::LR),
+            "IR" => Ok(ElectionCategory::IR),
+            _ => Err(UnknownElectionCategory(data.to_string())),
         }
     }
 
-    /// Get the `&str` representation of this VotingMethod.
-    pub fn to_str_value(&self) -> &'static str {
+    /// Get the `&str` representation of this [`ElectionCategory`].
+    pub fn to_eml_value(&self) -> &'static str {
         match self {
             ElectionCategory::EK => "EK",
             ElectionCategory::TK => "TK",
@@ -75,7 +76,7 @@ impl ElectionCategory {
 }
 
 /// Error returned when an unknown election category string is encountered.
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[error("Unknown election category: {0}")]
 pub struct UnknownElectionCategory(String);
 
@@ -86,11 +87,11 @@ impl StringValueData for ElectionCategory {
     where
         Self: Sized,
     {
-        Self::from_str_value(s).ok_or(UnknownElectionCategory(s.to_string()))
+        Self::from_eml_value(s)
     }
 
     fn to_raw_value(&self) -> String {
-        self.to_str_value().to_string()
+        self.to_eml_value().to_string()
     }
 }
 
@@ -224,19 +225,22 @@ mod tests {
     #[test]
     fn test_election_category_from_str() {
         assert_eq!(
-            ElectionCategory::from_str_value("EK"),
-            Some(ElectionCategory::EK)
+            ElectionCategory::from_eml_value("EK"),
+            Ok(ElectionCategory::EK)
         );
         assert_eq!(
-            ElectionCategory::from_str_value("TK"),
-            Some(ElectionCategory::TK)
+            ElectionCategory::from_eml_value("TK"),
+            Ok(ElectionCategory::TK)
         );
-        assert_eq!(ElectionCategory::from_str_value("UNKNOWN"), None);
+        assert_eq!(
+            ElectionCategory::from_eml_value("UNKNOWN"),
+            Err(UnknownElectionCategory("UNKNOWN".to_string()))
+        );
     }
 
     #[test]
     fn test_election_category_to_str() {
-        assert_eq!(ElectionCategory::EK.to_str_value(), "EK");
-        assert_eq!(ElectionCategory::TK.to_str_value(), "TK");
+        assert_eq!(ElectionCategory::EK.to_eml_value(), "EK");
+        assert_eq!(ElectionCategory::TK.to_eml_value(), "TK");
     }
 }

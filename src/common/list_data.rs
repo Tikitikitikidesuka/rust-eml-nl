@@ -48,7 +48,7 @@ impl ListData {
             .map(|s| match s {
                 StringValue::Parsed(v) => *v,
                 StringValue::Raw(r) => {
-                    PublicationLanguageType::from_str_value(r).unwrap_or_default()
+                    PublicationLanguageType::from_eml_value(r).unwrap_or_default()
                 }
             })
             .unwrap_or_default()

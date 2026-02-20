@@ -14,18 +14,18 @@ pub enum AffiliationType {
 }
 
 impl AffiliationType {
-    /// Create a VotingMethod from a `&str`, if possible.
-    pub fn from_str_value(s: &str) -> Option<Self> {
+    /// Create an [`AffiliationType`] from a `&str`, if possible.
+    pub fn from_eml_value(s: &str) -> Result<Self, UnknownAffiliationType> {
         match s {
-            "lijstengroep" => Some(AffiliationType::GroupOfLists),
-            "stel gelijkluidende lijsten" => Some(AffiliationType::SetOfEqualLists),
-            "op zichzelf staande lijst" => Some(AffiliationType::StandAloneList),
-            _ => None,
+            "lijstengroep" => Ok(AffiliationType::GroupOfLists),
+            "stel gelijkluidende lijsten" => Ok(AffiliationType::SetOfEqualLists),
+            "op zichzelf staande lijst" => Ok(AffiliationType::StandAloneList),
+            _ => Err(UnknownAffiliationType(s.to_string())),
         }
     }
 
-    /// Get the `&str` representation of this VotingMethod.
-    pub fn to_str_value(&self) -> &'static str {
+    /// Get the `&str` representation of this [`AffiliationType`].
+    pub fn to_eml_value(&self) -> &'static str {
         match self {
             AffiliationType::GroupOfLists => "lijstengroep",
             AffiliationType::SetOfEqualLists => "stel gelijkluidende lijsten",
@@ -35,7 +35,7 @@ impl AffiliationType {
 }
 
 /// Error returned when an unknown election category string is encountered.
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[error("Unknown affiliation type: {0}")]
 pub struct UnknownAffiliationType(String);
 
@@ -45,11 +45,11 @@ impl StringValueData for AffiliationType {
     where
         Self: Sized,
     {
-        Self::from_str_value(s).ok_or(UnknownAffiliationType(s.to_string()))
+        Self::from_eml_value(s)
     }
 
     fn to_raw_value(&self) -> String {
-        self.to_str_value().to_string()
+        self.to_eml_value().to_string()
     }
 }
 
@@ -60,29 +60,32 @@ mod tests {
     #[test]
     fn test_election_category_from_str() {
         assert_eq!(
-            AffiliationType::from_str_value("lijstengroep"),
-            Some(AffiliationType::GroupOfLists)
+            AffiliationType::from_eml_value("lijstengroep"),
+            Ok(AffiliationType::GroupOfLists)
         );
         assert_eq!(
-            AffiliationType::from_str_value("stel gelijkluidende lijsten"),
-            Some(AffiliationType::SetOfEqualLists)
+            AffiliationType::from_eml_value("stel gelijkluidende lijsten"),
+            Ok(AffiliationType::SetOfEqualLists)
         );
         assert_eq!(
-            AffiliationType::from_str_value("op zichzelf staande lijst"),
-            Some(AffiliationType::StandAloneList)
+            AffiliationType::from_eml_value("op zichzelf staande lijst"),
+            Ok(AffiliationType::StandAloneList)
         );
-        assert_eq!(AffiliationType::from_str_value("UNKNOWN"), None);
+        assert_eq!(
+            AffiliationType::from_eml_value("UNKNOWN"),
+            Err(UnknownAffiliationType("UNKNOWN".to_string()))
+        );
     }
 
     #[test]
     fn test_election_category_to_str() {
-        assert_eq!(AffiliationType::GroupOfLists.to_str_value(), "lijstengroep");
+        assert_eq!(AffiliationType::GroupOfLists.to_eml_value(), "lijstengroep");
         assert_eq!(
-            AffiliationType::SetOfEqualLists.to_str_value(),
+            AffiliationType::SetOfEqualLists.to_eml_value(),
             "stel gelijkluidende lijsten"
         );
         assert_eq!(
-            AffiliationType::StandAloneList.to_str_value(),
+            AffiliationType::StandAloneList.to_eml_value(),
             "op zichzelf staande lijst"
         );
     }

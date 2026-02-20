@@ -12,17 +12,17 @@ pub enum VotingChannelType {
 }
 
 impl VotingChannelType {
-    /// Create a VotingMethod from a `&str`, if possible.
-    pub fn from_str_value(s: &str) -> Option<Self> {
+    /// Create a [`VotingChannelType`] from a `&str`, if possible.
+    pub fn from_eml_value(s: &str) -> Result<Self, UnknownVotingChannelError> {
         match s {
-            "polling" => Some(VotingChannelType::Polling),
-            "postal" => Some(VotingChannelType::Postal),
-            _ => None,
+            "polling" => Ok(VotingChannelType::Polling),
+            "postal" => Ok(VotingChannelType::Postal),
+            _ => Err(UnknownVotingChannelError(s.to_string())),
         }
     }
 
-    /// Get the `&str` representation of this VotingMethod.
-    pub fn to_str_value(&self) -> &'static str {
+    /// Get the `&str` representation of this [`VotingChannelType`].
+    pub fn to_eml_value(&self) -> &'static str {
         match self {
             VotingChannelType::Polling => "polling",
             VotingChannelType::Postal => "postal",
@@ -31,7 +31,7 @@ impl VotingChannelType {
 }
 
 /// Error returned when an unknown voting channel string is encountered.
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[error("Unknown voting channel: {0}")]
 pub struct UnknownVotingChannelError(String);
 
@@ -42,11 +42,11 @@ impl StringValueData for VotingChannelType {
     where
         Self: Sized,
     {
-        Self::from_str_value(s).ok_or(UnknownVotingChannelError(s.to_string()))
+        Self::from_eml_value(s)
     }
 
     fn to_raw_value(&self) -> String {
-        self.to_str_value().to_string()
+        self.to_eml_value().to_string()
     }
 }
 
@@ -59,7 +59,7 @@ mod tests {
         let valid_channels = ["polling", "postal"];
         for channel in valid_channels {
             assert!(
-                VotingChannelType::from_str_value(channel).is_some(),
+                VotingChannelType::from_eml_value(channel).is_ok(),
                 "VotingChannelType should accept valid channel: {}",
                 channel
             );
@@ -71,7 +71,7 @@ mod tests {
         let invalid_channels = ["", "test", "abc"];
         for channel in invalid_channels {
             assert!(
-                VotingChannelType::from_str_value(channel).is_none(),
+                VotingChannelType::from_eml_value(channel).is_err(),
                 "VotingChannelType should reject invalid channel: {}",
                 channel
             );

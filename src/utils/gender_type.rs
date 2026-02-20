@@ -15,17 +15,17 @@ pub enum GenderType {
 
 impl GenderType {
     /// Create a GenderType from a `&str`, if possible.
-    pub fn from_str_value(s: &str) -> Option<Self> {
+    pub fn from_eml_value(s: &str) -> Result<Self, UnknownGenderTypeError> {
         match s {
-            "male" => Some(GenderType::Male),
-            "female" => Some(GenderType::Female),
-            "unknown" => Some(GenderType::Unknown),
-            _ => None,
+            "male" => Ok(GenderType::Male),
+            "female" => Ok(GenderType::Female),
+            "unknown" => Ok(GenderType::Unknown),
+            _ => Err(UnknownGenderTypeError(s.to_string())),
         }
     }
 
     /// Get the `&str` representation of this GenderType.
-    pub fn to_str_value(&self) -> &'static str {
+    pub fn to_eml_value(&self) -> &'static str {
         match self {
             GenderType::Male => "male",
             GenderType::Female => "female",
@@ -35,7 +35,7 @@ impl GenderType {
 }
 
 /// Error returned when an unknown gender type string is encountered.
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[error("Unknown gender type: {0}")]
 pub struct UnknownGenderTypeError(String);
 
@@ -46,11 +46,11 @@ impl StringValueData for GenderType {
     where
         Self: Sized,
     {
-        Self::from_str_value(s).ok_or(UnknownGenderTypeError(s.to_string()))
+        Self::from_eml_value(s)
     }
 
     fn to_raw_value(&self) -> String {
-        self.to_str_value().to_string()
+        self.to_eml_value().to_string()
     }
 }
 
@@ -63,7 +63,7 @@ mod tests {
         let valid_genders = ["male", "female", "unknown"];
         for gender in valid_genders {
             assert!(
-                GenderType::from_str_value(gender).is_some(),
+                GenderType::from_eml_value(gender).is_ok(),
                 "GenderType should accept valid gender: {}",
                 gender
             );
@@ -75,7 +75,7 @@ mod tests {
         let invalid_genders = ["", "test", "abc"];
         for gender in invalid_genders {
             assert!(
-                GenderType::from_str_value(gender).is_none(),
+                GenderType::from_eml_value(gender).is_err(),
                 "GenderType should reject invalid gender: {}",
                 gender
             );

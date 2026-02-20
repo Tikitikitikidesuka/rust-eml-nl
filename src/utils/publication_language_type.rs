@@ -15,16 +15,16 @@ pub enum PublicationLanguageType {
 
 impl PublicationLanguageType {
     /// Parse a publication language type from its string representation.
-    pub fn from_str_value(s: &str) -> Option<Self> {
+    pub fn from_eml_value(s: &str) -> Result<Self, UnknownPublicationLanguageType> {
         match s {
-            "nl" => Some(PublicationLanguageType::Dutch),
-            "fy" => Some(PublicationLanguageType::Frisian),
-            _ => None,
+            "nl" => Ok(PublicationLanguageType::Dutch),
+            "fy" => Ok(PublicationLanguageType::Frisian),
+            _ => Err(UnknownPublicationLanguageType(s.to_string())),
         }
     }
 
-    /// Get the `&str` representation of this PublicationLanguageType.
-    pub fn to_str_value(&self) -> &'static str {
+    /// Get the `&str` representation of this [`PublicationLanguageType`].
+    pub fn to_eml_value(&self) -> &'static str {
         match self {
             PublicationLanguageType::Dutch => "nl",
             PublicationLanguageType::Frisian => "fy",
@@ -33,7 +33,7 @@ impl PublicationLanguageType {
 }
 
 /// Error returned when an unknown publication language type string is encountered.
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[error("Unknown publication language type: {0}")]
 pub struct UnknownPublicationLanguageType(String);
 
@@ -44,11 +44,11 @@ impl StringValueData for PublicationLanguageType {
     where
         Self: Sized,
     {
-        Self::from_str_value(s).ok_or(UnknownPublicationLanguageType(s.to_string()))
+        Self::from_eml_value(s)
     }
 
     fn to_raw_value(&self) -> String {
-        self.to_str_value().to_string()
+        self.to_eml_value().to_string()
     }
 }
 
@@ -61,7 +61,7 @@ mod tests {
         let valid_languages = ["nl", "fy"];
         for lang in valid_languages {
             assert!(
-                PublicationLanguageType::from_str_value(lang).is_some(),
+                PublicationLanguageType::from_eml_value(lang).is_ok(),
                 "PublicationLanguageType should accept valid language code: {}",
                 lang
             );
@@ -73,7 +73,7 @@ mod tests {
         let invalid_languages = ["", "de", "dutch", "nederlands"];
         for lang in invalid_languages {
             assert!(
-                PublicationLanguageType::from_str_value(lang).is_none(),
+                PublicationLanguageType::from_eml_value(lang).is_err(),
                 "PublicationLanguageType should reject invalid language code: {}",
                 lang
             );
