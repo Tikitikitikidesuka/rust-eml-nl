@@ -1,15 +1,13 @@
 //! Document variant for the EML_NL Count (`510a`, `510b`, `510c` or `510d`) document.
 
-use std::{collections::BTreeMap, num::NonZeroU64, sync::LazyLock};
-
-use regex::Regex;
+use std::{collections::BTreeMap, num::NonZeroU64};
 
 use crate::{
     EML_SCHEMA_VERSION, EMLError, EMLErrorKind, EMLResultExt as _, NS_EML, NS_KR,
     common::{
         CandidateIdentifier, CanonicalizationMethod, ContestIdentifier, CreationDateTime,
         ElectionDomain, ManagingAuthority, MinimalQualifyingAddress, PersonNameStructure,
-        TransactionId,
+        ReportingUnitIdentifier, TransactionId,
     },
     documents::{ElectionIdentifierBuilder, accepted_root},
     io::{
@@ -18,7 +16,7 @@ use crate::{
     },
     utils::{
         AffiliationIdType, ElectionCategory, ElectionIdType, ElectionSubcategory, GenderType,
-        StringValue, StringValueData, XsDate, XsDateTime,
+        StringValue, XsDate, XsDateTime,
     },
 };
 
@@ -1142,88 +1140,6 @@ impl EMLElement for ReportingUnitVotes {
     }
 }
 
-/// Identifier for the reporting unit votes.
-#[derive(Debug, Clone)]
-pub struct ReportingUnitIdentifier {
-    /// Id of the reporting unit
-    pub id: StringValue<ReportingUnitIdentifierIdType>,
-
-    /// Name of the reporting unit
-    pub name: String,
-}
-
-impl ReportingUnitIdentifier {
-    /// Create a new ReportingUnitIdentifier with the given id and name.
-    pub fn new(id: impl Into<ReportingUnitIdentifierIdType>, name: impl Into<String>) -> Self {
-        ReportingUnitIdentifier {
-            id: StringValue::from_value(id.into()),
-            name: name.into(),
-        }
-    }
-}
-
-impl EMLElement for ReportingUnitIdentifier {
-    const EML_NAME: QualifiedName<'_, '_> =
-        QualifiedName::from_static("ReportingUnitIdentifier", Some(NS_EML));
-
-    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
-        Ok(ReportingUnitIdentifier {
-            id: elem.string_value_attr("Id", None)?,
-            name: elem.text_without_children()?,
-        })
-    }
-
-    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
-        writer
-            .attr("Id", self.id.raw().as_ref())?
-            .text(self.name.as_ref())?
-            .finish()
-    }
-}
-
-/// Type for ReportingUnitVotesIdentifier id.
-#[derive(Debug, Clone)]
-pub struct ReportingUnitIdentifierIdType(String);
-
-/// Regular expression for validating ReportingUnitVotesIdentifier id values.
-static REPORTING_UNIT_VOTES_IDENTIFIER_TYPE_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^((HSB\d+)|((HSB\d+::)?\d{4})|(((HSB\d+::)?\d{4}::)?SB\d+)|(HSB\d+::SB\d+))$")
-        .expect("Failed to compile ReportingUnitVotesIdentifier id regex")
-});
-
-impl ReportingUnitIdentifierIdType {
-    /// Create a new ReportingUnitVotesIdentifierType from a string.
-    pub fn new(s: impl AsRef<str>) -> Result<Self, InvalidReportingUnitVotesIdentifierType> {
-        ReportingUnitIdentifierIdType::parse_from_str(s.as_ref())
-    }
-
-    /// Get the raw string value of the ReportingUnitVotesIdentifierType.
-    pub fn value(&self) -> &str {
-        &self.0
-    }
-}
-
-/// Error indicating an invalid ReportingUnitVotesIdentifierType.
-#[derive(Debug, Clone, thiserror::Error)]
-#[error("Invalid reporting unit votes identifier type: {0}")]
-pub struct InvalidReportingUnitVotesIdentifierType(String);
-
-impl StringValueData for ReportingUnitIdentifierIdType {
-    type Error = InvalidReportingUnitVotesIdentifierType;
-
-    fn parse_from_str(s: &str) -> Result<Self, Self::Error> {
-        if REPORTING_UNIT_VOTES_IDENTIFIER_TYPE_RE.is_match(s) {
-            Ok(ReportingUnitIdentifierIdType(s.to_string()))
-        } else {
-            Err(InvalidReportingUnitVotesIdentifierType(s.to_string()))
-        }
-    }
-
-    fn to_raw_value(&self) -> String {
-        self.0.clone()
-    }
-}
-
 /// Reason code for a specific investigation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum InvestigationReason {
@@ -1947,15 +1863,10 @@ mod tests {
     use crate::{
         common::{AuthorityIdentifier, PersonName},
         io::{EMLParsingMode, EMLRead, EMLWrite},
-        utils::{CandidateIdType, XSBType},
+        utils::{CandidateIdType, ReportingUnitIdentifierId, XSBType},
     };
 
     use super::*;
-
-    #[test]
-    fn test_reporting_unit_votes_identifier_type_regex_compiles() {
-        LazyLock::force(&REPORTING_UNIT_VOTES_IDENTIFIER_TYPE_RE);
-    }
 
     #[test]
     fn test_election_count_construction() {
@@ -2008,7 +1919,7 @@ mod tests {
                 ])
                 .reporting_unit_votes([ReportingUnitVotes::builder()
                     .identifier(ReportingUnitIdentifier::new(
-                        ReportingUnitIdentifierIdType::new("SB1234").unwrap(),
+                        ReportingUnitIdentifierId::new("SB1234").unwrap(),
                         "Stembureau",
                     ))
                     .rejected_votes(RejectedVotesReason::Blank, 10u64)
