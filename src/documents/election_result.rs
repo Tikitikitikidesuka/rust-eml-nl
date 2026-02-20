@@ -468,7 +468,7 @@ impl YesNoType {
     }
 
     /// Create a new YesNoType from an EML string ("yes" or "no").
-    pub fn from_eml_str(s: &str) -> Result<Self, InvalidYesNoTypeError> {
+    pub fn from_eml_value(s: &str) -> Result<Self, InvalidYesNoTypeError> {
         match s {
             "yes" => Ok(YesNoType(true)),
             "no" => Ok(YesNoType(false)),
@@ -477,7 +477,7 @@ impl YesNoType {
     }
 
     /// Returns the string representation of the value ("yes" or "no").
-    pub fn as_eml_str(&self) -> &'static str {
+    pub fn to_eml_value(&self) -> &'static str {
         if self.0 { "yes" } else { "no" }
     }
 
@@ -507,11 +507,11 @@ impl StringValueData for YesNoType {
     type Error = InvalidYesNoTypeError;
 
     fn parse_from_str(s: &str) -> Result<Self, Self::Error> {
-        Self::from_eml_str(s)
+        Self::from_eml_value(s)
     }
 
     fn to_raw_value(&self) -> String {
-        self.as_eml_str().to_string()
+        self.to_eml_value().to_string()
     }
 }
 

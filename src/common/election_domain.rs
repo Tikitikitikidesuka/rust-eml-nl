@@ -1,7 +1,7 @@
 use crate::{
     EMLError, NS_KR,
     io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName},
-    utils::{ElectionDomainIdType, StringValue},
+    utils::{ElectionDomainId, StringValue},
 };
 
 /// Election domain of an election.
@@ -13,14 +13,14 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct ElectionDomain {
     /// Identifier of the election domain
-    pub id: StringValue<ElectionDomainIdType>,
+    pub id: StringValue<ElectionDomainId>,
     /// Name of the election domain
     pub name: String,
 }
 
 impl ElectionDomain {
     /// Create a new ElectionDomain
-    pub fn new(id: ElectionDomainIdType, name: impl Into<String>) -> Self {
+    pub fn new(id: ElectionDomainId, name: impl Into<String>) -> Self {
         ElectionDomain {
             id: StringValue::from_value(id),
             name: name.into(),
@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn test_election_domain_construction() {
-        let ed = ElectionDomain::new(ElectionDomainIdType::new("1234").unwrap(), "Test Domain");
+        let ed = ElectionDomain::new(ElectionDomainId::new("1234").unwrap(), "Test Domain");
         assert_eq!(ed.id.raw(), "1234");
         assert_eq!(ed.name, "Test Domain");
     }

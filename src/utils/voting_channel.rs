@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use crate::utils::StringValueData;
 
-/// Voting method used in the election.
+/// Voting channel used in the election.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VotingChannelType {
     /// A physical polling station

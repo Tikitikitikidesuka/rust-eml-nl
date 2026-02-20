@@ -1,19 +1,19 @@
 use crate::{
     EMLError, NS_EML,
     io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName},
-    utils::{ContestIdType, ContestIdTypeGeen, StringValue},
+    utils::{ContestId, ContestIdGeen, StringValue},
 };
 
 /// Identifier for the contest.
 #[derive(Debug, Clone)]
 pub struct ContestIdentifier {
     /// Id of the contest.
-    pub id: StringValue<ContestIdType>,
+    pub id: StringValue<ContestId>,
 }
 
 impl ContestIdentifier {
     /// Create a new `ContestIdentifier`.
-    pub fn new(id: ContestIdType) -> Self {
+    pub fn new(id: ContestId) -> Self {
         ContestIdentifier {
             id: StringValue::Parsed(id),
         }
@@ -37,12 +37,12 @@ impl ContestIdentifier {
 
     /// Create a new `ContestIdentifier` with 'geen' type.
     pub fn geen() -> Self {
-        ContestIdentifier::new(ContestIdType::geen())
+        ContestIdentifier::new(ContestId::geen())
     }
 
     /// Create a new `ContestIdentifier` with 'alle' type.
     pub fn alle() -> Self {
-        ContestIdentifier::new(ContestIdType::alle())
+        ContestIdentifier::new(ContestId::alle())
     }
 }
 
@@ -64,14 +64,14 @@ impl EMLElement for ContestIdentifier {
 #[derive(Debug, Clone)]
 pub struct ContestIdentifierGeen {
     /// Id of the contest.
-    pub id: StringValue<ContestIdTypeGeen>,
+    pub id: StringValue<ContestIdGeen>,
 }
 
 impl ContestIdentifierGeen {
     /// Create a new `ContestIdentifierGeen`.
     pub fn new() -> Self {
         ContestIdentifierGeen {
-            id: StringValue::Parsed(ContestIdTypeGeen::new()),
+            id: StringValue::Parsed(ContestIdGeen::new()),
         }
     }
 }
@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn test_contest_identifier_construction() {
-        let contest_id = ContestIdentifier::new(ContestIdType::new("1234").unwrap());
+        let contest_id = ContestIdentifier::new(ContestId::new("1234").unwrap());
         assert_eq!(contest_id.id.raw(), "1234");
         assert!(!contest_id.is_geen());
         assert!(!contest_id.is_alle());

@@ -13,26 +13,26 @@ static ELECTION_DOMAIN_ID_RE: LazyLock<Regex> = LazyLock::new(|| {
 /// A string of type ElectionDomainId as defined in the EML_NL specification
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(transparent)]
-pub struct ElectionDomainIdType(String);
+pub struct ElectionDomainId(String);
 
-impl ElectionDomainIdType {
-    /// Create a new ElectionDomainIdType from a string, validating its format
+impl ElectionDomainId {
+    /// Create a new ElectionDomainId from a string, validating its format
     pub fn new(s: impl AsRef<str>) -> Result<Self, InvalidElectionDomainIdError> {
         StringValueData::parse_from_str(s.as_ref())
     }
 
-    /// Get the raw string value of the ElectionIdType.
+    /// Get the raw string value of the ElectionDomainId.
     pub fn value(&self) -> &str {
         &self.0
     }
 }
 
-/// Error returned when a string could not be parsed as a ElectionDomainId
+/// Error returned when a string could not be parsed as a [`ElectionDomainId`]
 #[derive(Debug, Clone, Error)]
 #[error("Invalid ElectionDomainId: {0}")]
 pub struct InvalidElectionDomainIdError(String);
 
-impl StringValueData for ElectionDomainIdType {
+impl StringValueData for ElectionDomainId {
     type Error = InvalidElectionDomainIdError;
 
     fn parse_from_str(s: &str) -> Result<Self, Self::Error>
@@ -40,7 +40,7 @@ impl StringValueData for ElectionDomainIdType {
         Self: Sized,
     {
         if ELECTION_DOMAIN_ID_RE.is_match(s) {
-            Ok(ElectionDomainIdType(s.to_string()))
+            Ok(ElectionDomainId(s.to_string()))
         } else {
             Err(InvalidElectionDomainIdError(s.to_string()))
         }
@@ -65,8 +65,8 @@ mod tests {
         let valid_ids = ["1", "12", "1234"];
         for id in valid_ids {
             assert!(
-                ElectionDomainIdType::new(id).is_ok(),
-                "ElectionDomainIdType should accept valid id: {}",
+                ElectionDomainId::new(id).is_ok(),
+                "ElectionDomainId should accept valid id: {}",
                 id
             );
         }
@@ -77,8 +77,8 @@ mod tests {
         let invalid_ids = ["", "34", "123", "12345", "abc"];
         for id in invalid_ids {
             assert!(
-                ElectionDomainIdType::new(id).is_err(),
-                "ElectionDomainIdType should reject invalid id: {}",
+                ElectionDomainId::new(id).is_err(),
+                "ElectionDomainId should reject invalid id: {}",
                 id
             );
         }

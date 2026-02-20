@@ -35,7 +35,7 @@ pub enum ElectionCategory {
 
 impl ElectionCategory {
     /// Create an [`ElectionCategory`] from a `&str`, if possible.
-    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, UnknownElectionCategory> {
+    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, UnknownElectionCategoryError> {
         let data = s.as_ref();
         match data {
             "EK" => Ok(ElectionCategory::EK),
@@ -51,7 +51,7 @@ impl ElectionCategory {
             "PR" => Ok(ElectionCategory::PR),
             "LR" => Ok(ElectionCategory::LR),
             "IR" => Ok(ElectionCategory::IR),
-            _ => Err(UnknownElectionCategory(data.to_string())),
+            _ => Err(UnknownElectionCategoryError(data.to_string())),
         }
     }
 
@@ -78,10 +78,10 @@ impl ElectionCategory {
 /// Error returned when an unknown election category string is encountered.
 #[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[error("Unknown election category: {0}")]
-pub struct UnknownElectionCategory(String);
+pub struct UnknownElectionCategoryError(String);
 
 impl StringValueData for ElectionCategory {
-    type Error = UnknownElectionCategory;
+    type Error = UnknownElectionCategoryError;
 
     fn parse_from_str(s: &str) -> Result<Self, Self::Error>
     where
@@ -134,30 +134,31 @@ pub enum ElectionSubcategory {
 
 impl ElectionSubcategory {
     /// Create a ElectionSubcategory from a `&str`, if possible.
-    pub fn from_str_value(s: &str) -> Option<Self> {
-        match s {
-            "PS1" => Some(ElectionSubcategory::PS1),
-            "PS2" => Some(ElectionSubcategory::PS2),
-            "AB1" => Some(ElectionSubcategory::AB1),
-            "AB2" => Some(ElectionSubcategory::AB2),
-            "GR1" => Some(ElectionSubcategory::GR1),
-            "GR2" => Some(ElectionSubcategory::GR2),
-            "BC" => Some(ElectionSubcategory::BC),
-            "GC" => Some(ElectionSubcategory::GC),
-            "ER1" => Some(ElectionSubcategory::ER1),
-            "TK" => Some(ElectionSubcategory::TK),
-            "EK" => Some(ElectionSubcategory::EK),
-            "EP" => Some(ElectionSubcategory::EP),
-            "NR" => Some(ElectionSubcategory::NR),
-            "PR" => Some(ElectionSubcategory::PR),
-            "LR" => Some(ElectionSubcategory::LR),
-            "IR" => Some(ElectionSubcategory::IR),
-            _ => None,
+    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, UnknownElectionSubcategoryError> {
+        let data = s.as_ref();
+        match data {
+            "PS1" => Ok(ElectionSubcategory::PS1),
+            "PS2" => Ok(ElectionSubcategory::PS2),
+            "AB1" => Ok(ElectionSubcategory::AB1),
+            "AB2" => Ok(ElectionSubcategory::AB2),
+            "GR1" => Ok(ElectionSubcategory::GR1),
+            "GR2" => Ok(ElectionSubcategory::GR2),
+            "BC" => Ok(ElectionSubcategory::BC),
+            "GC" => Ok(ElectionSubcategory::GC),
+            "ER1" => Ok(ElectionSubcategory::ER1),
+            "TK" => Ok(ElectionSubcategory::TK),
+            "EK" => Ok(ElectionSubcategory::EK),
+            "EP" => Ok(ElectionSubcategory::EP),
+            "NR" => Ok(ElectionSubcategory::NR),
+            "PR" => Ok(ElectionSubcategory::PR),
+            "LR" => Ok(ElectionSubcategory::LR),
+            "IR" => Ok(ElectionSubcategory::IR),
+            _ => Err(UnknownElectionSubcategoryError(data.to_string())),
         }
     }
 
     /// Get the `&str` representation of this ElectionSubcategory.
-    pub fn to_str_value(&self) -> &'static str {
+    pub fn to_eml_value(&self) -> &'static str {
         match self {
             ElectionSubcategory::PS1 => "PS1",
             ElectionSubcategory::PS2 => "PS2",
@@ -199,22 +200,22 @@ impl ElectionSubcategory {
 }
 
 /// Error returned when an unknown election subcategory string is encountered.
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[error("Unknown election subcategory: {0}")]
-pub struct UnknownElectionSubcategory(String);
+pub struct UnknownElectionSubcategoryError(String);
 
 impl StringValueData for ElectionSubcategory {
-    type Error = UnknownElectionSubcategory;
+    type Error = UnknownElectionSubcategoryError;
 
     fn parse_from_str(s: &str) -> Result<Self, Self::Error>
     where
         Self: Sized,
     {
-        Self::from_str_value(s).ok_or(UnknownElectionSubcategory(s.to_string()))
+        Self::from_eml_value(s)
     }
 
     fn to_raw_value(&self) -> String {
-        self.to_str_value().to_string()
+        self.to_eml_value().to_string()
     }
 }
 
@@ -234,7 +235,7 @@ mod tests {
         );
         assert_eq!(
             ElectionCategory::from_eml_value("UNKNOWN"),
-            Err(UnknownElectionCategory("UNKNOWN".to_string()))
+            Err(UnknownElectionCategoryError("UNKNOWN".to_string()))
         );
     }
 

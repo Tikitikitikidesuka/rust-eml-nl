@@ -746,14 +746,14 @@ impl EMLElement for TotalVotes {
             candidate_votes_count: ("TotalCounted", NS_EML) => |elem| elem.string_value()?,
             rejected_votes as BTreeMap: REJECTED_VOTES_EML_NAME => |elem| {
                 let reason_code = elem.attribute_value_req("ReasonCode")?;
-                let reason = RejectedVotesReason::from_eml_str(&reason_code)
+                let reason = RejectedVotesReason::from_eml_value(&reason_code)
                     .map_err(|e| EMLError::invalid_value(REJECTED_VOTES_EML_NAME.as_owned(), e, Some(elem.full_span())))?;
 
                 (reason, elem.string_value()?)
             },
             uncounted_votes as BTreeMap: UNCOUNTED_VOTES_EML_NAME => |elem| {
                 let reason_code = elem.attribute_value_req("ReasonCode")?;
-                let reason = UncountedVotesReason::from_eml_code(&reason_code)
+                let reason = UncountedVotesReason::from_eml_value(&reason_code)
                     .map_err(|e| EMLError::invalid_value(UNCOUNTED_VOTES_EML_NAME.as_owned(), e, Some(elem.full_span())))?;
 
                 (reason, elem.string_value()?)
@@ -802,7 +802,7 @@ impl EMLElement for TotalVotes {
                 REJECTED_VOTES_EML_NAME,
                 &self.rejected_votes,
                 |elem, (reason, count)| {
-                    let reason_code = reason.to_eml_str();
+                    let reason_code = reason.to_eml_value();
                     elem.attr("ReasonCode", reason_code.as_ref())?
                         .text(count.raw().as_ref())?
                         .finish()
@@ -812,7 +812,7 @@ impl EMLElement for TotalVotes {
                 UNCOUNTED_VOTES_EML_NAME,
                 &self.uncounted_votes,
                 |elem, (reason, count)| {
-                    let reason_code = reason.to_eml_code();
+                    let reason_code = reason.to_eml_value();
                     elem.attr("ReasonCode", reason_code.as_ref())?
                         .text(count.raw().as_ref())?
                         .finish()
@@ -1015,14 +1015,14 @@ impl EMLElement for ReportingUnitVotes {
             candidate_votes_count: ("TotalCounted", NS_EML) => |elem| elem.string_value()?,
             rejected_votes as BTreeMap: REJECTED_VOTES_EML_NAME => |elem| {
                 let reason_code = elem.attribute_value_req("ReasonCode")?;
-                let reason = RejectedVotesReason::from_eml_str(&reason_code)
+                let reason = RejectedVotesReason::from_eml_value(&reason_code)
                     .map_err(|e| EMLError::invalid_value(REJECTED_VOTES_EML_NAME.as_owned(), e, Some(elem.full_span())))?;
 
                 (reason, elem.string_value()?)
             },
             uncounted_votes as BTreeMap: UNCOUNTED_VOTES_EML_NAME => |elem| {
                 let reason_code = elem.attribute_value_req("ReasonCode")?;
-                let reason = UncountedVotesReason::from_eml_code(&reason_code)
+                let reason = UncountedVotesReason::from_eml_value(&reason_code)
                     .map_err(|e| EMLError::invalid_value(UNCOUNTED_VOTES_EML_NAME.as_owned(), e, Some(elem.full_span())))?;
 
                 (reason, elem.string_value()?)
@@ -1035,7 +1035,7 @@ impl EMLElement for ReportingUnitVotes {
                 let data = collect_struct!(elem, Collector {
                     investigations as BTreeMap: INVESTIGATION_EML_NAME => |elem| {
                         let reason_code = elem.attribute_value_req("ReasonCode")?;
-                        let reason = InvestigationReason::from_eml_str(&reason_code)
+                        let reason = InvestigationReason::from_eml_value(&reason_code)
                             .map_err(|e| EMLError::invalid_value(INVESTIGATION_EML_NAME.as_owned(), e, Some(elem.full_span())))?;
 
                         (reason, elem.string_value()?)
@@ -1097,7 +1097,7 @@ impl EMLElement for ReportingUnitVotes {
                 REJECTED_VOTES_EML_NAME,
                 &self.rejected_votes,
                 |elem, (reason, count)| {
-                    let reason_code = reason.to_eml_str();
+                    let reason_code = reason.to_eml_value();
                     elem.attr("ReasonCode", reason_code.as_ref())?
                         .text(count.raw().as_ref())?
                         .finish()
@@ -1107,7 +1107,7 @@ impl EMLElement for ReportingUnitVotes {
                 UNCOUNTED_VOTES_EML_NAME,
                 &self.uncounted_votes,
                 |elem, (reason, count)| {
-                    let reason_code = reason.to_eml_code();
+                    let reason_code = reason.to_eml_value();
                     elem.attr("ReasonCode", reason_code.as_ref())?
                         .text(count.raw().as_ref())?
                         .finish()
@@ -1125,7 +1125,7 @@ impl EMLElement for ReportingUnitVotes {
 
                     for (reason, investigated) in value {
                         elem = elem.child(INVESTIGATION_EML_NAME, |elem| {
-                            let reason_code = reason.to_eml_str();
+                            let reason_code = reason.to_eml_value();
                             elem.attr("ReasonCode", reason_code.as_ref())?
                                 .text(investigated.raw().as_ref())?
                                 .finish()
@@ -1158,7 +1158,7 @@ pub enum InvestigationReason {
 
 impl InvestigationReason {
     /// Create an InvestigationReason from an EML reason code string.
-    pub fn from_eml_str(s: impl AsRef<str>) -> Result<Self, InvalidInvestigationReason> {
+    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, InvalidInvestigationReason> {
         let data = s.as_ref();
         match data {
             "onderzocht vanwege onverklaard verschil" => {
@@ -1176,7 +1176,7 @@ impl InvestigationReason {
     }
 
     /// Get the EML reason code string for this InvestigationReason.
-    pub fn to_eml_str(&self) -> &'static str {
+    pub fn to_eml_value(&self) -> &'static str {
         match self {
             InvestigationReason::UnexplainedDifference => "onderzocht vanwege onverklaard verschil",
             InvestigationReason::OtherError => "onderzocht vanwege andere fout",
@@ -1230,7 +1230,7 @@ pub enum UncountedVotesReason {
 
 impl UncountedVotesReason {
     /// Create an UncountedVotesReason from an EML reason code string.
-    pub fn from_eml_code(s: impl AsRef<str>) -> Result<Self, InvalidUncountedVotesReason> {
+    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, InvalidUncountedVotesReason> {
         match s.as_ref() {
             "geldige stempassen" => Ok(UncountedVotesReason::ValidPollCards),
             "geldige volmachtbewijzen" => Ok(UncountedVotesReason::ValidProxyCertificates),
@@ -1251,7 +1251,7 @@ impl UncountedVotesReason {
     }
 
     /// Get the EML reason code string for this UncountedVotesReason.
-    pub fn to_eml_code(&self) -> &'static str {
+    pub fn to_eml_value(&self) -> &'static str {
         match self {
             UncountedVotesReason::ValidPollCards => "geldige stempassen",
             UncountedVotesReason::ValidProxyCertificates => "geldige volmachtbewijzen",
@@ -1287,7 +1287,7 @@ pub enum RejectedVotesReason {
 
 impl RejectedVotesReason {
     /// Create a RejectedVotesReason from an EML reason code string.
-    pub fn from_eml_str(s: impl AsRef<str>) -> Result<Self, InvalidRejectedVotesReason> {
+    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, InvalidRejectedVotesReason> {
         let data = s.as_ref();
         match data {
             "blanco" => Ok(RejectedVotesReason::Blank),
@@ -1297,7 +1297,7 @@ impl RejectedVotesReason {
     }
 
     /// Get the EML reason code string for this RejectedVotesReason.
-    pub fn to_eml_str(&self) -> &'static str {
+    pub fn to_eml_value(&self) -> &'static str {
         match self {
             RejectedVotesReason::Blank => "blanco",
             RejectedVotesReason::Invalid => "ongeldig",

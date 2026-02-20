@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use crate::utils::StringValueData;
 
-/// Voting method used in the election.
+/// Affiliation type used in the election.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AffiliationType {
     /// lijstengroep
@@ -15,12 +15,12 @@ pub enum AffiliationType {
 
 impl AffiliationType {
     /// Create an [`AffiliationType`] from a `&str`, if possible.
-    pub fn from_eml_value(s: &str) -> Result<Self, UnknownAffiliationType> {
+    pub fn from_eml_value(s: &str) -> Result<Self, UnknownAffiliationTypeError> {
         match s {
             "lijstengroep" => Ok(AffiliationType::GroupOfLists),
             "stel gelijkluidende lijsten" => Ok(AffiliationType::SetOfEqualLists),
             "op zichzelf staande lijst" => Ok(AffiliationType::StandAloneList),
-            _ => Err(UnknownAffiliationType(s.to_string())),
+            _ => Err(UnknownAffiliationTypeError(s.to_string())),
         }
     }
 
@@ -37,10 +37,10 @@ impl AffiliationType {
 /// Error returned when an unknown election category string is encountered.
 #[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[error("Unknown affiliation type: {0}")]
-pub struct UnknownAffiliationType(String);
+pub struct UnknownAffiliationTypeError(String);
 
 impl StringValueData for AffiliationType {
-    type Error = UnknownAffiliationType;
+    type Error = UnknownAffiliationTypeError;
     fn parse_from_str(s: &str) -> Result<Self, Self::Error>
     where
         Self: Sized,
@@ -73,7 +73,7 @@ mod tests {
         );
         assert_eq!(
             AffiliationType::from_eml_value("UNKNOWN"),
-            Err(UnknownAffiliationType("UNKNOWN".to_string()))
+            Err(UnknownAffiliationTypeError("UNKNOWN".to_string()))
         );
     }
 

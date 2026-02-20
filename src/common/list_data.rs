@@ -5,7 +5,7 @@ use thiserror::Error;
 use crate::{
     NS_KR,
     io::{EMLElement, QualifiedName, collect_struct},
-    utils::{ContestIdType, PublicationLanguage, StringValue, StringValueData},
+    utils::{ContestId, PublicationLanguage, StringValue, StringValueData},
 };
 
 /// Additional data for affiliation lists.
@@ -148,7 +148,7 @@ impl EMLElement for ListData {
 #[derive(Debug, Clone)]
 pub struct ListDataContest {
     /// The contest ID.
-    pub id: StringValue<ContestIdType>,
+    pub id: StringValue<ContestId>,
 
     /// An optional name for the contest.
     pub name: Option<String>,
@@ -156,7 +156,7 @@ pub struct ListDataContest {
 
 impl ListDataContest {
     /// Create a new `ListDataContest` with the given ID and no name.
-    pub fn new(id: ContestIdType) -> Self {
+    pub fn new(id: ContestId) -> Self {
         ListDataContest {
             id: StringValue::from_value(id),
             name: None,
@@ -254,7 +254,7 @@ mod tests {
     #[test]
     fn test_list_data_contest_construction() {
         let contest =
-            ListDataContest::new(ContestIdType::new("1234").unwrap()).with_name("Test Contest");
+            ListDataContest::new(ContestId::new("1234").unwrap()).with_name("Test Contest");
 
         assert_eq!(contest.id.raw(), "1234");
         assert_eq!(contest.name.as_ref().unwrap(), "Test Contest");

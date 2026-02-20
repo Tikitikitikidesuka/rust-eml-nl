@@ -15,11 +15,11 @@ pub enum PublicationLanguage {
 
 impl PublicationLanguage {
     /// Parse a publication language from its string representation.
-    pub fn from_eml_value(s: &str) -> Result<Self, UnknownPublicationLanguage> {
+    pub fn from_eml_value(s: &str) -> Result<Self, UnknownPublicationLanguageError> {
         match s {
             "nl" => Ok(PublicationLanguage::Dutch),
             "fy" => Ok(PublicationLanguage::Frisian),
-            _ => Err(UnknownPublicationLanguage(s.to_string())),
+            _ => Err(UnknownPublicationLanguageError(s.to_string())),
         }
     }
 
@@ -35,10 +35,10 @@ impl PublicationLanguage {
 /// Error returned when an unknown publication language string is encountered.
 #[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[error("Unknown publication language: {0}")]
-pub struct UnknownPublicationLanguage(String);
+pub struct UnknownPublicationLanguageError(String);
 
 impl StringValueData for PublicationLanguage {
-    type Error = UnknownPublicationLanguage;
+    type Error = UnknownPublicationLanguageError;
 
     fn parse_from_str(s: &str) -> Result<Self, Self::Error>
     where

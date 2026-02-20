@@ -14,15 +14,15 @@ static CONTEST_ID_RE: LazyLock<Regex> = LazyLock::new(|| {
 /// A string of type ContestId as defined in the EML_NL specification
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(transparent)]
-pub struct ContestIdType(String);
+pub struct ContestId(String);
 
-impl ContestIdType {
-    /// Create a new `ContestIdType` from a string, validating its format
+impl ContestId {
+    /// Create a new `ContestId` from a string, validating its format
     pub fn new(s: impl AsRef<str>) -> Result<Self, InvalidContestIdError> {
         StringValueData::parse_from_str(s.as_ref())
     }
 
-    /// Get the raw string value of the `ContestIdType`
+    /// Get the raw string value of the `ContestId`
     pub fn value(&self) -> &str {
         &self.0
     }
@@ -39,21 +39,21 @@ impl ContestIdType {
 
     /// Create a `ContestIdType` representing "geen"
     pub fn geen() -> Self {
-        ContestIdType("geen".to_string())
+        ContestId("geen".to_string())
     }
 
     /// Create a `ContestIdType` representing "alle"
     pub fn alle() -> Self {
-        ContestIdType("alle".to_string())
+        ContestId("alle".to_string())
     }
 }
 
-/// Error returned when a string could not be parsed as a ContestId
+/// Error returned when a string could not be parsed as a [`ContestId`]
 #[derive(Debug, Clone, Error)]
 #[error("Invalid ContestId: {0}")]
 pub struct InvalidContestIdError(String);
 
-impl StringValueData for ContestIdType {
+impl StringValueData for ContestId {
     type Error = InvalidContestIdError;
 
     fn parse_from_str(s: &str) -> Result<Self, Self::Error>
@@ -61,7 +61,7 @@ impl StringValueData for ContestIdType {
         Self: Sized,
     {
         if !s.is_empty() && CONTEST_ID_RE.is_match(s) {
-            Ok(ContestIdType(s.to_string()))
+            Ok(ContestId(s.to_string()))
         } else {
             Err(InvalidContestIdError(s.to_string()))
         }
@@ -74,35 +74,35 @@ impl StringValueData for ContestIdType {
 
 /// A ContestIdType representing a fixed "geen" value
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ContestIdTypeGeen;
+pub struct ContestIdGeen;
 
-impl ContestIdTypeGeen {
+impl ContestIdGeen {
     /// The fixed string value for 'geen'
     pub const GEEN: &str = "geen";
 
-    /// Create a new `ContestIdTypeGeen`
+    /// Create a new `ContestIdGeen`
     pub fn new() -> Self {
-        ContestIdTypeGeen
+        ContestIdGeen
     }
 
-    /// Convert to a regular [`ContestIdType`]
-    pub fn to_contest_id_type(&self) -> ContestIdType {
-        ContestIdType::geen()
+    /// Convert to a regular [`ContestId`]
+    pub fn to_contest_id(&self) -> ContestId {
+        ContestId::geen()
     }
 }
 
-impl Default for ContestIdTypeGeen {
+impl Default for ContestIdGeen {
     fn default() -> Self {
-        ContestIdTypeGeen::new()
+        ContestIdGeen::new()
     }
 }
 
-/// Error returned when a string could not be parsed as a ContestId
+/// Error returned when a string could not be parsed as a [`ContestIdGeen`]
 #[derive(Debug, Clone, Error)]
 #[error("Invalid ContestId, expected 'geen': {0}")]
 pub struct InvalidContestIdGeenError(String);
 
-impl StringValueData for ContestIdTypeGeen {
+impl StringValueData for ContestIdGeen {
     type Error = InvalidContestIdGeenError;
 
     fn parse_from_str(s: &str) -> Result<Self, Self::Error>
@@ -110,7 +110,7 @@ impl StringValueData for ContestIdTypeGeen {
         Self: Sized,
     {
         if s == Self::GEEN {
-            Ok(ContestIdTypeGeen)
+            Ok(ContestIdGeen)
         } else {
             Err(InvalidContestIdGeenError(s.to_string()))
         }
@@ -137,8 +137,8 @@ mod tests {
         ];
         for id in valid_ids {
             assert!(
-                ContestIdType::new(id).is_ok(),
-                "ContestIdType should accept valid id: {}",
+                ContestId::new(id).is_ok(),
+                "ContestId should accept valid id: {}",
                 id
             );
         }
@@ -149,8 +149,8 @@ mod tests {
         let invalid_ids = ["", "0", "0123", "abc", "123abc", "-1", "MMMMM", "IC"];
         for id in invalid_ids {
             assert!(
-                ContestIdType::new(id).is_err(),
-                "ContestIdType should reject invalid id: {}",
+                ContestId::new(id).is_err(),
+                "ContestId should reject invalid id: {}",
                 id
             );
         }
@@ -158,12 +158,12 @@ mod tests {
 
     #[test]
     fn test_contest_id_types() {
-        let geen = ContestIdType::geen();
+        let geen = ContestId::geen();
         assert_eq!(geen.value(), "geen");
         assert!(geen.is_geen());
         assert!(!geen.is_alle());
 
-        let alle = ContestIdType::alle();
+        let alle = ContestId::alle();
         assert_eq!(alle.value(), "alle");
         assert!(!alle.is_geen());
         assert!(alle.is_alle());
@@ -173,14 +173,14 @@ mod tests {
     fn test_contest_id_type_geen() {
         let valid_geen = "geen";
         let invalid_geen = "alle";
-        assert!(ContestIdTypeGeen::parse_from_str(valid_geen).is_ok());
-        assert!(ContestIdTypeGeen::parse_from_str(invalid_geen).is_err());
+        assert!(ContestIdGeen::parse_from_str(valid_geen).is_ok());
+        assert!(ContestIdGeen::parse_from_str(invalid_geen).is_err());
     }
 
     #[test]
     fn test_contest_id_type_geen_to_contest_id_type() {
-        let geen = ContestIdTypeGeen::new();
-        let contest_id = geen.to_contest_id_type();
+        let geen = ContestIdGeen::new();
+        let contest_id = geen.to_contest_id();
         assert_eq!(contest_id.value(), "geen");
     }
 }
