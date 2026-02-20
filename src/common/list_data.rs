@@ -23,7 +23,7 @@ pub struct ListData {
 
     /// If this list is of type [`AffiliationType::GroupOfLists`](crate::utils::AffiliationType::GroupOfLists), the
     /// combination it belongs to.
-    pub belongs_to_combination: Option<StringValue<ListDataBelongsToCombinationType>>,
+    pub belongs_to_combination: Option<StringValue<ListDataBelongsToCombination>>,
 
     /// An optional list of contests this list is associated with.
     pub contests: Vec<ListDataContest>,
@@ -69,7 +69,7 @@ impl ListData {
     /// [`AffiliationType::GroupOfLists`](crate::utils::AffiliationType::GroupOfLists).
     pub fn with_belongs_to_combination(
         mut self,
-        combination_id: ListDataBelongsToCombinationType,
+        combination_id: ListDataBelongsToCombination,
     ) -> Self {
         self.belongs_to_combination = Some(StringValue::Parsed(combination_id));
         self
@@ -196,15 +196,15 @@ impl EMLElement for ListDataContest {
 
 /// Type representing the combination a list belongs to.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ListDataBelongsToCombinationType(String);
+pub struct ListDataBelongsToCombination(String);
 
 /// Error returned when an invalid list data belongs to combination type string is encountered.
 #[derive(Debug, Clone, Error)]
 #[error("Invalid list data belongs to combination type: {0}")]
-pub struct InvalidListDataBelongsToCombinationType(String);
+pub struct InvalidListDataBelongsToCombinationError(String);
 
-impl StringValueData for ListDataBelongsToCombinationType {
-    type Error = InvalidListDataBelongsToCombinationType;
+impl StringValueData for ListDataBelongsToCombination {
+    type Error = InvalidListDataBelongsToCombinationError;
 
     fn parse_from_str(s: &str) -> Result<Self, Self::Error>
     where
@@ -216,9 +216,9 @@ impl StringValueData for ListDataBelongsToCombinationType {
                 .map(|c| c.is_ascii_alphabetic())
                 .unwrap_or(false)
         {
-            Ok(ListDataBelongsToCombinationType(s.to_string()))
+            Ok(ListDataBelongsToCombination(s.to_string()))
         } else {
-            Err(InvalidListDataBelongsToCombinationType(s.to_string()))
+            Err(InvalidListDataBelongsToCombinationError(s.to_string()))
         }
     }
 
@@ -237,7 +237,7 @@ mod tests {
         let list_data = ListData::new(true)
             .with_publication_language(PublicationLanguage::Frisian)
             .with_belongs_to_set(NonZeroU64::new(1).unwrap())
-            .with_belongs_to_combination(ListDataBelongsToCombinationType("A".to_string()));
+            .with_belongs_to_combination(ListDataBelongsToCombination("A".to_string()));
 
         assert_eq!(list_data.publish_gender.raw(), "true");
         assert_eq!(
@@ -277,7 +277,7 @@ mod tests {
 
         assert_eq!(
             list_data.belongs_to_combination,
-            Some(StringValue::Parsed(ListDataBelongsToCombinationType(
+            Some(StringValue::Parsed(ListDataBelongsToCombination(
                 "A".to_string()
             )))
         );

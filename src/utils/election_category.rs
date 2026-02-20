@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use crate::utils::StringValueData;
 
-/// Voting method used in the election.
+/// Election category used in the election.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ElectionCategory {
     /// Eerste Kamer

@@ -27,22 +27,22 @@ impl ContestId {
         &self.0
     }
 
-    /// Check if the `ContestIdType` is "geen"
+    /// Check if the `ContestId` is "geen"
     pub fn is_geen(&self) -> bool {
         self.0 == "geen"
     }
 
-    /// Check if the `ContestIdType` is "alle"
+    /// Check if the `ContestId` is "alle"
     pub fn is_alle(&self) -> bool {
         self.0 == "alle"
     }
 
-    /// Create a `ContestIdType` representing "geen"
+    /// Create a `ContestId` representing "geen"
     pub fn geen() -> Self {
         ContestId("geen".to_string())
     }
 
-    /// Create a `ContestIdType` representing "alle"
+    /// Create a `ContestId` representing "alle"
     pub fn alle() -> Self {
         ContestId("alle".to_string())
     }
@@ -72,7 +72,7 @@ impl StringValueData for ContestId {
     }
 }
 
-/// A ContestIdType representing a fixed "geen" value
+/// A ContestId representing a fixed "geen" value
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ContestIdGeen;
 

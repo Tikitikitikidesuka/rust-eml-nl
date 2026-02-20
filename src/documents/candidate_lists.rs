@@ -6,7 +6,7 @@ use crate::{
     EML_SCHEMA_VERSION, EMLError, NS_EML, NS_KR, NS_XAL,
     common::{
         CandidateIdentifier, CanonicalizationMethod, ContestIdentifier, CountryNameCode,
-        CreationDateTime, ElectionDomain, IssueDate, ListData, ListDataBelongsToCombinationType,
+        CreationDateTime, ElectionDomain, IssueDate, ListData, ListDataBelongsToCombination,
         LocalityName, ManagingAuthority, PersonNameStructure, TransactionId,
     },
     documents::{
@@ -636,7 +636,7 @@ pub struct CandidateListsAffiliationBuilder {
     publish_gender: Option<bool>,
     publication_language: Option<PublicationLanguage>,
     belongs_to_set: Option<NonZeroU64>,
-    belongs_to_combination: Option<ListDataBelongsToCombinationType>,
+    belongs_to_combination: Option<ListDataBelongsToCombination>,
     candidates: Vec<CandidateListsCandidate>,
 }
 
@@ -697,7 +697,7 @@ impl CandidateListsAffiliationBuilder {
     /// Set the combination that this affiliation belongs to.
     pub fn belongs_to_combination(
         mut self,
-        belongs_to_combination: impl Into<ListDataBelongsToCombinationType>,
+        belongs_to_combination: impl Into<ListDataBelongsToCombination>,
     ) -> Self {
         self.belongs_to_combination = Some(belongs_to_combination.into());
         self

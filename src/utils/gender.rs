@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use crate::utils::StringValueData;
 
-/// Voting method used in the election.
+/// Gender of a candidate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Gender {
     /// Male gender

@@ -1158,7 +1158,7 @@ pub enum InvestigationReason {
 
 impl InvestigationReason {
     /// Create an InvestigationReason from an EML reason code string.
-    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, InvalidInvestigationReason> {
+    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, InvalidInvestigationReasonError> {
         let data = s.as_ref();
         match data {
             "onderzocht vanwege onverklaard verschil" => {
@@ -1171,7 +1171,7 @@ impl InvestigationReason {
             }
             "onderzocht vanwege andere reden" => Ok(InvestigationReason::OtherReason),
             "stembiljetten deels herteld" => Ok(InvestigationReason::PartiallyRecountedBallots),
-            _ => Err(InvalidInvestigationReason(data.to_string())),
+            _ => Err(InvalidInvestigationReasonError(data.to_string())),
         }
     }
 
@@ -1193,7 +1193,7 @@ impl InvestigationReason {
 /// Error indicating an invalid InvestigationReason.
 #[derive(Debug, Clone, thiserror::Error)]
 #[error("Invalid investigation reason: {0}")]
-pub struct InvalidInvestigationReason(String);
+pub struct InvalidInvestigationReasonError(String);
 
 /// Reason code for a specific uncounted votes entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -1230,7 +1230,7 @@ pub enum UncountedVotesReason {
 
 impl UncountedVotesReason {
     /// Create an UncountedVotesReason from an EML reason code string.
-    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, InvalidUncountedVotesReason> {
+    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, InvalidUncountedVotesReasonError> {
         match s.as_ref() {
             "geldige stempassen" => Ok(UncountedVotesReason::ValidPollCards),
             "geldige volmachtbewijzen" => Ok(UncountedVotesReason::ValidProxyCertificates),
@@ -1246,7 +1246,7 @@ impl UncountedVotesReason {
             "kwijtgeraakte stembiljetten" => Ok(UncountedVotesReason::LostBallots),
             "geen verklaring" => Ok(UncountedVotesReason::NoExplanation),
             "andere verklaring" => Ok(UncountedVotesReason::OtherExplanation),
-            _ => Err(InvalidUncountedVotesReason(s.as_ref().to_string())),
+            _ => Err(InvalidUncountedVotesReasonError(s.as_ref().to_string())),
         }
     }
 
@@ -1274,7 +1274,7 @@ impl UncountedVotesReason {
 /// Error indicating an invalid uncounted votes reason.
 #[derive(Debug, Clone, thiserror::Error)]
 #[error("Invalid uncounted votes reason: {0}")]
-pub struct InvalidUncountedVotesReason(String);
+pub struct InvalidUncountedVotesReasonError(String);
 
 /// Reason code for rejected votes entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -1287,12 +1287,12 @@ pub enum RejectedVotesReason {
 
 impl RejectedVotesReason {
     /// Create a RejectedVotesReason from an EML reason code string.
-    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, InvalidRejectedVotesReason> {
+    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, InvalidRejectedVotesReasonError> {
         let data = s.as_ref();
         match data {
             "blanco" => Ok(RejectedVotesReason::Blank),
             "ongeldig" => Ok(RejectedVotesReason::Invalid),
-            _ => Err(InvalidRejectedVotesReason(data.to_string())),
+            _ => Err(InvalidRejectedVotesReasonError(data.to_string())),
         }
     }
 
@@ -1308,7 +1308,7 @@ impl RejectedVotesReason {
 /// Error indicating an invalid rejected votes reason.
 #[derive(Debug, Clone, thiserror::Error)]
 #[error("Invalid rejected votes reason: {0}")]
-pub struct InvalidRejectedVotesReason(String);
+pub struct InvalidRejectedVotesReasonError(String);
 
 /// A selection within the reporting unit votes.
 #[derive(Debug, Clone)]
