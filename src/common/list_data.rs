@@ -41,7 +41,7 @@ impl ListData {
         }
     }
 
-    /// Get the publication language, defaulting to [`PublicationLanguageType::default()`] if not set or invalid.
+    /// Get the publication language, defaulting to [`PublicationLanguage::default()`] if not set or invalid.
     pub fn get_publication_language(&self) -> PublicationLanguage {
         self.publication_language
             .as_ref()
