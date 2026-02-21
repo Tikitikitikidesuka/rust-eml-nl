@@ -146,7 +146,7 @@ impl EMLElement for AuthorityAddress {
     }
 }
 
-/// Address of a managing authority.
+/// Authority that created the authority.
 #[derive(Debug, Clone)]
 pub struct CreatedByAuthority {
     /// Identifier of the managing authority

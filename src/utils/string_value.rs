@@ -163,6 +163,8 @@ impl StringValueData for bool {
     }
 
     fn to_raw_value(&self) -> String {
+        // Note: We use "true" and "false" as the raw string representation for
+        // boolean values, as this is more human-readable than "1" and "0".
         self.to_string()
     }
 }

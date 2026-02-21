@@ -11,10 +11,17 @@ use crate::{
 pub struct CandidateIdentifier {
     /// The candidate id.
     pub id: StringValue<CandidateId>,
+
     /// The display order of the candidate.
     pub display_order: Option<StringValue<NonZeroU64>>,
+
     /// The short code of the candidate.
+    ///
+    /// Note: This can be specified either as an attribute or as a child
+    /// element, but the attribute takes precedence if both are present.
+    /// Additionally we only ever output it as an attribute for simplicity.
     pub short_code: Option<StringValue<NameShortCode>>,
+
     /// The expected confirmation reference of the candidate.
     pub expected_confirmation_reference: Option<String>,
 }

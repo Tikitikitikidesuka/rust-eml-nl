@@ -28,9 +28,9 @@ impl ReportingUnitIdentifierId {
     }
 }
 
-/// Error returned when a string could not be parsed as a ReportingUnitIdentifier id
+/// Error returned when a string could not be parsed as a [`ReportingUnitIdentifierId`]
 #[derive(Debug, Clone, Error)]
-#[error("Invalid ReportingUnitIdentifier id: {0}")]
+#[error("Invalid reporting unit identifier id: {0}")]
 pub struct InvalidReportingUnitIdentifierIdError(String);
 
 impl StringValueData for ReportingUnitIdentifierId {

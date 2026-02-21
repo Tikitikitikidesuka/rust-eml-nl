@@ -29,7 +29,7 @@ impl ElectionDomainId {
 
 /// Error returned when a string could not be parsed as a [`ElectionDomainId`]
 #[derive(Debug, Clone, Error)]
-#[error("Invalid ElectionDomainId: {0}")]
+#[error("Invalid election domain id: {0}")]
 pub struct InvalidElectionDomainIdError(String);
 
 impl StringValueData for ElectionDomainId {

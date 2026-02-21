@@ -170,7 +170,7 @@ mod tests {
     }
 
     #[test]
-    fn test_contest_id_type_geen() {
+    fn test_contest_id_geen() {
         let valid_geen = "geen";
         let invalid_geen = "alle";
         assert!(ContestIdGeen::parse_from_str(valid_geen).is_ok());
@@ -178,7 +178,7 @@ mod tests {
     }
 
     #[test]
-    fn test_contest_id_type_geen_to_contest_id_type() {
+    fn test_contest_id_geen_to_contest_id() {
         let geen = ContestIdGeen::new();
         let contest_id = geen.to_contest_id();
         assert_eq!(contest_id.value(), "geen");

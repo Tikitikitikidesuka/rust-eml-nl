@@ -9,7 +9,7 @@ pub enum ElectionCategory {
     EK,
     /// Tweede Kamer
     TK,
-    /// Europese Parlement
+    /// Europees Parlement
     EP,
     /// Provinciale Staten
     PS,
