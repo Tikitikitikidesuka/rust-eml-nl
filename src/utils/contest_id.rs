@@ -50,7 +50,7 @@ impl ContestId {
 
 /// Error returned when a string could not be parsed as a [`ContestId`]
 #[derive(Debug, Clone, Error)]
-#[error("Invalid ContestId: {0}")]
+#[error("Invalid contest id: {0}")]
 pub struct InvalidContestIdError(String);
 
 impl StringValueData for ContestId {
@@ -99,7 +99,7 @@ impl Default for ContestIdGeen {
 
 /// Error returned when a string could not be parsed as a [`ContestIdGeen`]
 #[derive(Debug, Clone, Error)]
-#[error("Invalid ContestId, expected 'geen': {0}")]
+#[error("Invalid contest id, expected 'geen': {0}")]
 pub struct InvalidContestIdGeenError(String);
 
 impl StringValueData for ContestIdGeen {

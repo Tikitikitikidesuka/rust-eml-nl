@@ -5,11 +5,13 @@ use thiserror::Error;
 
 use crate::utils::StringValueData;
 
-/// Regular expression for validating AffiliationIdType values.
+/// Regular expression for validating affiliation id values.
 static AFFILIATION_ID_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^([1-9]\d*)$").expect("Failed to compile Affiliation ID regex"));
 
-/// A string of type AffiliationIdType as defined in the EML_NL specification
+/// A string of type affiliation id as defined in the EML_NL specification
+///
+/// Called AffiliationIdType in the schema.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct AffiliationId(String);
@@ -28,7 +30,7 @@ impl AffiliationId {
 
 /// Error returned when a string could not be parsed as a AffiliationId
 #[derive(Debug, Clone, Error)]
-#[error("Invalid Affiliation id: {0}")]
+#[error("Invalid affiliation id: {0}")]
 pub struct InvalidAffiliationIdError(String);
 
 impl StringValueData for AffiliationId {

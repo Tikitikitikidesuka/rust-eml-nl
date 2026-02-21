@@ -15,12 +15,13 @@ pub enum Gender {
 
 impl Gender {
     /// Create a Gender from a `&str`, if possible.
-    pub fn from_eml_value(s: &str) -> Result<Self, UnknownGenderError> {
-        match s {
+    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, UnknownGenderError> {
+        let data = s.as_ref();
+        match data {
             "male" => Ok(Gender::Male),
             "female" => Ok(Gender::Female),
             "unknown" => Ok(Gender::Unknown),
-            _ => Err(UnknownGenderError(s.to_string())),
+            _ => Err(UnknownGenderError(data.to_string())),
         }
     }
 

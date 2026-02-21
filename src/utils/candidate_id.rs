@@ -5,11 +5,13 @@ use thiserror::Error;
 
 use crate::utils::StringValueData;
 
-/// Regular expression for validating CandidateIdType values.
+/// Regular expression for validating candidate id values.
 static CANDIDATE_ID_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^([1-9]\d*)$").expect("Failed to compile Candidate ID regex"));
 
-/// A string of type CandidateIdType as defined in the EML_NL specification
+/// A string of type candidate id as defined in the EML_NL specification
+///
+/// Called CandidateIdType in the schema.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct CandidateId(String);

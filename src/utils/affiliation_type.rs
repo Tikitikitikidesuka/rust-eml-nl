@@ -15,12 +15,13 @@ pub enum AffiliationType {
 
 impl AffiliationType {
     /// Create an [`AffiliationType`] from a `&str`, if possible.
-    pub fn from_eml_value(s: &str) -> Result<Self, UnknownAffiliationTypeError> {
-        match s {
+    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, UnknownAffiliationTypeError> {
+        let data = s.as_ref();
+        match data {
             "lijstengroep" => Ok(AffiliationType::GroupOfLists),
             "stel gelijkluidende lijsten" => Ok(AffiliationType::SetOfEqualLists),
             "op zichzelf staande lijst" => Ok(AffiliationType::StandAloneList),
-            _ => Err(UnknownAffiliationTypeError(s.to_string())),
+            _ => Err(UnknownAffiliationTypeError(data.to_string())),
         }
     }
 
@@ -34,7 +35,7 @@ impl AffiliationType {
     }
 }
 
-/// Error returned when an unknown election category string is encountered.
+/// Error returned when an unknown affiliation type string is encountered.
 #[derive(Debug, Clone, Error, PartialEq, Eq)]
 #[error("Unknown affiliation type: {0}")]
 pub struct UnknownAffiliationTypeError(String);
@@ -58,7 +59,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_election_category_from_str() {
+    fn test_affiliation_type_from_str() {
         assert_eq!(
             AffiliationType::from_eml_value("lijstengroep"),
             Ok(AffiliationType::GroupOfLists)
@@ -78,7 +79,7 @@ mod tests {
     }
 
     #[test]
-    fn test_election_category_to_str() {
+    fn test_affiliation_type_to_str() {
         assert_eq!(AffiliationType::GroupOfLists.to_eml_value(), "lijstengroep");
         assert_eq!(
             AffiliationType::SetOfEqualLists.to_eml_value(),

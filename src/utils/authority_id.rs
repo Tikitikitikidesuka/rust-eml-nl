@@ -5,7 +5,7 @@ use thiserror::Error;
 
 use crate::utils::StringValueData;
 
-/// EML_NL XSBType value.
+/// EML_NL authority id (called XSBType in the schema) value.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct AuthorityId(String);
@@ -16,16 +16,16 @@ impl AuthorityId {
         StringValueData::parse_from_str(s.as_ref())
     }
 
-    /// Get the raw string value of the XSBType.
+    /// Get the raw string value of the authority id.
     pub fn value(&self) -> &str {
         &self.0
     }
 }
 
-/// Error type returned when an invalid XSBType value is encountered.
+/// Error type returned when an invalid authority id value is encountered.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[repr(transparent)]
-#[error("Invalid AuthorityId value, must match ^(CSB|((HSB|SB)\\d+)|(\\d{{4}}))$: {0}")]
+#[error("Invalid authority id: {0}")]
 pub struct InvalidAuthorityIdError(String);
 
 /// Regular expression for validating AuthorityId values.

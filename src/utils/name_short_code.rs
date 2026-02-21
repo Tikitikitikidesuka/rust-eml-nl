@@ -5,11 +5,14 @@ use thiserror::Error;
 
 use crate::utils::StringValueData;
 
-/// Regular expression for validating NameShortCodeType values.
-static NAME_SHORT_CODE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^([1-9]\d*)$").expect("Failed to compile Name Short Code regex"));
+/// Regular expression for validating NameShortCode values.
+static NAME_SHORT_CODE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(\p{L}*[1-9]\d*)$").expect("Failed to compile Name Short Code regex")
+});
 
-/// A string of type NameShortCodeType as defined in the EML_NL specification
+/// A string of type NameShortCode as defined in the EML_NL specification
+///
+/// Called NameShortCodeType in the schema.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct NameShortCode(String);
@@ -28,7 +31,7 @@ impl NameShortCode {
 
 /// Error returned when a string could not be parsed as a NameShortCode
 #[derive(Debug, Clone, Error)]
-#[error("Invalid NameShortCode: {0}")]
+#[error("Invalid name short code: {0}")]
 pub struct InvalidNameShortCodeError(String);
 
 impl StringValueData for NameShortCode {

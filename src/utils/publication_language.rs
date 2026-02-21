@@ -15,11 +15,12 @@ pub enum PublicationLanguage {
 
 impl PublicationLanguage {
     /// Parse a publication language from its string representation.
-    pub fn from_eml_value(s: &str) -> Result<Self, UnknownPublicationLanguageError> {
-        match s {
+    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, UnknownPublicationLanguageError> {
+        let data = s.as_ref();
+        match data {
             "nl" => Ok(PublicationLanguage::Dutch),
             "fy" => Ok(PublicationLanguage::Frisian),
-            _ => Err(UnknownPublicationLanguageError(s.to_string())),
+            _ => Err(UnknownPublicationLanguageError(data.to_string())),
         }
     }
 

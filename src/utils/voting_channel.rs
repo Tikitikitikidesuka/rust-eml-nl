@@ -13,11 +13,12 @@ pub enum VotingChannelType {
 
 impl VotingChannelType {
     /// Create a [`VotingChannelType`] from a `&str`, if possible.
-    pub fn from_eml_value(s: &str) -> Result<Self, UnknownVotingChannelError> {
-        match s {
+    pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, UnknownVotingChannelError> {
+        let data = s.as_ref();
+        match data {
             "polling" => Ok(VotingChannelType::Polling),
             "postal" => Ok(VotingChannelType::Postal),
-            _ => Err(UnknownVotingChannelError(s.to_string())),
+            _ => Err(UnknownVotingChannelError(data.to_string())),
         }
     }
 

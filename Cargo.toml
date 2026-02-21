@@ -31,7 +31,7 @@ tracing = "0.1.43"
 # Used for date and time handling
 chrono = "0.4.42"
 # Used for regular expressions that test input values
-regex = { version = "1.12.2", default-features = false, features = ["std", "unicode-perl"] }
+regex = { version = "1.12.2", default-features = false, features = ["std", "unicode"] }
 
 ## Optional dependencies used for utility binaries
 # Used for command-line argument parsing
