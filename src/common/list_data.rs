@@ -198,6 +198,20 @@ impl EMLElement for ListDataContest {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListDataBelongsToCombination(String);
 
+impl ListDataBelongsToCombination {
+    /// Create a new `ListDataBelongsToCombination` with the given combination identifier.
+    pub fn new(
+        combination_id: impl AsRef<str>,
+    ) -> Result<Self, InvalidListDataBelongsToCombinationError> {
+        ListDataBelongsToCombination::parse_from_str(combination_id.as_ref())
+    }
+
+    /// Get the raw string value of this combination.
+    pub fn value(&self) -> &str {
+        &self.0
+    }
+}
+
 /// Error returned when an invalid list data belongs to combination type string is encountered.
 #[derive(Debug, Clone, Error)]
 #[error("Invalid list data belongs to combination type: {0}")]
@@ -210,6 +224,7 @@ impl StringValueData for ListDataBelongsToCombination {
     where
         Self: Sized,
     {
+        // Note: assuming that `|` is not allowed in combination identifiers, unlike the regex in the spec
         if s.len() == 1
             && s.chars()
                 .next()
