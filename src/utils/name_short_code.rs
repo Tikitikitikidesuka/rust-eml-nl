@@ -7,7 +7,7 @@ use crate::utils::StringValueData;
 
 /// Regular expression for validating NameShortCode values.
 static NAME_SHORT_CODE_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^(\p{L}*[1-9]\d*)$").expect("Failed to compile Name Short Code regex")
+    Regex::new(r"^(\p{L}*\d{0,7})$").expect("Failed to compile Name Short Code regex")
 });
 
 /// A string of type NameShortCode as defined in the EML_NL specification
@@ -65,7 +65,7 @@ mod tests {
 
     #[test]
     fn test_valid_name_short_codes() {
-        let valid_codes = ["1", "12345", "123456789012345"];
+        let valid_codes = ["1", "12345", "ABC1234567"];
         for code in valid_codes {
             assert!(
                 NameShortCode::new(code).is_ok(),
@@ -77,7 +77,7 @@ mod tests {
 
     #[test]
     fn test_invalid_name_short_codes() {
-        let invalid_codes = ["", "0", "012345", "abc", "123abc"];
+        let invalid_codes = ["", "verylongstringthatistoolong", "012345678", "123abc"];
         for code in invalid_codes {
             assert!(
                 NameShortCode::new(code).is_err(),
