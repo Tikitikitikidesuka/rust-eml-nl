@@ -101,6 +101,18 @@ impl<'a, 'b> Display for QualifiedName<'a, 'b> {
 #[repr(transparent)]
 pub struct OwnedQualifiedName(QualifiedName<'static, 'static>);
 
+impl From<&QualifiedName<'_, '_>> for OwnedQualifiedName {
+    fn from(qname: &QualifiedName<'_, '_>) -> Self {
+        qname.as_owned()
+    }
+}
+
+impl From<QualifiedName<'static, 'static>> for OwnedQualifiedName {
+    fn from(qname: QualifiedName<'static, 'static>) -> Self {
+        OwnedQualifiedName(qname)
+    }
+}
+
 impl OwnedQualifiedName {
     /// Create a new owned qualified name with the given local name and namespace URI.
     pub fn new(local_name: impl Into<String>, namespace: Option<impl Into<String>>) -> Self {
