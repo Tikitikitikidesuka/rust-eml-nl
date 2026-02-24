@@ -139,6 +139,14 @@ pub enum EMLErrorKind {
     /// The number of seats specified in the document is not valid.
     #[error("The number of seats specified does not match the subcategory")]
     InvalidNumberOfSeats,
+
+    /// A referendum option was found where none was expected.
+    #[error("A referendum option was found where none was expected")]
+    UnexpectedReferendumOptionSelection,
+
+    /// A candidate was found without an affiliation, which is not allowed.
+    #[error("A candidate without affiliation was found")]
+    CandidateWithoutAffiliationFound,
 }
 
 impl EMLErrorKind {

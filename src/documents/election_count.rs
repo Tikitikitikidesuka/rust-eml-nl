@@ -3,7 +3,8 @@
 use std::{collections::BTreeMap, num::NonZeroU64};
 
 use crate::{
-    EML_SCHEMA_VERSION, EMLError, EMLErrorKind, EMLResultExt as _, NS_EML, NS_KR,
+    EML_SCHEMA_VERSION, EMLError, EMLErrorKind, EMLResultExt as _, EMLValueResultExt, NS_EML,
+    NS_KR,
     common::{
         CandidateIdentifier, CanonicalizationMethod, ContestIdentifier, CreationDateTime,
         ElectionDomain, ManagingAuthority, MinimalQualifyingAddress, PersonNameStructure,
@@ -736,6 +737,18 @@ pub struct TotalVotes {
     pub uncounted_votes: BTreeMap<UncountedVotesReason, StringValue<u64>>,
 }
 
+impl TotalVotes {
+    /// Return the votes of each affiliation with each of their candidates and
+    /// the amount of votes they received.
+    ///
+    /// This errors if any Selections of type ReferendumOption are encountered.
+    pub fn selections_per_affiliation(
+        &self,
+    ) -> Result<Vec<SelectionAffiliationVotes<'_>>, EMLError> {
+        selections_per_affiliation(&self.selections)
+    }
+}
+
 impl EMLElement for TotalVotes {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("TotalVotes", Some(NS_EML));
 
@@ -859,11 +872,101 @@ pub struct ReportingUnitVotes {
     pub investigations: BTreeMap<InvestigationReason, StringValue<bool>>,
 }
 
+/// Gathered votes and candidates for an affiliation selection within a reporting unit or total votes for a contest.
+pub struct SelectionAffiliationVotes<'a> {
+    /// The affiliation selection for which the votes were gathered.
+    pub affiliation: &'a AffiliationSelection,
+
+    /// The total number of valid votes for this affiliation.
+    pub valid_votes: u64,
+
+    /// The candidates for this affiliation and the number of votes they received.
+    pub candidates: Vec<SelectionCandidateVotes<'a>>,
+}
+
+/// Gathered votes for a candidate selection within some affiliation.
+pub struct SelectionCandidateVotes<'a> {
+    /// The affiliation to which the candidate belongs.
+    pub affiliation: &'a AffiliationSelection,
+
+    /// The candidate selection for which the votes were gathered.
+    pub candidate: &'a CandidateSelection,
+
+    /// The total number of valid votes for this candidate.
+    pub valid_votes: u64,
+}
+
 impl ReportingUnitVotes {
     /// Create a builder for the [`ReportingUnitVotes`].
     pub fn builder() -> ReportingUnitVotesBuilder {
         ReportingUnitVotesBuilder::new()
     }
+
+    /// Return the votes of each affiliation with each of their candidates and
+    /// the amount of votes they received.
+    ///
+    /// This errors if any Selections of type ReferendumOption are encountered.
+    pub fn selections_per_affiliation(
+        &self,
+    ) -> Result<Vec<SelectionAffiliationVotes<'_>>, EMLError> {
+        selections_per_affiliation(&self.selections)
+    }
+}
+
+fn selections_per_affiliation(
+    selections: &[ElectionCountSelection],
+) -> Result<Vec<SelectionAffiliationVotes<'_>>, EMLError> {
+    let mut result = Vec::new();
+
+    // Selections consist an affiliation selection followed by zero or more
+    // candidate selections for that affiliation.
+    let mut current_affiliation = None;
+    let mut current_affiliation_selection: Option<&ElectionCountSelection> = None;
+    let mut current_candidates = vec![];
+
+    for selection in selections {
+        match &selection.selection_type {
+            ElectionCountSelectionType::Affiliation(affiliation) => {
+                if let (Some(ca), Some(cas)) = (current_affiliation, current_affiliation_selection)
+                {
+                    result.push(SelectionAffiliationVotes {
+                        affiliation: ca,
+                        valid_votes: cas
+                            .valid_votes
+                            .copied_value()
+                            .wrap_value_error(VALID_VOTES_EML_NAME)?,
+                        candidates: current_candidates,
+                    });
+                }
+
+                current_affiliation = Some(&affiliation);
+                current_affiliation_selection = Some(selection);
+                current_candidates = vec![];
+            }
+            ElectionCountSelectionType::Candidate(candidate) => {
+                // Candidate selections should only be encountered after an affiliation selection.
+                let curr_aff = current_affiliation
+                    .ok_or_else(|| EMLErrorKind::CandidateWithoutAffiliationFound.without_span())?;
+
+                current_candidates.push(SelectionCandidateVotes {
+                    affiliation: curr_aff,
+                    candidate,
+                    valid_votes: selection
+                        .valid_votes
+                        .copied_value()
+                        .wrap_value_error(VALID_VOTES_EML_NAME)?,
+                });
+            }
+            // Referendum option selections should not be encountered at all.
+            ElectionCountSelectionType::ReferendumOption(_) => {
+                return Err(EMLErrorKind::UnexpectedReferendumOptionSelection
+                    .without_span()
+                    .into());
+            }
+        }
+    }
+
+    Ok(result)
 }
 
 /// A builder for [`ReportingUnitVotes`].
