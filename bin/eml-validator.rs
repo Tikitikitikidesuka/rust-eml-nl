@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::Context;
-use clap::Parser;
+use clap::{Parser, error::ErrorKind};
 use eml_nl::{
     documents::EML,
     io::{EMLParsingMode, EMLRead as _, EMLWrite as _},
@@ -35,7 +35,17 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let args = Cli::try_parse().context("Failed to parse command line arguments")?;
+    let args = match Cli::try_parse() {
+        Ok(args) => args,
+        Err(e) => {
+            if e.kind() == ErrorKind::DisplayHelp || e.kind() == ErrorKind::DisplayVersion {
+                eprintln!("{}", e);
+                std::process::exit(0);
+            } else {
+                return Err(e).context("Failed to parse command line arguments");
+            }
+        }
+    };
 
     tracing_subscriber::fmt()
         .with_env_filter(
