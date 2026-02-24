@@ -967,7 +967,7 @@ fn selections_per_affiliation(
                     });
                 }
 
-                current_affiliation = Some(&affiliation);
+                current_affiliation = Some(affiliation);
                 current_affiliation_selection = Some(selection);
                 current_candidates = vec![];
             }
@@ -987,9 +987,7 @@ fn selections_per_affiliation(
             }
             // Referendum option selections should not be encountered at all.
             ElectionCountSelectionType::ReferendumOption(_) => {
-                return Err(EMLErrorKind::UnexpectedReferendumOptionSelection
-                    .without_span()
-                    .into());
+                return Err(EMLErrorKind::UnexpectedReferendumOptionSelection.without_span());
             }
         }
     }
