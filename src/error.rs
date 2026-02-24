@@ -272,16 +272,6 @@ impl EMLError {
             }
         }
     }
-
-    /// Returns whether this error is considered fatal.
-    ///
-    /// Note: when multiple errors are present, this only checks the last error.
-    pub fn is_fatal(&self) -> bool {
-        !matches!(
-            self.kind(),
-            EMLErrorKind::UnexpectedElement(_, _) | EMLErrorKind::InvalidValue(_, _)
-        )
-    }
 }
 
 /// Extension trait for Result to add context to EMLError
@@ -305,6 +295,22 @@ where
 
     fn without_span(self) -> Result<T, EMLError> {
         self.map_err(|kind| EMLError::UnknownPosition { kind: kind.into() })
+    }
+}
+
+/// Extension trait for Result to add context to EMLError for errors that can be
+/// converted into EMLErrorKind::InvalidValue.
+pub(crate) trait EMLValueResultExt<T> {
+    /// Adds span information to the error if it occurs.
+    fn wrap_value_error(self, element_name: impl Into<OwnedQualifiedName>) -> Result<T, EMLError>;
+}
+
+impl<T, I> EMLValueResultExt<T> for Result<T, I>
+where
+    I: std::error::Error + Send + Sync + 'static,
+{
+    fn wrap_value_error(self, element_name: impl Into<OwnedQualifiedName>) -> Result<T, EMLError> {
+        self.map_err(|e| EMLError::invalid_value(element_name.into(), Box::new(e), None))
     }
 }
 
@@ -369,7 +375,6 @@ mod tests {
         let err = EMLErrorKind::UnexpectedEof.with_span(Span { start: 0, end: 10 });
         assert!(matches!(err.kind(), &EMLErrorKind::UnexpectedEof));
         assert_eq!(err.span(), Some(Span { start: 0, end: 10 }));
-        assert!(err.is_fatal());
 
         let err2 = EMLError::UnknownPosition {
             kind: EMLErrorKind::UnexpectedElement(
@@ -383,7 +388,6 @@ mod tests {
             &EMLErrorKind::UnexpectedElement(_, _)
         ));
         assert_eq!(err2.span(), None);
-        assert!(!err2.is_fatal());
 
         let err3 = EMLError::Multiple(MultipleEMLErrors {
             errors: vec![
@@ -403,6 +407,5 @@ mod tests {
         });
         assert!(matches!(err3.kind(), &EMLErrorKind::MissingElement(_)));
         assert_eq!(err3.span(), None);
-        assert!(err3.is_fatal());
     }
 }
