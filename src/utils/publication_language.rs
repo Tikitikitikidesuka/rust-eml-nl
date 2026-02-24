@@ -3,7 +3,7 @@ use thiserror::Error;
 use crate::utils::StringValueData;
 
 /// The publication language of something in a document.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum PublicationLanguage {
     /// Dutch language.
     #[default]

@@ -12,7 +12,7 @@ static ELECTION_ID_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 /// A string of type ElectionId as defined in the EML_NL specification
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ElectionId(String);
 

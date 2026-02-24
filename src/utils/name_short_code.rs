@@ -13,7 +13,7 @@ static NAME_SHORT_CODE_RE: LazyLock<Regex> = LazyLock::new(|| {
 /// A string of type NameShortCode as defined in the EML_NL specification
 ///
 /// Called NameShortCodeType in the schema.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct NameShortCode(String);
 

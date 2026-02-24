@@ -11,7 +11,7 @@ static ELECTION_DOMAIN_ID_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 /// A string of type ElectionDomainId as defined in the EML_NL specification
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ElectionDomainId(String);
 

@@ -6,7 +6,7 @@ use thiserror::Error;
 use crate::utils::StringValueData;
 
 /// EML_NL authority id (called XSBType in the schema) value.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct AuthorityId(String);
 

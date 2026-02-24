@@ -12,7 +12,7 @@ static AFFILIATION_ID_RE: LazyLock<Regex> =
 /// A string of type affiliation id as defined in the EML_NL specification
 ///
 /// Called AffiliationIdType in the schema.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct AffiliationId(String);
 

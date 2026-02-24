@@ -747,6 +747,20 @@ impl TotalVotes {
     ) -> Result<Vec<SelectionAffiliationVotes<'_>>, EMLError> {
         selections_per_affiliation(&self.selections)
     }
+
+    /// Return the total number of blank votes.
+    pub fn blank_votes(&self) -> Result<&StringValue<u64>, EMLError> {
+        self.rejected_votes
+            .get(&RejectedVotesReason::Blank)
+            .ok_or_else(|| EMLErrorKind::MissingRejectedVotesBlank.without_span())
+    }
+
+    /// Return the total number of invalid votes.
+    pub fn invalid_votes(&self) -> Result<&StringValue<u64>, EMLError> {
+        self.rejected_votes
+            .get(&RejectedVotesReason::Invalid)
+            .ok_or_else(|| EMLErrorKind::MissingRejectedVotesInvalid.without_span())
+    }
 }
 
 impl EMLElement for TotalVotes {
@@ -911,6 +925,20 @@ impl ReportingUnitVotes {
     ) -> Result<Vec<SelectionAffiliationVotes<'_>>, EMLError> {
         selections_per_affiliation(&self.selections)
     }
+
+    /// Return the number of blank votes for this reporting unit.
+    pub fn blank_votes(&self) -> Result<&StringValue<u64>, EMLError> {
+        self.rejected_votes
+            .get(&RejectedVotesReason::Blank)
+            .ok_or_else(|| EMLErrorKind::MissingRejectedVotesBlank.without_span())
+    }
+
+    /// Return the number of invalid votes for this reporting unit.
+    pub fn invalid_votes(&self) -> Result<&StringValue<u64>, EMLError> {
+        self.rejected_votes
+            .get(&RejectedVotesReason::Invalid)
+            .ok_or_else(|| EMLErrorKind::MissingRejectedVotesInvalid.without_span())
+    }
 }
 
 fn selections_per_affiliation(
@@ -964,6 +992,18 @@ fn selections_per_affiliation(
                     .into());
             }
         }
+    }
+
+    // push the last affiliation and its candidates if it exists
+    if let (Some(ca), Some(cas)) = (current_affiliation, current_affiliation_selection) {
+        result.push(SelectionAffiliationVotes {
+            affiliation: ca,
+            valid_votes: cas
+                .valid_votes
+                .copied_value()
+                .wrap_value_error(VALID_VOTES_EML_NAME)?,
+            candidates: current_candidates,
+        });
     }
 
     Ok(result)

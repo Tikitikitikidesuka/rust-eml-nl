@@ -146,6 +146,32 @@ impl PersonName {
         self.name_details_key_ref = Some(name_details_key_ref.into());
         self
     }
+
+    /// Get the last name of the person.
+    pub fn get_last_name(&self) -> &str {
+        &self.last_name.value
+    }
+
+    /// Get the initials of the person, if present.
+    pub fn get_initials(&self) -> Option<&str> {
+        self.name_line_initials
+            .as_ref()
+            .map(|initials| initials.value.as_str())
+    }
+
+    /// Get the first name of the person, if present.
+    pub fn get_first_name(&self) -> Option<&str> {
+        self.first_name
+            .as_ref()
+            .map(|first_name| first_name.value.as_str())
+    }
+
+    /// Get the prefix of the person's last name, if present.
+    pub fn get_name_prefix(&self) -> Option<&str> {
+        self.name_prefix
+            .as_ref()
+            .map(|prefix| prefix.value.as_str())
+    }
 }
 
 impl EMLElement for PersonName {

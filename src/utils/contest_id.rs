@@ -12,7 +12,7 @@ static CONTEST_ID_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 /// A string of type ContestId as defined in the EML_NL specification
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ContestId(String);
 
@@ -73,7 +73,7 @@ impl StringValueData for ContestId {
 }
 
 /// A ContestId representing a fixed "geen" value
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ContestIdGeen;
 
 impl ContestIdGeen {

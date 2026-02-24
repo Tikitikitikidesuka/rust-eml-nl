@@ -3,7 +3,7 @@ use thiserror::Error;
 use crate::utils::StringValueData;
 
 /// Election category used in the election.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ElectionCategory {
     /// Eerste Kamer
     EK,
@@ -96,7 +96,7 @@ impl StringValueData for ElectionCategory {
 }
 
 /// Subcategory of the election, providing more specific information about the type of election.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ElectionSubcategory {
     /// Provinciale Staten (one electoral district)
     PS1,

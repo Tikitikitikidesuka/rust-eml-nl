@@ -3,7 +3,7 @@ use thiserror::Error;
 use crate::utils::StringValueData;
 
 /// Affiliation type used in the election.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AffiliationType {
     /// lijstengroep
     GroupOfLists,

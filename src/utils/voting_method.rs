@@ -3,7 +3,7 @@ use thiserror::Error;
 use crate::utils::StringValueData;
 
 /// Voting method used in the election.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum VotingMethod {
     /// Additional Member System
     AMS,
