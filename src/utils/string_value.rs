@@ -40,11 +40,11 @@ pub trait StringValueData: Clone {
 ///
 /// In most cases you will want to use the parsed value by using one of the
 /// value retrieving methods:
-/// - [`StringValue::value`]: Get a [`Cow`](std::borrow::Cow) containing either
-///   a borrowed reference to the parsed value or an owned parsed value if the
-///   StringValue contains a raw string. If the StringValue contains a raw
-///   string and parsing fails, the error from the parsing attempt will be
-///   returned as an error.
+/// - [`StringValue::value`]: Get a [`Cow`] containing either a borrowed
+///   reference to the parsed value or an owned parsed value if the StringValue
+///   contains a raw string. If the StringValue contains a raw string and
+///   parsing fails, the error from the parsing attempt will be returned as an
+///   error.
 /// - [`StringValue::copied_value`]: Same as `value`, but only available for
 ///   types that implement [`Copy`] and returns a copy of the value instead.
 /// - [`StringValue::cloned_value`]: Same as `value`, but returns a cloned copy
