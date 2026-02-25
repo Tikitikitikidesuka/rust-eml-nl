@@ -1,6 +1,6 @@
 //! Document variant for the EML_NL Polling Stations (`110b`) document.
 
-use std::{num::NonZeroU64, sync::LazyLock};
+use std::{num::NonZeroU64, str::FromStr, sync::LazyLock};
 
 use regex::Regex;
 use thiserror::Error;
@@ -52,6 +52,33 @@ impl PollingStations {
     /// Create a new builder for constructing a [`PollingStations`] document.
     pub fn builder() -> PollingStationsBuilder {
         PollingStationsBuilder::new()
+    }
+}
+
+impl FromStr for PollingStations {
+    type Err = EMLError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use crate::io::EMLRead as _;
+        Self::parse_eml(s, crate::io::EMLParsingMode::Strict).ok()
+    }
+}
+
+impl TryFrom<&str> for PollingStations {
+    type Error = EMLError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        use crate::io::EMLRead as _;
+        Self::parse_eml(value, crate::io::EMLParsingMode::Strict).ok()
+    }
+}
+
+impl TryFrom<PollingStations> for String {
+    type Error = EMLError;
+
+    fn try_from(value: PollingStations) -> Result<Self, Self::Error> {
+        use crate::io::EMLWrite as _;
+        value.write_eml_root_str(true, true)
     }
 }
 
@@ -936,13 +963,10 @@ impl EMLElement for PhysicalLocationPollingStation {
         QualifiedName::from_static("PollingStation", Some(NS_EML));
 
     fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
-        Ok(collect_struct!(
-            elem,
-            PhysicalLocationPollingStation {
-                id: elem.string_value_attr("Id", None)?,
-                data: elem.text_without_children()?,
-            }
-        ))
+        Ok(PhysicalLocationPollingStation {
+            id: elem.string_value_attr("Id", None)?,
+            data: elem.text_without_children()?,
+        })
     }
 
     fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
@@ -1056,6 +1080,11 @@ mod tests {
                 "../../test-emls/polling_stations/eml110b_polling_stations_construction_output.eml.xml"
             )
         );
+
+        // check if it still is the same after a second parse and write
+        let parsed = PollingStations::parse_eml(&xml, EMLParsingMode::Strict).unwrap();
+        let xml2 = parsed.write_eml_root_str(true, true).unwrap();
+        assert_eq!(xml, xml2);
     }
 
     #[test]

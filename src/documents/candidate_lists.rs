@@ -1,6 +1,6 @@
 //! Document variant for the EML_NL Candidate List (`230b`) document.
 
-use std::{borrow::Cow, num::NonZeroU64};
+use std::{borrow::Cow, num::NonZeroU64, str::FromStr};
 
 use crate::{
     EML_SCHEMA_VERSION, EMLError, NS_EML, NS_KR, NS_XAL,
@@ -52,6 +52,33 @@ impl CandidateLists {
     /// Create a new builder for the [`CandidateLists`] document.
     pub fn builder() -> CandidateListsBuilder {
         CandidateListsBuilder::new()
+    }
+}
+
+impl FromStr for CandidateLists {
+    type Err = EMLError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use crate::io::EMLRead as _;
+        Self::parse_eml(s, crate::io::EMLParsingMode::Strict).ok()
+    }
+}
+
+impl TryFrom<&str> for CandidateLists {
+    type Error = EMLError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        use crate::io::EMLRead as _;
+        Self::parse_eml(value, crate::io::EMLParsingMode::Strict).ok()
+    }
+}
+
+impl TryFrom<CandidateLists> for String {
+    type Error = EMLError;
+
+    fn try_from(value: CandidateLists) -> Result<Self, Self::Error> {
+        use crate::io::EMLWrite as _;
+        value.write_eml_root_str(true, true)
     }
 }
 
@@ -1607,6 +1634,11 @@ mod tests {
                 "../../test-emls/candidate_lists/eml230b_candidate_lists_construction_output.eml.xml"
             )
         );
+
+        // check if it still is the same after a second parse and write
+        let parsed = CandidateLists::parse_eml(&xml, EMLParsingMode::Strict).unwrap();
+        let xml2 = parsed.write_eml_root_str(true, true).unwrap();
+        assert_eq!(xml, xml2);
     }
 
     #[test]

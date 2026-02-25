@@ -1,6 +1,6 @@
 //! Document variant for the EML_NL Result (`520`) document.
 
-use std::ops::Deref;
+use std::{ops::Deref, str::FromStr};
 
 use crate::{
     EML_SCHEMA_VERSION, EMLError, EMLErrorKind, EMLResultExt as _, NS_EML, NS_KR,
@@ -45,6 +45,33 @@ impl ElectionResult {
     /// Builder for creating a new instance.
     pub fn builder() -> ElectionResultBuilder {
         ElectionResultBuilder::new()
+    }
+}
+
+impl FromStr for ElectionResult {
+    type Err = EMLError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use crate::io::EMLRead as _;
+        Self::parse_eml(s, crate::io::EMLParsingMode::Strict).ok()
+    }
+}
+
+impl TryFrom<&str> for ElectionResult {
+    type Error = EMLError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        use crate::io::EMLRead as _;
+        Self::parse_eml(value, crate::io::EMLParsingMode::Strict).ok()
+    }
+}
+
+impl TryFrom<ElectionResult> for String {
+    type Error = EMLError;
+
+    fn try_from(value: ElectionResult) -> Result<Self, Self::Error> {
+        use crate::io::EMLWrite as _;
+        value.write_eml_root_str(true, true)
     }
 }
 
@@ -663,9 +690,7 @@ impl EMLElement for ElectionResultSelection {
             }
         }
 
-        let elected = elected.ok_or_else(|| {
-            EMLErrorKind::MissingElement(ELECTED_EML_NAME.as_owned()).with_span(elem.inner_span())
-        })?;
+        let elected = elected.unwrap_or_else(|| StringValue::from_value(YesNoType::new(false)));
 
         Ok(ElectionResultSelection {
             selection_type: selection_type
@@ -920,7 +945,7 @@ mod tests {
 
     use crate::{
         common::{AuthorityIdentifier, PersonName},
-        io::EMLWrite,
+        io::{EMLParsingMode, EMLRead as _, EMLWrite},
         utils::{AuthorityId, CandidateId},
     };
 
@@ -991,5 +1016,10 @@ mod tests {
             xml,
             include_str!("../../test-emls/election_result/eml520_construction_output.eml.xml")
         );
+
+        // check if it still is the same after a second parse and write
+        let parsed = ElectionResult::parse_eml(&xml, EMLParsingMode::Strict).unwrap();
+        let xml2 = parsed.write_eml_root_str(true, true).unwrap();
+        assert_eq!(xml, xml2);
     }
 }

@@ -1,6 +1,6 @@
 //! Document variant for the EML_NL Count (`510a`, `510b`, `510c` or `510d`) document.
 
-use std::{collections::BTreeMap, num::NonZeroU64};
+use std::{collections::BTreeMap, num::NonZeroU64, str::FromStr};
 
 use crate::{
     EML_SCHEMA_VERSION, EMLError, EMLErrorKind, EMLResultExt as _, EMLValueResultExt, NS_EML,
@@ -47,6 +47,33 @@ impl ElectionCount {
     /// Create a builder for the [`ElectionCount`] document.
     pub fn builder() -> ElectionCountBuilder {
         ElectionCountBuilder::new()
+    }
+}
+
+impl FromStr for ElectionCount {
+    type Err = EMLError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use crate::io::EMLRead as _;
+        Self::parse_eml(s, crate::io::EMLParsingMode::Strict).ok()
+    }
+}
+
+impl TryFrom<&str> for ElectionCount {
+    type Error = EMLError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        use crate::io::EMLRead as _;
+        Self::parse_eml(value, crate::io::EMLParsingMode::Strict).ok()
+    }
+}
+
+impl TryFrom<ElectionCount> for String {
+    type Error = EMLError;
+
+    fn try_from(value: ElectionCount) -> Result<Self, Self::Error> {
+        use crate::io::EMLWrite as _;
+        value.write_eml_root_str(true, true)
     }
 }
 
@@ -2102,6 +2129,11 @@ mod tests {
             xml,
             include_str!("../../test-emls/election_count/eml510b_construction_output.eml.xml")
         );
+
+        // check if it still is the same after a second parse and write
+        let parsed = ElectionCount::parse_eml(&xml, EMLParsingMode::Strict).unwrap();
+        let xml2 = parsed.write_eml_root_str(true, true).unwrap();
+        assert_eq!(xml, xml2);
     }
 
     #[test]

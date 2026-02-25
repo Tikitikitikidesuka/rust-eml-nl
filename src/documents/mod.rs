@@ -1,5 +1,7 @@
 //! Document variants and related types for the all the specific EML_NL documents.
 
+use std::str::FromStr;
+
 use crate::{
     EML_SCHEMA_VERSION, EMLError, EMLErrorKind, EMLResultExt as _, NS_EML,
     common::ElectionDomain,
@@ -218,6 +220,33 @@ fn accepted_root(elem: &EMLElementReader<'_, '_>) -> Result<(), EMLError> {
             schema_version.to_string(),
         ))
         .with_span(elem.span())
+    }
+}
+
+impl FromStr for EML {
+    type Err = EMLError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use crate::io::EMLRead as _;
+        Self::parse_eml(s, crate::io::EMLParsingMode::Strict).ok()
+    }
+}
+
+impl TryFrom<&str> for EML {
+    type Error = EMLError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        use crate::io::EMLRead as _;
+        Self::parse_eml(value, crate::io::EMLParsingMode::Strict).ok()
+    }
+}
+
+impl TryFrom<EML> for String {
+    type Error = EMLError;
+
+    fn try_from(value: EML) -> Result<Self, Self::Error> {
+        use crate::io::EMLWrite as _;
+        value.write_eml_root_str(true, true)
     }
 }
 

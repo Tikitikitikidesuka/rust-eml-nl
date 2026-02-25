@@ -1,6 +1,6 @@
 //! Document variant for the EML_NL Election Definition (`110a`) document.
 
-use std::num::NonZeroU64;
+use std::{num::NonZeroU64, str::FromStr};
 
 use crate::{
     EML_SCHEMA_VERSION, EMLError, NS_EML, NS_KR,
@@ -45,6 +45,33 @@ impl ElectionDefinition {
     /// Create a new builder for [`ElectionDefinition`].
     pub fn builder() -> ElectionDefinitionBuilder {
         ElectionDefinitionBuilder::new()
+    }
+}
+
+impl FromStr for ElectionDefinition {
+    type Err = EMLError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use crate::io::EMLRead as _;
+        Self::parse_eml(s, crate::io::EMLParsingMode::Strict).ok()
+    }
+}
+
+impl TryFrom<&str> for ElectionDefinition {
+    type Error = EMLError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        use crate::io::EMLRead as _;
+        Self::parse_eml(value, crate::io::EMLParsingMode::Strict).ok()
+    }
+}
+
+impl TryFrom<ElectionDefinition> for String {
+    type Error = EMLError;
+
+    fn try_from(value: ElectionDefinition) -> Result<Self, Self::Error> {
+        use crate::io::EMLWrite as _;
+        value.write_eml_root_str(true, true)
     }
 }
 
@@ -760,6 +787,11 @@ mod tests {
                 "../../test-emls/election_definition/eml110a_election_definition_construction_output.eml.xml"
             )
         );
+
+        // check if it still is the same after a second parse and write
+        let parsed = ElectionDefinition::parse_eml(&xml, EMLParsingMode::Strict).unwrap();
+        let xml2 = parsed.write_eml_root_str(true, true).unwrap();
+        assert_eq!(xml, xml2);
     }
 
     #[test]
