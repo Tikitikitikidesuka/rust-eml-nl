@@ -166,7 +166,7 @@ fn process(
     let mut output = Output::new(include_bom);
 
     // Header block (rows 1-4)
-    output.row(["Verkiezing", "", &election_name]);
+    output.row(["Verkiezing", "", election_name]);
     output.row(["Datum", "", &election_date.to_raw_value()]);
     output.row([
         "Gebied",
@@ -307,7 +307,7 @@ fn process(
         .collect::<Result<Vec<Cow<str>>, anyhow::Error>>()?;
     output.row(
         stat_row_start("aangetroffen stembiljetten", counted_ballots)
-            .chain(reporting_unit_counted_ballots.into_iter()),
+            .chain(reporting_unit_counted_ballots),
     );
 
     output.row(stat_row!(
@@ -476,7 +476,7 @@ fn process(
     });
 
     // check if the output path is a dash, then we output to stdout instead of a file
-    if output_path == PathBuf::from("-") {
+    if output_path == Path::new("-") {
         info!("Writing output to stdout");
         println!("{}", output.into_string());
     } else {
