@@ -26,6 +26,30 @@ pub trait StringValueData: Clone {
 /// The type `T` must implement the [`StringValueData`] trait, which defines how to parse and
 /// serialize the value. This type is used whenever an EML_NL document element or attribute
 /// contains a string value that could be parsed, but where strict parsing is not always desired.
+///
+/// Depending on the parsing mode used when parsing a document, [`StringValue`]
+/// instances may either contain the raw string or the parsed value. When
+/// [`EMLParsingMode::Strict`](crate::io::EMLParsingMode::Strict) is used, all
+/// [`StringValue`] instances will contain the parsed value. When
+/// [`EMLParsingMode::StrictFallback`](crate::io::EMLParsingMode::StrictFallback)
+/// is used, the library will attempt to parse values but will fall back to
+/// storing the raw string if parsing fails. When
+/// [`EMLParsingMode::Loose`](crate::io::EMLParsingMode::Loose) is used, the
+/// library will not even attempt to parse values and will store all values as
+/// raw strings.
+///
+/// In most cases you will want to use the parsed value by using one of the
+/// value retrieving methods:
+/// - [`StringValue::value`]: Get a [`Cow`](std::borrow::Cow) containing either
+///   a borrowed reference to the parsed value or an owned parsed value if the
+///   StringValue contains a raw string. If the StringValue contains a raw
+///   string and parsing fails, the error from the parsing attempt will be
+///   returned as an error.
+/// - [`StringValue::copied_value`]: Same as `value`, but only available for
+///   types that implement [`Copy`] and returns a copy of the value instead.
+/// - [`StringValue::cloned_value`]: Same as `value`, but returns a cloned copy
+///   of the value instead of a reference. Only available for types that
+///   implement [`Clone`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum StringValue<T: StringValueData> {
     /// A raw unparsed string value that potentially can be parsed into a value of type `T`.

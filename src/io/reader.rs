@@ -142,7 +142,16 @@ impl std::fmt::Display for Span {
     }
 }
 
-/// The mode to use when parsing stringly values in EML files.
+/// The mode to use when parsing values in EML files.
+///
+/// This enum defines how strict the library handles parsing of several values
+/// and known issues in EML files. In strict mode any issue will immediately
+/// cause a parsing error and parsing will fail right away. With fallback,
+/// whenever we encounter an issue that is recoverable we continue parsing.
+/// With loose mode many parsing operations aren't even attempted and many
+/// values are just stored as raw strings. Also take a look at the documentation
+/// for [`StringValue`] for more information on how these string/parsed values
+/// are handled in the different modes and how to use them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EMLParsingMode {
     /// Require strict parsing of all stringly values to their respective types
