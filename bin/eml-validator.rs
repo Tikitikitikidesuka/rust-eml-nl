@@ -31,6 +31,14 @@ struct Cli {
     /// Whether to output the parsed EML document back to XML
     #[arg(long, default_value_t = false)]
     print: bool,
+
+    /// Do not output any logging to stderr. Will be overridden by the EML_LOG environment variable.
+    #[arg(long)]
+    quiet: bool,
+
+    /// Be verbose about logging output. Will be overridden by the EML_LOG environment variable.
+    #[arg(long)]
+    verbose: bool,
 }
 
 #[tokio::main]
@@ -50,7 +58,14 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::builder()
-                .with_default_directive(LevelFilter::INFO.into())
+                .with_env_var("EML_LOG")
+                .with_default_directive(if args.quiet {
+                    LevelFilter::OFF.into()
+                } else if args.verbose {
+                    LevelFilter::DEBUG.into()
+                } else {
+                    LevelFilter::INFO.into()
+                })
                 .from_env_lossy(),
         )
         .with_writer(std::io::stderr)

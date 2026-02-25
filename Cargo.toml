@@ -18,6 +18,11 @@ name = "eml-validator"
 path = "bin/eml-validator.rs"
 required-features = ["bin-utils"]
 
+[[bin]]
+name = "eml2csv"
+path = "bin/eml2csv.rs"
+required-features = ["bin-utils"]
+
 ## This project attempts to minimize the dependencies used as much as possible.
 ## Where dependencies were used, they must have very high adoption in the Rust
 ## ecosystem and be actively maintained.
