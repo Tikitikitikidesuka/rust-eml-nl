@@ -32,6 +32,10 @@ struct Cli {
     #[arg(long, default_value_t = false)]
     print: bool,
 
+    /// Whether to compute and print the SHA-256 hash of the EML file
+    #[arg(long = "no-hash", action = clap::ArgAction::SetFalse, default_value_t = true)]
+    hash: bool,
+
     /// Do not output any logging to stderr. Will be overridden by the EML_LOG environment variable.
     #[arg(long)]
     quiet: bool,
@@ -84,7 +88,7 @@ async fn main() -> anyhow::Result<()> {
             .read_to_string(&mut data)
             .await
             .context("Failed to read EML file from stdin")?;
-        handle_file(&data, parsing_mode, args.print, args.debug).await?;
+        handle_file(&data, parsing_mode, args.hash, args.print, args.debug).await?;
     } else if args.path.is_dir() {
         info!("EML path is a directory, processing all .eml.xml files inside recursively");
         let eml_files = collect_eml_files(&args.path).await?;
@@ -93,7 +97,14 @@ async fn main() -> anyhow::Result<()> {
         for eml_file in eml_files {
             info!("Processing EML file {:?}", eml_file);
             results.push(
-                process_file_and_log_errors(&eml_file, parsing_mode, args.print, args.debug).await,
+                process_file_and_log_errors(
+                    &eml_file,
+                    parsing_mode,
+                    args.hash,
+                    args.print,
+                    args.debug,
+                )
+                .await,
             );
         }
         info!("Finished processing all EML files");
@@ -123,7 +134,7 @@ async fn main() -> anyhow::Result<()> {
         let content = tokio::fs::read_to_string(&args.path)
             .await
             .context("Failed to read EML file")?;
-        handle_file(&content, parsing_mode, args.print, args.debug).await?;
+        handle_file(&content, parsing_mode, args.hash, args.print, args.debug).await?;
     }
 
     Ok(())
@@ -138,12 +149,13 @@ enum ProcessResult {
 async fn process_file_and_log_errors(
     file: impl AsRef<Path>,
     parsing_mode: EMLParsingMode,
+    hash: bool,
     print: bool,
     debug: bool,
 ) -> ProcessResult {
     let path = file.as_ref();
     match tokio::fs::read_to_string(path).await {
-        Ok(content) => match handle_file(&content, parsing_mode, print, debug).await {
+        Ok(content) => match handle_file(&content, parsing_mode, hash, print, debug).await {
             Ok(warnings) => {
                 if warnings == 0 {
                     ProcessResult::Success
@@ -190,6 +202,7 @@ async fn collect_eml_files(dir: impl AsRef<Path>) -> anyhow::Result<Vec<PathBuf>
 async fn handle_file(
     file_content: &str,
     parsing_mode: EMLParsingMode,
+    hash: bool,
     print: bool,
     debug: bool,
 ) -> anyhow::Result<usize> {
@@ -198,18 +211,20 @@ async fn handle_file(
         file_content.len()
     );
 
-    info!("Computing SHA-256 hash of the EML file");
-    let digest = Sha256::digest(file_content.as_bytes());
-    let hex = format!("{:x}", digest);
+    if hash {
+        info!("Computing SHA-256 hash of the EML file");
+        let digest = Sha256::digest(file_content.as_bytes());
+        let hex = format!("{:x}", digest);
 
-    info!(
-        "SHA-256 hash: {}",
-        hex.as_bytes()
-            .chunks(4)
-            .map(|c| std::str::from_utf8(c).unwrap())
-            .collect::<Vec<_>>()
-            .join(" ")
-    );
+        info!(
+            "SHA-256 hash: {}",
+            hex.as_bytes()
+                .chunks(4)
+                .map(|c| std::str::from_utf8(c).unwrap())
+                .collect::<Vec<_>>()
+                .join(" ")
+        );
+    }
 
     info!("Parsing EML file");
     let (doc, errors) = EML::parse_eml(file_content, parsing_mode)
