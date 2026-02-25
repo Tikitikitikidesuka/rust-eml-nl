@@ -22,6 +22,11 @@ desktop and mobile OSes and the web).
 [1]: https://www.kiesraad.nl/verkiezingen/osv-en-eml/eml-standaard
 [2]: https://github.com/kiesraad/EML_NL/
 
+## Library usage
+For information on how to use this library please reference the generated
+rust docs. For the newest released version you can check these on [docs.rs][3].
+
+[3]: https://docs.rs/eml-nl
 
 ## Utilities
 Aside from the library this repository also includes some helpful tools that
