@@ -834,10 +834,10 @@ impl AffiliationIdentifier {
 }
 
 impl EMLElement for AffiliationIdentifier {
-    const EML_NAME: crate::io::QualifiedName<'_, '_> =
-        crate::io::QualifiedName::from_static("AffiliationIdentifier", Some(crate::NS_EML));
+    const EML_NAME: QualifiedName<'_, '_> =
+        QualifiedName::from_static("AffiliationIdentifier", Some(NS_EML));
 
-    fn read_eml(elem: &mut crate::io::EMLElementReader<'_, '_>) -> Result<Self, crate::EMLError> {
+    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         Ok(collect_struct!(
             elem,
             AffiliationIdentifier {
@@ -847,7 +847,7 @@ impl EMLElement for AffiliationIdentifier {
         ))
     }
 
-    fn write_eml(&self, writer: crate::io::EMLElementWriter) -> Result<(), crate::EMLError> {
+    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         writer
             .attr("Id", self.id.raw().as_ref())?
             .child(("RegisteredName", NS_EML), |w| {
@@ -1010,6 +1010,38 @@ pub enum QualifyingAddress {
     Country(QualifyingAddressCountry),
 }
 
+impl QualifyingAddress {
+    /// Create a new qualifying address with locality information and an optional country.
+    pub fn new(
+        locality: impl Into<QualifyingAddressLocality>,
+        country_name_code: Option<impl Into<CountryNameCode>>,
+    ) -> Self {
+        match country_name_code {
+            Some(code) => QualifyingAddress::Country(QualifyingAddressCountry {
+                locality: locality.into(),
+                country_name_code: Some(code.into()),
+            }),
+            None => QualifyingAddress::Locality(locality.into()),
+        }
+    }
+
+    /// Get the locality information for the qualifying address.
+    pub fn locality(&self) -> &QualifyingAddressLocality {
+        match self {
+            QualifyingAddress::Locality(locality) => locality,
+            QualifyingAddress::Country(country) => &country.locality,
+        }
+    }
+
+    /// Get the country information for the qualifying address, if present.
+    pub fn country_name_code(&self) -> Option<&CountryNameCode> {
+        match self {
+            QualifyingAddress::Locality(_) => None,
+            QualifyingAddress::Country(country) => country.country_name_code.as_ref(),
+        }
+    }
+}
+
 impl From<QualifyingAddressLocality> for QualifyingAddress {
     fn from(locality: QualifyingAddressLocality) -> Self {
         QualifyingAddress::Locality(locality)
@@ -1115,33 +1147,66 @@ impl QualifyingAddressLocality {
         }
     }
 
+    /// Get the locality name for the qualifying address locality.
+    pub fn locality_name(&self) -> &str {
+        &self.locality_name.name
+    }
+
     /// Set the address line for the locality.
-    pub fn with_address_line(mut self, address_line: impl Into<AddressLine>) -> Self {
-        self.address_line = Some(address_line.into());
+    pub fn with_address_line(self, address_line: impl Into<AddressLine>) -> Self {
+        self.with_address_line_option(Some(address_line))
+    }
+
+    /// Set the address line for the locality, if present.
+    pub fn with_address_line_option(
+        mut self,
+        address_line: Option<impl Into<AddressLine>>,
+    ) -> Self {
+        self.address_line = address_line.map(Into::into);
         self
     }
 
     /// Set the postal code for the locality.
-    pub fn with_postal_code(mut self, postal_code: impl Into<PostalCode>) -> Self {
-        self.postal_code = Some(postal_code.into());
+    pub fn with_postal_code(self, postal_code: impl Into<PostalCode>) -> Self {
+        self.with_postal_code_option(Some(postal_code))
+    }
+
+    /// Set the postal code for the locality, if present.
+    pub fn with_postal_code_option(mut self, postal_code: Option<impl Into<PostalCode>>) -> Self {
+        self.postal_code = postal_code.map(Into::into);
         self
     }
 
     /// Set the Type attribute for the locality.
-    pub fn with_locality_type(mut self, locality_type: impl Into<String>) -> Self {
-        self.locality_type = Some(locality_type.into());
+    pub fn with_locality_type(self, locality_type: impl Into<String>) -> Self {
+        self.with_locality_type_option(Some(locality_type))
+    }
+
+    /// Set the Type attribute for the locality, if present.
+    pub fn with_locality_type_option(mut self, locality_type: Option<impl Into<String>>) -> Self {
+        self.locality_type = locality_type.map(Into::into);
         self
     }
 
     /// Set the UsageType attribute for the locality.
-    pub fn with_usage_type(mut self, usage_type: impl Into<String>) -> Self {
-        self.usage_type = Some(usage_type.into());
+    pub fn with_usage_type(self, usage_type: impl Into<String>) -> Self {
+        self.with_usage_type_option(Some(usage_type))
+    }
+
+    /// Set the UsageType attribute for the locality, if present.
+    pub fn with_usage_type_option(mut self, usage_type: Option<impl Into<String>>) -> Self {
+        self.usage_type = usage_type.map(Into::into);
         self
     }
 
     /// Set the Indicator attribute for the locality.
-    pub fn with_indicator(mut self, indicator: impl Into<String>) -> Self {
-        self.indicator = Some(indicator.into());
+    pub fn with_indicator(self, indicator: impl Into<String>) -> Self {
+        self.with_indicator_option(Some(indicator))
+    }
+
+    /// Set the Indicator attribute for the locality, if present.
+    pub fn with_indicator_option(mut self, indicator: Option<impl Into<String>>) -> Self {
+        self.indicator = indicator.map(Into::into);
         self
     }
 }

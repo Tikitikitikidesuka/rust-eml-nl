@@ -113,6 +113,18 @@ impl From<QualifiedName<'static, 'static>> for OwnedQualifiedName {
     }
 }
 
+impl From<(&'static str, &'static str)> for OwnedQualifiedName {
+    fn from((local_name, namespace): (&'static str, &'static str)) -> Self {
+        OwnedQualifiedName::new(local_name, Some(namespace))
+    }
+}
+
+impl From<(&'static str, Option<&'static str>)> for OwnedQualifiedName {
+    fn from((local_name, namespace): (&'static str, Option<&'static str>)) -> Self {
+        OwnedQualifiedName::new(local_name, namespace)
+    }
+}
+
 impl OwnedQualifiedName {
     /// Create a new owned qualified name with the given local name and namespace URI.
     pub fn new(local_name: impl Into<String>, namespace: Option<impl Into<String>>) -> Self {

@@ -1,6 +1,6 @@
 use crate::{
-    NS_DS,
-    io::{EMLElement, collect_struct},
+    EMLError, NS_DS,
+    io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName, collect_struct},
 };
 
 /// XML CanonicalizationMethod element
@@ -19,10 +19,10 @@ impl CanonicalizationMethod {
 }
 
 impl EMLElement for CanonicalizationMethod {
-    const EML_NAME: crate::io::QualifiedName<'_, '_> =
-        crate::io::QualifiedName::from_static("CanonicalizationMethod", Some(NS_DS));
+    const EML_NAME: QualifiedName<'_, '_> =
+        QualifiedName::from_static("CanonicalizationMethod", Some(NS_DS));
 
-    fn read_eml(elem: &mut crate::io::EMLElementReader<'_, '_>) -> Result<Self, crate::EMLError> {
+    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         Ok(collect_struct!(
             elem,
             CanonicalizationMethod {
@@ -31,7 +31,7 @@ impl EMLElement for CanonicalizationMethod {
         ))
     }
 
-    fn write_eml(&self, writer: crate::io::EMLElementWriter) -> Result<(), crate::EMLError> {
+    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         writer.attr("Algorithm", &self.algorithm)?.empty()?;
 
         Ok(())

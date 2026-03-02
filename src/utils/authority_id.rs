@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 use thiserror::Error;
 
-use crate::utils::StringValueData;
+use crate::{EMLError, EMLValueResultExt, utils::StringValueData};
 
 /// EML_NL authority id (called XSBType in the schema) value.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -12,8 +12,8 @@ pub struct AuthorityId(String);
 
 impl AuthorityId {
     /// Create a new AuthorityId from a string, validating its format
-    pub fn new(s: impl AsRef<str>) -> Result<Self, InvalidAuthorityIdError> {
-        StringValueData::parse_from_str(s.as_ref())
+    pub fn new(s: impl AsRef<str>) -> Result<Self, EMLError> {
+        StringValueData::parse_from_str(s.as_ref()).wrap_value_error()
     }
 
     /// Get the raw string value of the authority id.

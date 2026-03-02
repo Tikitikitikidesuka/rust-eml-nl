@@ -2,10 +2,7 @@ use std::{borrow::Cow, convert::Infallible, num::NonZeroU64};
 
 use thiserror::Error;
 
-use crate::{
-    EMLError,
-    io::{QualifiedName, Span},
-};
+use crate::{EMLError, EMLValueResultExt as _};
 
 /// Trait for data types that can be used with [`StringValue`], defines how to parse and serialize the value.
 pub trait StringValueData: Clone {
@@ -84,7 +81,7 @@ impl<T: StringValueData> StringValue<T> {
     }
 
     /// Get the parsed value, returning any possible parsing errors.
-    pub fn value(&self) -> Result<Cow<'_, T>, T::Error> {
+    pub fn value_err(&self) -> Result<Cow<'_, T>, T::Error> {
         match self {
             StringValue::Raw(s) => {
                 let v = T::parse_from_str(s)?;
@@ -95,30 +92,42 @@ impl<T: StringValueData> StringValue<T> {
     }
 
     /// Get the parsed value, returning a cloned copy of it.
-    pub fn cloned_value(&self) -> Result<T, T::Error> {
-        Ok(self.value()?.into_owned())
+    ///
+    /// If there is an error, the original parsing error will be returned.
+    pub fn cloned_value_err(&self) -> Result<T, T::Error> {
+        self.value_err().map(|v| v.into_owned())
+    }
+
+    /// Get the parsed value, returning a cloned copy of it.
+    ///
+    /// If there is an error, it will be wrapped in an [`EMLError`].
+    pub fn cloned_value(&self) -> Result<T, EMLError> {
+        self.cloned_value_err().wrap_value_error()
     }
 
     /// Get the parsed value, returning any possible parsing errors as an [`EMLError`].
     ///
     /// The `element_name` and `span` parameters are used to provide context in the error
     /// if parsing fails.
-    pub fn value_err<'a, 'b>(
-        &self,
-        element_name: impl Into<QualifiedName<'a, 'b>>,
-        span: Option<Span>,
-    ) -> Result<Cow<'_, T>, EMLError> {
-        self.value()
-            .map_err(|e| EMLError::invalid_value(element_name.into().as_owned(), e, span))
+    pub fn value(&self) -> Result<Cow<'_, T>, EMLError> {
+        self.value_err().wrap_value_error()
     }
 }
 
 impl<T: StringValueData + Copy> StringValue<T> {
     /// Get the parsed value, returning a copy of it.
     ///
-    /// This is only available for types that implement `Copy`.
-    pub fn copied_value(&self) -> Result<T, T::Error> {
-        Ok(*self.value()?.as_ref())
+    /// This is only available for types that implement [`Copy`].
+    pub fn copied_value_err(&self) -> Result<T, T::Error> {
+        Ok(*self.value_err()?.as_ref())
+    }
+
+    /// Get the parsed value, returning a copy of it.
+    ///
+    /// If there is an error, it will be wrapped in an [`EMLError`].
+    /// This is only available for types that implement [`Copy`].
+    pub fn copied_value(&self) -> Result<T, EMLError> {
+        self.copied_value_err().wrap_value_error()
     }
 }
 

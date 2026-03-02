@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 use thiserror::Error;
 
-use crate::utils::StringValueData;
+use crate::{EMLError, EMLValueResultExt as _, utils::StringValueData};
 
 /// Regular expression for validating ElectionId values.
 static ELECTION_ID_RE: LazyLock<Regex> = LazyLock::new(|| {
@@ -18,8 +18,8 @@ pub struct ElectionId(String);
 
 impl ElectionId {
     /// Create a new ElectionId from a string, validating its format
-    pub fn new(s: impl AsRef<str>) -> Result<Self, InvalidElectionIdError> {
-        StringValueData::parse_from_str(s.as_ref())
+    pub fn new(s: impl AsRef<str>) -> Result<Self, EMLError> {
+        StringValueData::parse_from_str(s.as_ref()).wrap_value_error()
     }
 
     /// Get the raw string value of the ElectionId.

@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::utils::StringValueData;
+use crate::{EMLError, EMLValueResultExt as _, utils::StringValueData};
 
 /// The publication language of something in a document.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -14,6 +14,11 @@ pub enum PublicationLanguage {
 }
 
 impl PublicationLanguage {
+    /// Create a new PublicationLanguage from a string, validating its format.
+    pub fn new(s: impl AsRef<str>) -> Result<Self, EMLError> {
+        Self::from_eml_value(s).wrap_value_error()
+    }
+
     /// Parse a publication language from its string representation.
     pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, UnknownPublicationLanguageError> {
         let data = s.as_ref();

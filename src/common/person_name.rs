@@ -2,7 +2,10 @@ use thiserror::Error;
 
 use crate::{
     EMLError, NS_XNL,
-    io::{EMLElement, EMLReadElement, EMLWriteElement, QualifiedName, collect_struct},
+    io::{
+        EMLElement, EMLElementReader, EMLElementWriter, EMLReadElement, EMLWriteElement,
+        QualifiedName, collect_struct,
+    },
 };
 
 /// Container for details of the name of a person.
@@ -48,9 +51,7 @@ impl From<PersonName> for PersonNameStructure {
 }
 
 impl EMLReadElement for PersonNameStructure {
-    fn read_eml_element<'a, 'b>(
-        elem: &mut crate::io::EMLElementReader<'a, 'b>,
-    ) -> Result<Self, EMLError> {
+    fn read_eml_element(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         Ok(collect_struct!(
             elem,
             PersonNameStructure {
@@ -63,7 +64,7 @@ impl EMLReadElement for PersonNameStructure {
 }
 
 impl EMLWriteElement for PersonNameStructure {
-    fn write_eml_element(&self, writer: crate::io::EMLElementWriter) -> Result<(), EMLError> {
+    fn write_eml_element(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         writer
             .attr_opt("PartyType", self.party_type.as_ref())?
             .attr_opt("Code", self.code.as_ref())?
@@ -112,20 +113,35 @@ impl PersonName {
     }
 
     /// Set the initials of the person.
-    pub fn with_initials(mut self, initials: impl Into<String>) -> Self {
-        self.name_line_initials = Some(NameLineInitials::new(initials));
+    pub fn with_initials(self, initials: impl Into<String>) -> Self {
+        self.with_initials_option(Some(initials))
+    }
+
+    /// Set the initials of the person, if present.
+    pub fn with_initials_option(mut self, initials: Option<impl Into<String>>) -> Self {
+        self.name_line_initials = initials.map(|i| NameLineInitials::new(i));
         self
     }
 
     /// Set the first name of the person.
-    pub fn with_first_name(mut self, first_name: impl Into<String>) -> Self {
-        self.first_name = Some(FirstName::new(first_name));
+    pub fn with_first_name(self, first_name: impl Into<String>) -> Self {
+        self.with_first_name_option(Some(first_name))
+    }
+
+    /// Set the first name of the person, if present.
+    pub fn with_first_name_option(mut self, first_name: Option<impl Into<String>>) -> Self {
+        self.first_name = first_name.map(|f| FirstName::new(f));
         self
     }
 
     /// Set the prefix of the person's last name.
-    pub fn with_name_prefix(mut self, name_prefix: impl Into<String>) -> Self {
-        self.name_prefix = Some(NamePrefix::new(name_prefix));
+    pub fn with_name_prefix(self, name_prefix: impl Into<String>) -> Self {
+        self.with_name_prefix_option(Some(name_prefix))
+    }
+
+    /// Set the prefix of the person's last name, if present.
+    pub fn with_name_prefix_option(mut self, name_prefix: Option<impl Into<String>>) -> Self {
+        self.name_prefix = name_prefix.map(|p| NamePrefix::new(p));
         self
     }
 
@@ -177,7 +193,7 @@ impl PersonName {
 impl EMLElement for PersonName {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("PersonName", Some(NS_XNL));
 
-    fn read_eml(elem: &mut crate::io::EMLElementReader<'_, '_>) -> Result<Self, crate::EMLError> {
+    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         Ok(collect_struct!(
             elem,
             PersonName {
@@ -196,7 +212,7 @@ impl EMLElement for PersonName {
         ))
     }
 
-    fn write_eml(&self, writer: crate::io::EMLElementWriter) -> Result<(), EMLError> {
+    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         writer
             .attr_opt("Type", self.person_name_type.as_ref())?
             .attr_opt("Code", self.code.as_ref())?
@@ -253,7 +269,7 @@ struct NameTypeInitialsError;
 impl EMLElement for NameLineInitials {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("NameLine", Some(NS_XNL));
 
-    fn read_eml(elem: &mut crate::io::EMLElementReader<'_, '_>) -> Result<Self, crate::EMLError> {
+    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         let name_type = elem.attribute_value_req("NameType")?;
         if name_type.as_ref() != "Initials" {
             let err = EMLError::invalid_value(
@@ -275,7 +291,7 @@ impl EMLElement for NameLineInitials {
         })
     }
 
-    fn write_eml(&self, writer: crate::io::EMLElementWriter) -> Result<(), crate::EMLError> {
+    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         writer
             .attr("NameType", "Initials")?
             .attr_opt("Type", self.name_line_type.as_ref())?
@@ -335,7 +351,7 @@ impl FirstName {
 impl EMLElement for FirstName {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("FirstName", Some(NS_XNL));
 
-    fn read_eml(elem: &mut crate::io::EMLElementReader<'_, '_>) -> Result<Self, crate::EMLError> {
+    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         Ok(FirstName {
             value: elem.text_without_children()?,
             first_name_type: elem.attribute_value("Type")?.map(|s| s.into_owned()),
@@ -344,7 +360,7 @@ impl EMLElement for FirstName {
         })
     }
 
-    fn write_eml(&self, writer: crate::io::EMLElementWriter) -> Result<(), crate::EMLError> {
+    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         writer
             .attr_opt("Type", self.first_name_type.as_ref())?
             .attr_opt("NameType", self.name_type.as_ref())?
@@ -404,7 +420,7 @@ impl NamePrefix {
 impl EMLElement for NamePrefix {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("NamePrefix", Some(NS_XNL));
 
-    fn read_eml(elem: &mut crate::io::EMLElementReader<'_, '_>) -> Result<Self, crate::EMLError> {
+    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         Ok(NamePrefix {
             value: elem.text_without_children()?,
             name_prefix_type: elem.attribute_value("Type")?.map(|s| s.into_owned()),
@@ -413,7 +429,7 @@ impl EMLElement for NamePrefix {
         })
     }
 
-    fn write_eml(&self, writer: crate::io::EMLElementWriter) -> Result<(), crate::EMLError> {
+    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         writer
             .attr_opt("Type", self.name_prefix_type.as_ref())?
             .attr_opt("NameType", self.name_type.as_ref())?
@@ -473,7 +489,7 @@ impl LastName {
 impl EMLElement for LastName {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("LastName", Some(NS_XNL));
 
-    fn read_eml(elem: &mut crate::io::EMLElementReader<'_, '_>) -> Result<Self, crate::EMLError> {
+    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         Ok(LastName {
             value: elem.text_without_children()?,
             last_name_type: elem.attribute_value("Type")?.map(|s| s.into_owned()),
@@ -482,7 +498,7 @@ impl EMLElement for LastName {
         })
     }
 
-    fn write_eml(&self, writer: crate::io::EMLElementWriter) -> Result<(), crate::EMLError> {
+    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         writer
             .attr_opt("Type", self.last_name_type.as_ref())?
             .attr_opt("NameType", self.name_type.as_ref())?

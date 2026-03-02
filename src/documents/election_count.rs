@@ -16,8 +16,8 @@ use crate::{
         QualifiedName, collect_struct,
     },
     utils::{
-        AffiliationId, ElectionCategory, ElectionId, ElectionSubcategory, Gender, StringValue,
-        XsDate, XsDateTime,
+        AffiliationId, CandidateId, ElectionCategory, ElectionId, ElectionSubcategory, Gender,
+        StringValue, XsDate, XsDateTime,
     },
 };
 
@@ -989,7 +989,7 @@ fn selections_per_affiliation(
                         valid_votes: cas
                             .valid_votes
                             .copied_value()
-                            .wrap_value_error(VALID_VOTES_EML_NAME)?,
+                            .wrap_field_value_error(VALID_VOTES_EML_NAME)?,
                         candidates: current_candidates,
                     });
                 }
@@ -1009,7 +1009,7 @@ fn selections_per_affiliation(
                     valid_votes: selection
                         .valid_votes
                         .copied_value()
-                        .wrap_value_error(VALID_VOTES_EML_NAME)?,
+                        .wrap_field_value_error(VALID_VOTES_EML_NAME)?,
                 });
             }
             // Referendum option selections should not be encountered at all.
@@ -1026,7 +1026,7 @@ fn selections_per_affiliation(
             valid_votes: cas
                 .valid_votes
                 .copied_value()
-                .wrap_value_error(VALID_VOTES_EML_NAME)?,
+                .wrap_field_value_error(VALID_VOTES_EML_NAME)?,
             candidates: current_candidates,
         });
     }
@@ -1749,6 +1749,23 @@ impl CandidateSelection {
     /// Create a new builder for building an instance.
     pub fn builder() -> CandidateSelectionBuilder {
         CandidateSelectionBuilder::new()
+    }
+}
+
+impl From<CandidateIdentifier> for CandidateSelection {
+    fn from(identifier: CandidateIdentifier) -> Self {
+        CandidateSelection {
+            identifier,
+            name: None,
+            gender: None,
+            qualifying_address: None,
+        }
+    }
+}
+
+impl From<CandidateId> for CandidateSelection {
+    fn from(id: CandidateId) -> Self {
+        CandidateSelection::from(CandidateIdentifier::from(id))
     }
 }
 

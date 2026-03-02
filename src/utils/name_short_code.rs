@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 use thiserror::Error;
 
-use crate::utils::StringValueData;
+use crate::{EMLError, EMLValueResultExt as _, utils::StringValueData};
 
 /// Regular expression for validating NameShortCode values.
 static NAME_SHORT_CODE_RE: LazyLock<Regex> = LazyLock::new(|| {
@@ -19,8 +19,8 @@ pub struct NameShortCode(String);
 
 impl NameShortCode {
     /// Create a new NameShortCode from a string, validating its format
-    pub fn new(s: impl AsRef<str>) -> Result<Self, InvalidNameShortCodeError> {
-        StringValueData::parse_from_str(s.as_ref())
+    pub fn new(s: impl AsRef<str>) -> Result<Self, EMLError> {
+        StringValueData::parse_from_str(s.as_ref()).wrap_value_error()
     }
 
     /// Get the raw string value of the NameShortCode.

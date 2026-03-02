@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use regex::Regex;
 use thiserror::Error;
 
-use crate::utils::StringValueData;
+use crate::{EMLError, EMLValueResultExt, utils::StringValueData};
 
 /// Regular expression for validating ReportingUnitIdentifier id values.
 static REPORTING_UNIT_IDENTIFIER_ID_RE: LazyLock<Regex> = LazyLock::new(|| {
@@ -18,8 +18,8 @@ pub struct ReportingUnitIdentifierId(String);
 
 impl ReportingUnitIdentifierId {
     /// Create a new ReportingUnitIdentifierId from a string, validating its format
-    pub fn new(s: impl AsRef<str>) -> Result<Self, InvalidReportingUnitIdentifierIdError> {
-        StringValueData::parse_from_str(s.as_ref())
+    pub fn new(s: impl AsRef<str>) -> Result<Self, EMLError> {
+        StringValueData::parse_from_str(s.as_ref()).wrap_value_error()
     }
 
     /// Get the raw string value of the ReportingUnitIdentifierId.

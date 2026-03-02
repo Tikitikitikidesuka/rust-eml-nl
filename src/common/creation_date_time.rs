@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use crate::{
-    EMLError, NS_KR,
+    EMLError, EMLValueResultExt, NS_KR,
     io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName},
     utils::{StringValue, XsDateTime},
 };
@@ -25,7 +25,8 @@ impl CreationDateTime {
     pub fn value(&self) -> Result<XsDateTime, EMLError> {
         Ok(self
             .0
-            .value_err(("CreationDateTime", NS_KR), None)?
+            .value_err()
+            .wrap_field_value_error(("CreationDateTime", NS_KR))?
             .into_owned())
     }
 }

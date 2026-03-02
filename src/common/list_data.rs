@@ -3,8 +3,8 @@ use std::num::NonZeroU64;
 use thiserror::Error;
 
 use crate::{
-    NS_KR,
-    io::{EMLElement, QualifiedName, collect_struct},
+    EMLError, EMLValueResultExt, NS_KR,
+    io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName, collect_struct},
     utils::{ContestId, PublicationLanguage, StringValue, StringValueData},
 };
 
@@ -79,7 +79,7 @@ impl ListData {
 impl EMLElement for ListData {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("ListData", Some(NS_KR));
 
-    fn read_eml(elem: &mut crate::io::EMLElementReader<'_, '_>) -> Result<Self, crate::EMLError> {
+    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         let publish_gender = elem.string_value_attr("PublishGender", None)?;
         let publication_language = elem.string_value_attr_opt("PublicationLanguage")?;
         let belongs_to_set = elem.string_value_attr_opt("BelongsToSet")?;
@@ -114,7 +114,7 @@ impl EMLElement for ListData {
         })
     }
 
-    fn write_eml(&self, writer: crate::io::EMLElementWriter) -> Result<(), crate::EMLError> {
+    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         let writer = writer
             .attr("PublishGender", &self.publish_gender.raw())?
             .attr_opt(
@@ -173,17 +173,14 @@ impl ListDataContest {
 impl EMLElement for ListDataContest {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("Contest", Some(NS_KR));
 
-    fn read_eml(elem: &mut crate::io::EMLElementReader<'_, '_>) -> Result<Self, crate::EMLError>
-    where
-        Self: Sized,
-    {
+    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         Ok(ListDataContest {
             id: elem.string_value_attr("Id", None)?,
             name: elem.text_without_children_opt()?,
         })
     }
 
-    fn write_eml(&self, writer: crate::io::EMLElementWriter) -> Result<(), crate::EMLError> {
+    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         let writer = writer.attr("Id", &self.id.raw())?;
 
         if let Some(name) = &self.name {
@@ -200,10 +197,8 @@ pub struct ListDataBelongsToCombination(String);
 
 impl ListDataBelongsToCombination {
     /// Create a new `ListDataBelongsToCombination` with the given combination identifier.
-    pub fn new(
-        combination_id: impl AsRef<str>,
-    ) -> Result<Self, InvalidListDataBelongsToCombinationError> {
-        ListDataBelongsToCombination::parse_from_str(combination_id.as_ref())
+    pub fn new(combination_id: impl AsRef<str>) -> Result<Self, EMLError> {
+        ListDataBelongsToCombination::parse_from_str(combination_id.as_ref()).wrap_value_error()
     }
 
     /// Get the raw string value of this combination.

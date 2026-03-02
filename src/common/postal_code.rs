@@ -1,5 +1,5 @@
 use crate::{
-    NS_XAL,
+    EMLError, NS_XAL,
     io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName, collect_struct},
 };
 
@@ -65,14 +65,14 @@ impl From<&str> for PostalCode {
 impl EMLElement for PostalCode {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("PostalCode", Some(NS_XAL));
 
-    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, crate::EMLError> {
+    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         Ok(collect_struct!(elem, PostalCode {
             number: PostalCodeNumber::EML_NAME => |elem| PostalCodeNumber::read_eml(elem)?,
             postal_code_type: elem.attribute_value("Type")?.map(|s| s.into_owned()),
         }))
     }
 
-    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), crate::EMLError> {
+    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         writer
             .attr_opt("Type", self.postal_code_type.as_ref())?
             .child_elem(PostalCodeNumber::EML_NAME, &self.number)?
@@ -95,7 +95,7 @@ impl EMLElement for PostalCodeNumber {
     const EML_NAME: QualifiedName<'_, '_> =
         QualifiedName::from_static("PostalCodeNumber", Some(NS_XAL));
 
-    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, crate::EMLError> {
+    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         let number_type = elem.attribute_value("Type")?.map(|s| s.into_owned());
         let code = elem.attribute_value("Code")?.map(|s| s.into_owned());
         let number = elem.text_without_children()?;
@@ -106,7 +106,7 @@ impl EMLElement for PostalCodeNumber {
         })
     }
 
-    fn write_eml(&self, mut writer: EMLElementWriter) -> Result<(), crate::EMLError> {
+    fn write_eml(&self, mut writer: EMLElementWriter) -> Result<(), EMLError> {
         if let Some(number_type) = &self.number_type {
             writer = writer.attr("Type", number_type.as_ref())?
         }

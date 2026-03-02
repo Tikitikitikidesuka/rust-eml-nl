@@ -86,6 +86,10 @@ pub enum EMLErrorKind {
         #[source] Box<dyn std::error::Error + Send + Sync + 'static>,
     ),
 
+    /// An error occurred while converting a value to the parsed type
+    #[error("Error converting value: {0}")]
+    ValueConversionError(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+
     /// Attributes cannot have the default namespace
     #[error("Attributes cannot have the default namespace")]
     AttributeNamespaceError,
@@ -147,7 +151,16 @@ pub enum EMLErrorKind {
     /// A candidate was found without an affiliation, which is not allowed.
     #[error("A candidate without affiliation was found")]
     CandidateWithoutAffiliationFound,
+
+    /// A custom error with something that can be displayed
+    #[error("Custom error: {0}")]
+    Custom(Box<dyn CustomError>),
 }
+
+/// Custom error type that can be used in EMLErrorKind::Custom
+pub trait CustomError: std::fmt::Display + std::fmt::Debug + Send + Sync + 'static {}
+
+impl<T> CustomError for T where T: std::fmt::Display + std::fmt::Debug + Send + Sync + 'static {}
 
 impl EMLErrorKind {
     /// Adds span information to the error.
@@ -217,6 +230,11 @@ impl EMLError {
         } else {
             EMLError::UnknownPosition { kind }
         }
+    }
+
+    /// Create a new custom error.
+    pub fn custom(source: impl CustomError) -> Self {
+        EMLErrorKind::Custom(Box::new(source)).without_span()
     }
 
     /// Create an EMLError from a list of errors.
@@ -309,16 +327,29 @@ where
 /// Extension trait for Result to add context to EMLError for errors that can be
 /// converted into EMLErrorKind::InvalidValue.
 pub(crate) trait EMLValueResultExt<T> {
-    /// Adds span information to the error if it occurs.
-    fn wrap_value_error(self, element_name: impl Into<OwnedQualifiedName>) -> Result<T, EMLError>;
+    /// Convert the error into an EMLError with context about the field that caused the error.
+    fn wrap_field_value_error(
+        self,
+        element_name: impl Into<OwnedQualifiedName>,
+    ) -> Result<T, EMLError>;
+
+    /// Convert the error into an EMLError that the value is invalid.
+    fn wrap_value_error(self) -> Result<T, EMLError>;
 }
 
 impl<T, I> EMLValueResultExt<T> for Result<T, I>
 where
     I: std::error::Error + Send + Sync + 'static,
 {
-    fn wrap_value_error(self, element_name: impl Into<OwnedQualifiedName>) -> Result<T, EMLError> {
+    fn wrap_field_value_error(
+        self,
+        element_name: impl Into<OwnedQualifiedName>,
+    ) -> Result<T, EMLError> {
         self.map_err(|e| EMLError::invalid_value(element_name.into(), Box::new(e), None))
+    }
+
+    fn wrap_value_error(self) -> Result<T, EMLError> {
+        self.map_err(|e| EMLErrorKind::ValueConversionError(Box::new(e)).without_span())
     }
 }
 

@@ -1,5 +1,6 @@
 use crate::{
-    io::EMLElement,
+    EMLError, NS_EML,
+    io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName},
     utils::{ReportingUnitIdentifierId, StringValue},
 };
 
@@ -23,16 +24,16 @@ impl ReportingUnitIdentifier {
 }
 
 impl EMLElement for ReportingUnitIdentifier {
-    const EML_NAME: crate::io::QualifiedName<'_, '_> =
-        crate::io::QualifiedName::from_static("ReportingUnitIdentifier", Some(crate::NS_EML));
+    const EML_NAME: QualifiedName<'_, '_> =
+        QualifiedName::from_static("ReportingUnitIdentifier", Some(NS_EML));
 
-    fn read_eml(elem: &mut crate::io::EMLElementReader<'_, '_>) -> Result<Self, crate::EMLError> {
+    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         let name = elem.text_without_children()?;
         let id = elem.string_value_attr("Id", None)?;
         Ok(ReportingUnitIdentifier { id, name })
     }
 
-    fn write_eml(&self, writer: crate::io::EMLElementWriter) -> Result<(), crate::EMLError> {
+    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         writer
             .attr("Id", self.id.raw().as_ref())?
             .text(self.name.as_ref())?

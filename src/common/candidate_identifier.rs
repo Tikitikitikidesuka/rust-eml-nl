@@ -1,8 +1,8 @@
 use std::num::NonZeroU64;
 
 use crate::{
-    NS_EML,
-    io::{EMLElement, collect_struct},
+    EMLError, NS_EML,
+    io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName, collect_struct},
     utils::{CandidateId, NameShortCode, StringValue},
 };
 
@@ -63,10 +63,10 @@ impl From<CandidateId> for CandidateIdentifier {
 }
 
 impl EMLElement for CandidateIdentifier {
-    const EML_NAME: crate::io::QualifiedName<'_, '_> =
-        crate::io::QualifiedName::from_static("CandidateIdentifier", Some(NS_EML));
+    const EML_NAME: QualifiedName<'_, '_> =
+        QualifiedName::from_static("CandidateIdentifier", Some(NS_EML));
 
-    fn read_eml(elem: &mut crate::io::EMLElementReader<'_, '_>) -> Result<Self, crate::EMLError> {
+    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         let id = elem.string_value_attr("Id", None)?;
         let display_order = elem.string_value_attr_opt("DisplayOrder")?;
         let short_code = elem.string_value_attr_opt("ShortCode")?;
@@ -93,7 +93,7 @@ impl EMLElement for CandidateIdentifier {
         })
     }
 
-    fn write_eml(&self, writer: crate::io::EMLElementWriter) -> Result<(), crate::EMLError> {
+    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         writer
             .attr("Id", &self.id.raw())?
             .attr_opt("DisplayOrder", self.display_order.as_ref().map(|v| v.raw()))?

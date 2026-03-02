@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::utils::StringValueData;
+use crate::{EMLError, EMLValueResultExt as _, utils::StringValueData};
 
 /// Voting method used in the election.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -38,6 +38,11 @@ pub enum VotingMethod {
 }
 
 impl VotingMethod {
+    /// Create a new VotingMethod from a string, validating its format.
+    pub fn new(s: impl AsRef<str>) -> Result<Self, EMLError> {
+        Self::from_eml_value(s).wrap_value_error()
+    }
+
     /// Create a VotingMethod from a `&str`, if possible.
     pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, UnknownVotingMethodError> {
         let data = s.as_ref();

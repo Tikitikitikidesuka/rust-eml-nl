@@ -6,7 +6,7 @@ use regex::Regex;
 use thiserror::Error;
 
 use crate::{
-    EML_SCHEMA_VERSION, EMLError, NS_EML, NS_KR,
+    EML_SCHEMA_VERSION, EMLError, EMLValueResultExt, NS_EML, NS_KR,
     common::{
         CanonicalizationMethod, ContestIdentifier, ContestIdentifierGeen, CreationDateTime,
         ElectionDomain, IssueDate, LocalityName, ManagingAuthority, PostalCode,
@@ -798,8 +798,13 @@ impl PollingPlaceBuilder {
     }
 
     /// Set the additional data of the polling station at the polling place.
-    pub fn polling_station_data(mut self, data: impl Into<String>) -> Self {
-        self.polling_station_data = Some(data.into());
+    pub fn polling_station_data(self, data: impl Into<String>) -> Self {
+        self.polling_station_data_option(Some(data))
+    }
+
+    /// Set the additional data of the polling station at the polling place, if present.
+    pub fn polling_station_data_option(mut self, data: Option<impl Into<String>>) -> Self {
+        self.polling_station_data = data.map(|d| d.into());
         self
     }
 
@@ -926,8 +931,11 @@ impl EMLElement for PhysicalLocationAddress {
 /// Locality of a physical location.
 #[derive(Debug, Clone)]
 pub struct PhysicalLocationLocality {
-    locality_name: LocalityName,
-    postal_code: Option<PostalCode>,
+    /// Name of the locality.
+    pub locality_name: LocalityName,
+
+    /// Postal code of the locality.
+    pub postal_code: Option<PostalCode>,
 }
 
 impl EMLElement for PhysicalLocationLocality {
@@ -978,13 +986,24 @@ impl EMLElement for PhysicalLocationPollingStation {
 }
 
 /// Identifier for a physical location polling station.
-#[derive(Debug, Clone)]
-pub struct PhysicalLocationPollingStationId(String);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PhysicalLocationPollingStationId(u64);
 
 impl PhysicalLocationPollingStationId {
     /// Create a new physical location polling station id from the given string, returning an error if the string is not a valid id.
-    pub fn new(s: impl AsRef<str>) -> Result<Self, PhysicalLocationPollingStationIdError> {
-        Self::parse_from_str(s.as_ref())
+    pub fn new(s: impl AsRef<str>) -> Result<Self, EMLError> {
+        Self::parse_from_str(s.as_ref()).wrap_value_error()
+    }
+
+    /// Get the value of the physical location polling station id as a u64.
+    pub fn value(&self) -> u64 {
+        self.0
+    }
+}
+
+impl From<u64> for PhysicalLocationPollingStationId {
+    fn from(value: u64) -> Self {
+        PhysicalLocationPollingStationId(value)
     }
 }
 
@@ -1006,14 +1025,16 @@ impl StringValueData for PhysicalLocationPollingStationId {
         Self: Sized,
     {
         if PHYSICAL_LOCATION_PS_ID.is_match(s) {
-            Ok(PhysicalLocationPollingStationId(s.to_string()))
+            Ok(PhysicalLocationPollingStationId(s.parse::<u64>().map_err(
+                |_| PhysicalLocationPollingStationIdError(s.to_string()),
+            )?))
         } else {
             Err(PhysicalLocationPollingStationIdError(s.to_string()))
         }
     }
 
     fn to_raw_value(&self) -> String {
-        self.0.clone()
+        self.0.to_string()
     }
 }
 

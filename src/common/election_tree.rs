@@ -1,6 +1,6 @@
 use crate::{
-    NS_KR,
-    io::{EMLElement, QualifiedName, collect_struct},
+    EMLError, NS_KR,
+    io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName, collect_struct},
 };
 
 /// Election tree as defined in EML_NL.
@@ -28,16 +28,13 @@ impl From<Vec<ElectionTreeRegion>> for ElectionTree {
 impl EMLElement for ElectionTree {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("ElectionTree", Some(NS_KR));
 
-    fn read_eml(elem: &mut crate::io::EMLElementReader<'_, '_>) -> Result<Self, crate::EMLError>
-    where
-        Self: Sized,
-    {
+    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         Ok(collect_struct!(elem, ElectionTree {
             regions as Vec: ElectionTreeRegion::EML_NAME => |elem| ElectionTreeRegion::read_eml(elem)?,
         }))
     }
 
-    fn write_eml(&self, writer: crate::io::EMLElementWriter) -> Result<(), crate::EMLError> {
+    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         writer
             .child_elems(ElectionTreeRegion::EML_NAME, &self.regions)?
             .finish()
@@ -51,16 +48,13 @@ pub struct ElectionTreeRegion {}
 impl EMLElement for ElectionTreeRegion {
     const EML_NAME: QualifiedName<'_, '_> = QualifiedName::from_static("Region", Some(NS_KR));
 
-    fn read_eml(elem: &mut crate::io::EMLElementReader<'_, '_>) -> Result<Self, crate::EMLError>
-    where
-        Self: Sized,
-    {
+    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         // TODO: handle election tree region
         elem.skip()?;
         Ok(ElectionTreeRegion {})
     }
 
-    fn write_eml(&self, writer: crate::io::EMLElementWriter) -> Result<(), crate::EMLError> {
+    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         // TODO: write election tree region
         writer.empty()
     }

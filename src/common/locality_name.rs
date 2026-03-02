@@ -1,5 +1,5 @@
 use crate::{
-    NS_XAL,
+    EMLError, NS_XAL,
     io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName},
 };
 
@@ -53,7 +53,7 @@ impl EMLElement for LocalityName {
     const EML_NAME: QualifiedName<'_, '_> =
         QualifiedName::from_static("LocalityName", Some(NS_XAL));
 
-    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, crate::EMLError> {
+    fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         Ok(LocalityName {
             name: elem.text_without_children()?,
             locality_type: elem.attribute_value("Type")?.map(|s| s.into_owned()),
@@ -61,7 +61,7 @@ impl EMLElement for LocalityName {
         })
     }
 
-    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), crate::EMLError> {
+    fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         let mut writer = writer;
         if let Some(ref locality_type) = self.locality_type {
             writer = writer.attr("Type", locality_type)?;

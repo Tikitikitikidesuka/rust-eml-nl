@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::utils::StringValueData;
+use crate::{EMLError, EMLValueResultExt as _, utils::StringValueData};
 
 /// Election category used in the election.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -34,6 +34,11 @@ pub enum ElectionCategory {
 }
 
 impl ElectionCategory {
+    /// Create a new ElectionCategory from a string, validating its format
+    pub fn new(s: impl AsRef<str>) -> Result<Self, EMLError> {
+        Self::from_eml_value(s).wrap_value_error()
+    }
+
     /// Create an [`ElectionCategory`] from a `&str`, if possible.
     pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, UnknownElectionCategoryError> {
         let data = s.as_ref();
@@ -133,6 +138,11 @@ pub enum ElectionSubcategory {
 }
 
 impl ElectionSubcategory {
+    /// Create a new ElectionSubcategory from a string, validating its format
+    pub fn new(s: impl AsRef<str>) -> Result<Self, EMLError> {
+        Self::from_eml_value(s).wrap_value_error()
+    }
+
     /// Create a ElectionSubcategory from a `&str`, if possible.
     pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, UnknownElectionSubcategoryError> {
         let data = s.as_ref();

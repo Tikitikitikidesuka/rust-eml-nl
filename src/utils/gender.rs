@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::utils::StringValueData;
+use crate::{EMLError, EMLValueResultExt as _, utils::StringValueData};
 
 /// Gender of a candidate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -14,6 +14,11 @@ pub enum Gender {
 }
 
 impl Gender {
+    /// Create a new Gender from a string, validating its format.
+    pub fn new(s: impl AsRef<str>) -> Result<Self, EMLError> {
+        Self::from_eml_value(s).wrap_value_error()
+    }
+
     /// Create a Gender from a `&str`, if possible.
     pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, UnknownGenderError> {
         let data = s.as_ref();

@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use crate::{
-    EMLError, NS_EML,
+    EMLError, EMLValueResultExt, NS_EML,
     io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName},
     utils::StringValue,
 };
@@ -28,8 +28,15 @@ impl TransactionId {
     pub fn value(&self) -> Result<u64, EMLError> {
         Ok(self
             .0
-            .value_err(("TransactionId", NS_EML), None)?
+            .value_err()
+            .wrap_field_value_error(("TransactionId", NS_EML))?
             .into_owned())
+    }
+}
+
+impl From<u64> for TransactionId {
+    fn from(value: u64) -> Self {
+        TransactionId(StringValue::from_value(value))
     }
 }
 

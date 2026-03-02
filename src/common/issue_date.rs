@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use crate::{
-    NS_EML,
+    EMLValueResultExt, NS_EML,
     error::EMLError,
     io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName},
     utils::{StringValue, XsDateOrDateTime},
@@ -26,7 +26,11 @@ impl IssueDate {
 
     /// Get the parsed XsDateOrDateTime value of the issue date.
     pub fn value(&self) -> Result<XsDateOrDateTime, EMLError> {
-        Ok(self.0.value_err(IssueDate::EML_NAME, None)?.into_owned())
+        Ok(self
+            .0
+            .value_err()
+            .wrap_field_value_error(IssueDate::EML_NAME)?
+            .into_owned())
     }
 }
 

@@ -260,6 +260,21 @@ impl From<XsDateTime> for XsDateOrDateTime {
     }
 }
 
+impl From<NaiveDate> for XsDateOrDateTime {
+    fn from(value: NaiveDate) -> Self {
+        XsDateOrDateTime::Date(XsDate::new(value))
+    }
+}
+
+impl<T> From<DateTime<T>> for XsDateOrDateTime
+where
+    T: TimeZone,
+{
+    fn from(value: DateTime<T>) -> Self {
+        XsDateOrDateTime::DateTime(XsDateTime::new(value))
+    }
+}
+
 impl FromStr for XsDateOrDateTime {
     type Err = chrono::ParseError;
 
