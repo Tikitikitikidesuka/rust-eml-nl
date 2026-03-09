@@ -6,9 +6,7 @@ use crate::{
     EML_SCHEMA_VERSION, EMLError, EMLErrorKind, EMLResultExt as _, NS_EML,
     common::ElectionDomain,
     documents::{
-        candidate_lists::{
-            CandidateLists, CandidateListsElectionIdentifier, EML_CANDIDATE_LISTS_ID,
-        },
+        candidate_lists::{CandidateLists, CandidateListsElectionIdentifier, CandidateListsType},
         election_count::{CountType, ElectionCount, ElectionCountElectionIdentifier},
         election_definition::{
             EML_ELECTION_DEFINITION_ID, ElectionDefinition, ElectionDefinitionElectionIdentifier,
@@ -58,7 +56,7 @@ impl EML {
         match self {
             EML::ElectionDefinition(_) => EML_ELECTION_DEFINITION_ID,
             EML::PollingStations(_) => EML_POLLING_STATIONS_ID,
-            EML::CandidateLists(_) => EML_CANDIDATE_LISTS_ID,
+            EML::CandidateLists(cl) => cl.lists_type.to_eml_id(),
             EML::ElectionCount(c) => c.count_type.to_eml_id(),
             EML::ElectionResult(_) => EML_ELECTION_RESULT_ID,
         }
@@ -69,7 +67,7 @@ impl EML {
         match self {
             EML::ElectionDefinition(_) => "Election Definition",
             EML::PollingStations(_) => "Polling Stations",
-            EML::CandidateLists(_) => "Candidate Lists",
+            EML::CandidateLists(cl) => cl.lists_type.to_friendly_name(),
             EML::ElectionCount(c) => c.count_type.to_friendly_name(),
             EML::ElectionResult(_) => "Result",
         }
@@ -180,11 +178,11 @@ impl EMLElement for EML {
             EML_POLLING_STATIONS_ID => {
                 EML::PollingStations(Box::new(PollingStations::read_eml(elem)?))
             }
-            EML_CANDIDATE_LISTS_ID => {
-                EML::CandidateLists(Box::new(CandidateLists::read_eml(elem)?))
-            }
             EML_ELECTION_RESULT_ID => {
                 EML::ElectionResult(Box::new(ElectionResult::read_eml(elem)?))
+            }
+            id if CandidateListsType::is_valid_eml_id(id) => {
+                EML::CandidateLists(Box::new(CandidateLists::read_eml(elem)?))
             }
             id if CountType::is_valid_eml_id(id) => {
                 EML::ElectionCount(Box::new(ElectionCount::read_eml(elem)?))
@@ -204,6 +202,36 @@ impl EMLElement for EML {
             EML::ElectionCount(c) => c.write_eml(writer),
             EML::ElectionResult(r) => r.write_eml(writer),
         }
+    }
+}
+
+impl From<ElectionDefinition> for EML {
+    fn from(ed: ElectionDefinition) -> Self {
+        EML::from_election_definition_doc(ed)
+    }
+}
+
+impl From<PollingStations> for EML {
+    fn from(ps: PollingStations) -> Self {
+        EML::from_polling_stations_doc(ps)
+    }
+}
+
+impl From<CandidateLists> for EML {
+    fn from(cl: CandidateLists) -> Self {
+        EML::from_candidate_lists_doc(cl)
+    }
+}
+
+impl From<ElectionCount> for EML {
+    fn from(count: ElectionCount) -> Self {
+        EML::from_count_doc(count)
+    }
+}
+
+impl From<ElectionResult> for EML {
+    fn from(result: ElectionResult) -> Self {
+        EML::from_result_doc(result)
     }
 }
 

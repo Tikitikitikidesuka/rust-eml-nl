@@ -13,7 +13,7 @@ use crate::{
         ElectionIdentifierBuilder, accepted_root, validate_category_and_subcategory,
         validate_election_and_nomination_dates,
     },
-    error::{EMLErrorKind, EMLResultExt},
+    error::EMLErrorKind,
     io::{
         EMLElement, EMLElementReader, EMLElementWriter, EMLReadElement as _, QualifiedName,
         collect_struct, write_eml_element,
@@ -24,11 +24,12 @@ use crate::{
     },
 };
 
-pub(crate) const EML_CANDIDATE_LISTS_ID: &str = "230b";
-
 /// Representing a `230b` document, containing the candidate lists.
 #[derive(Debug, Clone)]
 pub struct CandidateLists {
+    /// The type of the candidate lists document.
+    pub lists_type: CandidateListsType,
+
     /// Transaction id of the document.
     pub transaction_id: TransactionId,
 
@@ -85,6 +86,7 @@ impl TryFrom<CandidateLists> for String {
 /// Builder for the [`CandidateLists`] document.
 #[derive(Debug, Clone)]
 pub struct CandidateListsBuilder {
+    lists_type: Option<CandidateListsType>,
     transaction_id: Option<TransactionId>,
     managing_authority: Option<ManagingAuthority>,
     issue_date: Option<IssueDate>,
@@ -100,6 +102,7 @@ impl CandidateListsBuilder {
     /// Create a new builder for the [`CandidateLists`] document.
     pub fn new() -> Self {
         CandidateListsBuilder {
+            lists_type: None,
             transaction_id: None,
             managing_authority: None,
             issue_date: None,
@@ -110,6 +113,12 @@ impl CandidateListsBuilder {
             list_date: None,
             contests: vec![],
         }
+    }
+
+    /// Set the list type for the document.
+    pub fn lists_type(mut self, list_type: impl Into<CandidateListsType>) -> Self {
+        self.lists_type = Some(list_type.into());
+        self
     }
 
     /// Set the transaction id for the document.
@@ -204,6 +213,9 @@ impl CandidateListsBuilder {
     /// Build the `CandidateLists` document, returning an error if any required fields are missing.
     pub fn build(self) -> Result<CandidateLists, EMLError> {
         Ok(CandidateLists {
+            lists_type: self
+                .lists_type
+                .ok_or_else(|| EMLErrorKind::MissingBuildProperty("lists_type").without_span())?,
             transaction_id: self
                 .transaction_id
                 .ok_or(EMLErrorKind::MissingBuildProperty("transaction_id").without_span())?,
@@ -255,15 +267,11 @@ impl EMLElement for CandidateLists {
         accepted_root(elem)?;
 
         let document_id = elem.attribute_value_req(("Id", None))?;
-        if document_id != EML_CANDIDATE_LISTS_ID {
-            return Err(EMLErrorKind::InvalidDocumentType(
-                EML_CANDIDATE_LISTS_ID,
-                document_id.to_string(),
-            ))
-            .with_span(elem.span());
-        }
+        let candidate_lists_type = CandidateListsType::from_eml_id(document_id.as_ref())
+            .map_err(|e| e.into_kind().with_span(elem.span()))?;
 
         Ok(collect_struct!(elem, CandidateLists {
+            lists_type: candidate_lists_type,
             transaction_id: TransactionId::EML_NAME => |elem| TransactionId::read_eml(elem)?,
             managing_authority: ManagingAuthority::EML_NAME => |elem| ManagingAuthority::read_eml(elem)?,
             issue_date: IssueDate::EML_NAME => |elem| IssueDate::read_eml(elem)?,
@@ -275,7 +283,7 @@ impl EMLElement for CandidateLists {
 
     fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
         writer
-            .attr(("Id", None), EML_CANDIDATE_LISTS_ID)?
+            .attr(("Id", None), self.lists_type.to_eml_id())?
             .attr(("SchemaVersion", None), EML_SCHEMA_VERSION)?
             .child_elem(TransactionId::EML_NAME, &self.transaction_id)?
             .child_elem(ManagingAuthority::EML_NAME, &self.managing_authority)?
@@ -288,6 +296,59 @@ impl EMLElement for CandidateLists {
             // )?
             .child_elem(CandidateListsCandidateList::EML_NAME, &self.candidate_list)?
             .finish()
+    }
+}
+
+/// EML document ID for candidate lists of a single district.
+pub(crate) const EML_CANDIDATE_LISTS_SINGLE_ID: &str = "230b";
+
+/// EML document ID for candidate lists of multiple districts.
+pub(crate) const EML_CANDIDATE_LISTS_MULTIPLE_ID: &str = "230c";
+
+/// Type of CandidateLists document.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CandidateListsType {
+    /// Representing a `230b` document, containing the candidate lists for a single district.
+    Single,
+    /// Representing a `230c` document, containing the candidate lists for multiple districts.
+    Multiple,
+}
+
+impl CandidateListsType {
+    /// Create a CandidateListsType from an EML document ID string.
+    pub fn from_eml_id(s: impl AsRef<str>) -> Result<Self, EMLError> {
+        let data = s.as_ref();
+        match data {
+            EML_CANDIDATE_LISTS_SINGLE_ID => Ok(CandidateListsType::Single),
+            EML_CANDIDATE_LISTS_MULTIPLE_ID => Ok(CandidateListsType::Multiple),
+            _ => {
+                Err(EMLErrorKind::InvalidDocumentType("230b/230c", data.to_string()).without_span())
+            }
+        }
+    }
+
+    /// Get the EML document ID string for this CandidateListsType.
+    pub fn to_eml_id(&self) -> &'static str {
+        match self {
+            CandidateListsType::Single => EML_CANDIDATE_LISTS_SINGLE_ID,
+            CandidateListsType::Multiple => EML_CANDIDATE_LISTS_MULTIPLE_ID,
+        }
+    }
+
+    /// Get a friendly name for this CandidateListsType.
+    pub fn to_friendly_name(&self) -> &'static str {
+        match self {
+            CandidateListsType::Single => "Candidate Lists",
+            CandidateListsType::Multiple => "Candidate Lists Total",
+        }
+    }
+
+    /// Returns if the given EML document ID string is a valid CandidateListsType ID.
+    pub fn is_valid_eml_id(s: &str) -> bool {
+        matches!(
+            s,
+            EML_CANDIDATE_LISTS_SINGLE_ID | EML_CANDIDATE_LISTS_MULTIPLE_ID
+        )
     }
 }
 
@@ -1651,6 +1712,7 @@ mod tests {
     #[test]
     fn candidate_lists_construction() {
         let cl = CandidateLists::builder()
+            .lists_type(CandidateListsType::Single)
             .transaction_id(TransactionId::new(1))
             .managing_authority(ManagingAuthority::new(AuthorityId::new("1234").unwrap()))
             .issue_date(XsDate::from_date(2024, 6, 10).unwrap())
