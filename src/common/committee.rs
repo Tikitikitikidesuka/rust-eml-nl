@@ -5,9 +5,9 @@ use crate::{EMLError, NS_KR};
 /// Committee
 #[derive(Debug, Clone)]
 pub struct Committee {
-    category: CommitteeCategory,
-    name: Option<String>,
-    accept_central_submissions: Option<bool>,
+    pub category: CommitteeCategory,
+    pub name: Option<String>,
+    pub accept_central_submissions: Option<bool>,
 }
 
 impl Committee {
