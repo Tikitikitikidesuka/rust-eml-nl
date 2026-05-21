@@ -16,6 +16,8 @@ mod person_name;
 mod postal_code;
 mod reporting_unit_identifier;
 mod transaction_id;
+mod committee;
+mod committee_category;
 
 pub use candidate_identifier::*;
 pub use canonicalization_method::*;
