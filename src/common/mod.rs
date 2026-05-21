@@ -18,6 +18,8 @@ mod reporting_unit_identifier;
 mod transaction_id;
 mod committee;
 mod committee_category;
+mod region_category;
+mod region;
 
 pub use candidate_identifier::*;
 pub use canonicalization_method::*;
