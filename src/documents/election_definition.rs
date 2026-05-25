@@ -107,8 +107,7 @@ impl ElectionDefinitionBuilder {
             election_identifier: None,
             number_of_seats: None,
             preference_threshold: None,
-            // TODO: election tree not fully supported, defaulting to empty for now
-            election_tree: Some(ElectionTree::new(vec![])),
+            election_tree: None,
             registered_parties: vec![],
             contest_identifier: None,
             voting_method: None,
@@ -742,6 +741,7 @@ mod tests {
     use chrono::TimeZone as _;
 
     use crate::{
+        common::{Region, RegionCategory},
         io::{EMLParsingMode, EMLRead as _, EMLWrite},
         utils::AuthorityId,
     };
@@ -775,6 +775,10 @@ mod tests {
             .max_votes(NonZeroU64::new(100).unwrap())
             .number_of_seats(10u32)
             .preference_threshold(50u32)
+            .election_tree(ElectionTree::new(vec![Region::new(
+                "Region 1",
+                RegionCategory::GEMEENTE,
+            )]))
             .push_registered_party("Party a")
             .push_registered_party("Party one")
             .build()
