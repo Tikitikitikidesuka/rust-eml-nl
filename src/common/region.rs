@@ -1,19 +1,27 @@
 use crate::common::committee::Committee;
 use crate::common::region_category::RegionCategory;
 use crate::error::EMLValueResultExt as _;
-use crate::io::{collect_struct, EMLElement, EMLElementReader, EMLElementWriter, QualifiedName};
+use crate::io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName, collect_struct};
 use crate::{EMLError, NS_KR};
 
 /// Region
 #[derive(Debug, Clone)]
 pub struct Region {
+    /// The name of the region.
     pub name: String,
+    /// The committees in this region.
     pub committees: Vec<Committee>,
-    pub number: Option<u32>,
+    /// The number of the region.
+    pub number: Option<i16>,
+    /// The category of the region.
     pub category: RegionCategory,
+    /// TODO: Document
     pub roman_numerals: bool,
+    /// TODO: Document
     pub frysian_export_allowed: bool,
-    pub superior_region_number: Option<u16>,
+    /// The number of the superior region on the tree.
+    pub superior_region_number: Option<i16>,
+    /// The category of the superior region on the tree.
     pub superior_region_category: Option<RegionCategory>,
 }
 
@@ -33,7 +41,7 @@ impl Region {
     }
 
     /// Set the `RegionNumber` attribute of the `ElectionTreeRegion` element.
-    pub fn with_number(mut self, region_number: u32) -> Self {
+    pub fn with_number(mut self, region_number: i16) -> Self {
         self.number = Some(region_number);
         self
     }
@@ -51,7 +59,7 @@ impl Region {
     }
 
     /// Set the `SuperiorRegionNumber` attribute of the `ElectionTreeRegion` element.
-    pub fn with_superior_region_number(mut self, superior_region_number: u16) -> Self {
+    pub fn with_superior_region_number(mut self, superior_region_number: i16) -> Self {
         self.superior_region_number = Some(superior_region_number);
         self
     }
@@ -72,7 +80,7 @@ impl EMLElement for Region {
     fn read_eml(elem: &mut EMLElementReader<'_, '_>) -> Result<Self, EMLError> {
         let number = elem
             .attribute_value("RegionNumber")?
-            .map(|value| value.parse::<u32>())
+            .map(|value| value.parse::<i16>())
             .transpose()
             .wrap_value_error()?;
         let category = RegionCategory::new(elem.attribute_value_req("RegionCategory")?)?;
@@ -84,7 +92,7 @@ impl EMLElement for Region {
             .copied_value()?;
         let superior_region_number = elem
             .attribute_value("SuperiorRegionNumber")?
-            .map(|value| value.parse::<u16>())
+            .map(|value| value.parse::<i16>())
             .transpose()
             .wrap_value_error()?;
         let superior_region_category = elem
