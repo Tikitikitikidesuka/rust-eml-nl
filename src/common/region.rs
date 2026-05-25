@@ -2,7 +2,9 @@ use crate::common::committee::Committee;
 use crate::common::region_category::RegionCategory;
 use crate::error::EMLValueResultExt as _;
 use crate::io::{EMLElement, EMLElementReader, EMLElementWriter, QualifiedName, collect_struct};
-use crate::{EMLError, NS_KR};
+use crate::{EMLError, EMLErrorKind, NS_KR};
+
+const MAX_COMMITTEES: usize = 3;
 
 /// Region
 #[derive(Debug, Clone)]
@@ -100,16 +102,28 @@ impl EMLElement for Region {
             .map(RegionCategory::new)
             .transpose()?;
 
-        Ok(collect_struct!(elem, Region {
-            number: number,
-            category: category,
-            roman_numerals: roman_numerals,
-            frysian_export_allowed: frysian_export_allowed,
-            superior_region_number: superior_region_number,
-            superior_region_category: superior_region_category,
-            name: ("RegionName", NS_KR) => |elem| elem.text_without_children()?,
-            committees as Vec: Committee::EML_NAME => |elem| Committee::read_eml(elem)?,
-        }))
+        let region = collect_struct!(elem, Region {
+        number: number,
+        category: category,
+        roman_numerals: roman_numerals,
+        frysian_export_allowed: frysian_export_allowed,
+        superior_region_number: superior_region_number,
+        superior_region_category: superior_region_category,
+        name: ("RegionName", NS_KR) => |elem| elem.text_without_children()?,
+        committees as Vec: Committee::EML_NAME => |elem| Committee::read_eml(elem)?,
+            });
+
+        if region.committees.len() > MAX_COMMITTEES {
+            let err = EMLErrorKind::TooManyElements(Committee::EML_NAME.as_owned(), MAX_COMMITTEES)
+                .with_span(elem.full_span());
+            if elem.parsing_mode().is_strict() {
+                return Err(err);
+            } else {
+                elem.push_err(err);
+            }
+        }
+
+        Ok(region)
     }
 
     fn write_eml(&self, writer: EMLElementWriter) -> Result<(), EMLError> {
