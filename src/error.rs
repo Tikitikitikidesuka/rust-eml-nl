@@ -43,6 +43,10 @@ pub enum EMLErrorKind {
     #[error("Missing required element: {0}")]
     MissingElement(OwnedQualifiedName),
 
+    /// An element occurred more times than allowed
+    #[error("Too many elements: {0}, maximum {1}")]
+    TooManyElements(OwnedQualifiedName, usize),
+
     /// An element existed, but it was empty or had no text content
     #[error("Missing value for element: {0}")]
     MissingElementValue(OwnedQualifiedName),
