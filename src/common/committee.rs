@@ -5,8 +5,13 @@ use crate::{EMLError, NS_KR};
 /// Committee
 #[derive(Debug, Clone)]
 pub struct Committee {
+    /// Category of the committee.
     pub category: CommitteeCategory,
+
+    /// Optional committee name.
     pub name: Option<String>,
+
+    /// Whether the committee accepts central submissions.
     pub accept_central_submissions: Option<bool>,
 }
 
