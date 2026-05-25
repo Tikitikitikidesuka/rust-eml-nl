@@ -2,6 +2,8 @@
 
 mod candidate_identifier;
 mod canonicalization_method;
+mod committee;
+mod committee_category;
 mod contest_identifier;
 mod country_name_code;
 mod creation_date_time;
@@ -14,15 +16,15 @@ mod managing_authority;
 mod minimal_qualifying_address;
 mod person_name;
 mod postal_code;
+mod region;
+mod region_category;
 mod reporting_unit_identifier;
 mod transaction_id;
-mod committee;
-mod committee_category;
-mod region_category;
-mod region;
 
 pub use candidate_identifier::*;
 pub use canonicalization_method::*;
+pub use committee::*;
+pub use committee_category::*;
 pub use contest_identifier::*;
 pub use country_name_code::*;
 pub use creation_date_time::*;
@@ -35,5 +37,7 @@ pub use managing_authority::*;
 pub use minimal_qualifying_address::*;
 pub use person_name::*;
 pub use postal_code::*;
+pub use region::*;
+pub use region_category::*;
 pub use reporting_unit_identifier::*;
 pub use transaction_id::*;
