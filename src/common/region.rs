@@ -142,8 +142,9 @@ impl EMLElement for Region {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::EMLErrorKind;
     use crate::common::committee_category::CommitteeCategory;
-    use crate::io::{test_write_eml_element, test_xml_fragment, EMLParsingMode, EMLRead};
+    use crate::io::{EMLParsingMode, EMLRead, test_write_eml_element, test_xml_fragment};
 
     #[test]
     fn test_region_parsing() {
@@ -170,5 +171,24 @@ mod tests {
 
         let xml_output = test_write_eml_element(&region, &[NS_KR]).unwrap();
         assert_eq!(xml_output, xml);
+    }
+
+    #[test]
+    fn test_region_rejects_too_many_committees() {
+        let xml = test_xml_fragment(
+            r#"
+                <kr:Region xmlns:kr="http://www.kiesraad.nl/extensions" RegionCategory="GEMEENTE">
+                    <kr:RegionName>Region 1</kr:RegionName>
+                    <kr:Committee CommitteeCategory="CSB"/>
+                    <kr:Committee CommitteeCategory="HSB"/>
+                    <kr:Committee CommitteeCategory="PROV_SB"/>
+                    <kr:Committee CommitteeCategory="PSB"/>
+                </kr:Region>
+            "#,
+        );
+        let error = Region::parse_eml(&xml, EMLParsingMode::Strict)
+            .ok()
+            .unwrap_err();
+        assert!(matches!(error.kind(), EMLErrorKind::TooManyElements(_, 3)));
     }
 }
