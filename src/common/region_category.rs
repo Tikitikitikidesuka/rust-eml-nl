@@ -1,6 +1,6 @@
+use crate::EMLError;
 use crate::error::EMLValueResultExt;
 use crate::utils::StringValueData;
-use crate::EMLError;
 use thiserror::Error;
 
 /// Region category
