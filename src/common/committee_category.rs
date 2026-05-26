@@ -11,7 +11,7 @@ pub enum CommitteeCategory {
     /// Todo: Unknown meaning
     HSB,
     /// Todo: Unknown meaning
-    PROV_SB,
+    ProvSB,
     /// Todo: Unknown meaning
     PSB,
 }
@@ -28,7 +28,7 @@ impl CommitteeCategory {
         match data {
             "CSB" => Ok(Self::CSB),
             "HSB" => Ok(Self::HSB),
-            "PROV_SB" => Ok(Self::PROV_SB),
+            "PROV_SB" => Ok(Self::ProvSB),
             "PSB" => Ok(Self::PSB),
             _ => Err(UnknownCommitteeCategoryError(data.to_string())),
         }
@@ -39,7 +39,7 @@ impl CommitteeCategory {
         match self {
             CommitteeCategory::CSB => "CSB",
             CommitteeCategory::HSB => "HSB",
-            CommitteeCategory::PROV_SB => "PROV_SB",
+            CommitteeCategory::ProvSB => "PROV_SB",
             CommitteeCategory::PSB => "PSB",
         }
     }

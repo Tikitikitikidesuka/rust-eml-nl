@@ -777,7 +777,7 @@ mod tests {
             .preference_threshold(50u32)
             .election_tree(ElectionTree::new(vec![Region::new(
                 "Region 1",
-                RegionCategory::GEMEENTE,
+                RegionCategory::Gemeente,
             )]))
             .push_registered_party("Party a")
             .push_registered_party("Party one")

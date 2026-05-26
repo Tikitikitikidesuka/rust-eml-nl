@@ -7,27 +7,27 @@ use thiserror::Error;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RegionCategory {
     /// Todo: Unknown meaning
-    DEELGEMEENTE,
+    Deelgemeente,
     /// Todo: Unknown meaning
-    GEMEENTE,
+    Gemeente,
     /// Todo: Unknown meaning
-    KIESKRING,
+    Kieskring,
     /// Todo: Unknown meaning
-    PROVINCIE,
+    Provincie,
     /// Todo: Unknown meaning
-    PROVINCIAAL_KIESKRING,
+    ProvinciaalKieskring,
     /// Todo: Unknown meaning
-    PROVINCIAAL_STEMBUREAU,
+    ProvinciaalStembureau,
     /// Todo: Unknown meaning
-    STAAT,
+    Staat,
     /// Todo: Unknown meaning
-    STEMBUREAU,
+    Stembureau,
     /// Todo: Unknown meaning
-    WATERSCHAP,
+    Waterschap,
     /// Todo: Unknown meaning
-    WATERSCHAP_KIESKRING,
+    WaterschapKieskring,
     /// Todo: Unknown meaning
-    WATERSCHAP_GEMEENTE,
+    WaterschapGemeente,
 }
 
 impl RegionCategory {
@@ -40,17 +40,17 @@ impl RegionCategory {
     pub fn from_eml_value(s: impl AsRef<str>) -> Result<Self, UnknownRegionCategoryError> {
         let data = s.as_ref();
         match data {
-            "DEELGEMEENTE" => Ok(Self::DEELGEMEENTE),
-            "GEMEENTE" => Ok(Self::GEMEENTE),
-            "KIESKRING" => Ok(Self::KIESKRING),
-            "PROVINCIE" => Ok(Self::PROVINCIE),
-            "PROVINCIAAL_KIESKRING" => Ok(Self::PROVINCIAAL_KIESKRING),
-            "PROVINCIAAL_STEMBUREAU" => Ok(Self::PROVINCIAAL_STEMBUREAU),
-            "STAAT" => Ok(Self::STAAT),
-            "STEMBUREAU" => Ok(Self::STEMBUREAU),
-            "WATERSCHAP" => Ok(Self::WATERSCHAP),
-            "WATERSCHAP_KIESKRING" => Ok(Self::WATERSCHAP_KIESKRING),
-            "WATERSCHAP_GEMEENTE" => Ok(Self::WATERSCHAP_GEMEENTE),
+            "DEELGEMEENTE" => Ok(Self::Deelgemeente),
+            "GEMEENTE" => Ok(Self::Gemeente),
+            "KIESKRING" => Ok(Self::Kieskring),
+            "PROVINCIE" => Ok(Self::Provincie),
+            "PROVINCIAAL_KIESKRING" => Ok(Self::ProvinciaalKieskring),
+            "PROVINCIAAL_STEMBUREAU" => Ok(Self::ProvinciaalStembureau),
+            "STAAT" => Ok(Self::Staat),
+            "STEMBUREAU" => Ok(Self::Stembureau),
+            "WATERSCHAP" => Ok(Self::Waterschap),
+            "WATERSCHAP_KIESKRING" => Ok(Self::WaterschapKieskring),
+            "WATERSCHAP_GEMEENTE" => Ok(Self::WaterschapGemeente),
             _ => Err(UnknownRegionCategoryError(data.to_string())),
         }
     }
@@ -58,17 +58,17 @@ impl RegionCategory {
     /// Get the `&str` representation of this [`RegionCategory`].
     pub fn to_eml_value(&self) -> &'static str {
         match self {
-            RegionCategory::DEELGEMEENTE => "DEELGEMEENTE",
-            RegionCategory::GEMEENTE => "GEMEENTE",
-            RegionCategory::KIESKRING => "KIESKRING",
-            RegionCategory::PROVINCIE => "PROVINCIE",
-            RegionCategory::PROVINCIAAL_KIESKRING => "PROVINCIAAL_KIESKRING",
-            RegionCategory::PROVINCIAAL_STEMBUREAU => "PROVINCIAAL_STEMBUREAU",
-            RegionCategory::STAAT => "STAAT",
-            RegionCategory::STEMBUREAU => "STEMBUREAU",
-            RegionCategory::WATERSCHAP => "WATERSCHAP",
-            RegionCategory::WATERSCHAP_KIESKRING => "WATERSCHAP_KIESKRING",
-            RegionCategory::WATERSCHAP_GEMEENTE => "WATERSCHAP_GEMEENTE",
+            RegionCategory::Deelgemeente => "DEELGEMEENTE",
+            RegionCategory::Gemeente => "GEMEENTE",
+            RegionCategory::Kieskring => "KIESKRING",
+            RegionCategory::Provincie => "PROVINCIE",
+            RegionCategory::ProvinciaalKieskring => "PROVINCIAAL_KIESKRING",
+            RegionCategory::ProvinciaalStembureau => "PROVINCIAAL_STEMBUREAU",
+            RegionCategory::Staat => "STAAT",
+            RegionCategory::Stembureau => "STEMBUREAU",
+            RegionCategory::Waterschap => "WATERSCHAP",
+            RegionCategory::WaterschapKieskring => "WATERSCHAP_KIESKRING",
+            RegionCategory::WaterschapGemeente => "WATERSCHAP_GEMEENTE",
         }
     }
 }

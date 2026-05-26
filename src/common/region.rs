@@ -177,11 +177,11 @@ mod tests {
         assert_eq!(region.committees[0].category, CommitteeCategory::HSB);
         assert_eq!(region.committees[1].category, CommitteeCategory::PSB);
         assert_eq!(region.number, Some(1));
-        assert_eq!(region.category, RegionCategory::WATERSCHAP);
+        assert_eq!(region.category, RegionCategory::Waterschap);
         assert_eq!(region.roman_numerals, false);
         assert_eq!(region.frysian_export_allowed, false);
         assert_eq!(region.superior_region_number, Some(0));
-        assert_eq!(region.superior_region_category, Some(RegionCategory::STAAT));
+        assert_eq!(region.superior_region_category, Some(RegionCategory::Staat));
 
         let xml_output = test_write_eml_element(&region, &[NS_KR]).unwrap();
         assert_eq!(xml_output, xml);
